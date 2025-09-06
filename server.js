@@ -35,7 +35,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'https://bazukastore.onrender.com', // Use env variable or Render URL
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   },
@@ -46,7 +46,7 @@ app.set('io', io);
 
 // Global Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'https://bazukastore.onrender.com', // Dynamic CORS origin
   credentials: true,
 }));
 app.use(express.json());
