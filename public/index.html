@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bazuka Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs/lib/anime.iife.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #13AA52;      /* MongoDB Green */
+            --secondary-dark: #001E2B;     /* Dark background tone */
+            --accent-light: #E8F5E9;       /* Light mint background */
+            --neutral-gray: #4B5563;       /* Neutral gray for text */
+            --light-gray: #F1F3F2;         /* Subtle light gray */
+            --alert-red: #EF4444;          /* Keep red for errors */
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--accent-light);
+            color: var(--secondary-dark);
+        }
+        
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple:after {
+            content: "";
+            display: block;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10,10);
+            opacity: 0;
+            transition: transform .5s, opacity 1s;
+        }
+        
+        .ripple:active:after {
+            transform: scale(0,0);
+            opacity: .3;
+            transition: 0s;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .countdown-digit {
+            transition: all 0.3s ease;
+        }
+        
+        .countdown-digit.active {
+            color: var(--primary-green);
+            transform: scale(1.1);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            z-index: 50;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: #10B981;
+            color: white;
+        }
+
+        .toast.error {
+            background-color: var(--alert-red);
+            color: white;
+        }
+
+        /* Flash Deal Pulse */
+        .flash-deal-tag {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: var(--accent-light);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            transform: scale(0.7);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        @media (max-width: 640px) {
+            .modal-content {
+                width: 90%;
+                padding: 1rem;
+            }
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .modal-content a, .modal-content button {
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 2.5rem;
+        }
+
+        .modal-content a:hover, .modal-content button:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            cursor: pointer;
+            background: var(--light-gray);
+            border-radius: 50%;
+            padding: 0.25rem;
+        }
+
+        .modal-icon {
+            background: var(--light-gray);
+            border-radius: 50%;
+            padding: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Full-Screen Image Modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 60;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal.show {
+            display: flex;
+        }
+
+        .image-modal-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal-content img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .image-modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 1rem;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .image-modal-nav.prev {
+            left: 1rem;
+        }
+
+        .image-modal-nav.next {
+            right: 1rem;
+        }
+
+        .image-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        /* Shimmer Loading Styles */
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .shimmer-card {
+            background: #f0f0f0;
+            border-radius: 0.5rem;
+            height: 100%;
+        }
+
+        .shimmer-circle {
+            background: #f0f0f0;
+            border-radius: 50%;
+            height: 3rem;
+            width: 3rem;
+        }
+
+        /* Product Card Width Control */
+        .product-card {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        /* Product Image Container */
+        .product-image-container {
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+        }
+
+        /* Responsive Adjustments */
+        @media (min-width: 768px) {
+            .bottom-nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20 md:pb-0">
+    <!-- Top Navigation -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="text-2xl font-bold text-[var(--primary-green)]">Bazuka<span class="text-[var(--secondary-dark)]">Store</span></div>
+            </div>
+            
+            <div class="hidden md:flex flex-1 mx-6">
+                <div class="relative w-full max-w-md">
+                    <input type="text" id="desktop-search" placeholder="Search under ₦10k..." 
+                           class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)] focus:border-transparent">
+                    <i data-feather="search" class="absolute right-3 top-2.5 text-[var(--neutral-gray)]"></i>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-gray-100 ripple">
+                    <i data-feather="bell" class="text-[var(--neutral-gray)]"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sign-Up Modal -->
+    <div id="signup-modal" class="modal">
+        <div class="modal-content">
+            <i data-feather="x" class="modal-close w-6 h-6 text-[var(--neutral-gray)] hover:text-gray-700" id="close-modal"></i>
+            <i data-feather="user" class="w-8 h-8 text-[var(--primary-green)] mb-4 modal-icon"></i>
+            <p class="text-sm text-[var(--neutral-gray)] mb-4 font-medium sm:text-base">Join the Bazuka Store family! Sign up to save your cart, track orders, and unlock exclusive deals! 🎉</p>
+            <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <a href="/register.html" class="bg-white text-[var(--primary-green)] border border-[var(--primary-green)] px-4 py-2 rounded-full font-medium hover:bg-[var(--accent-light)] ripple">Sign Up</a>
+                <a href="/login.html" class="bg-white text-[var(--primary-green)] border border-[var(--primary-green)] px-4 py-2 rounded-full font-medium hover:bg-[var(--accent-light)] ripple">Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full-Screen Image Modal -->
+    <div id="image-modal" class="image-modal">
+        <div class="image-modal-content">
+            <span class="image-modal-close">&times;</span>
+            <img id="full-image" src="" alt="Full-screen product image">
+            <button class="image-modal-nav prev"><i data-feather="chevron-left" class="w-6 h-6"></i></button>
+            <button class="image-modal-nav next"><i data-feather="chevron-right" class="w-6 h-6"></i></button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-4">
+        <!-- Mobile Search -->
+        <div class="md:hidden mb-4">
+            <div class="relative">
+                <input type="text" id="mobile-search" placeholder="Search under ₦10k..." 
+                       class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)] focus:border-transparent">
+                <i data-feather="search" class="absolute right-3 top-2.5 text-[var(--neutral-gray)]"></i>
+            </div>
+        </div>
+        
+        <!-- Hero Banner -->
+        <div class="relative rounded-xl overflow-hidden mb-6 h-48 bg-gradient-to-r from-[var(--primary-green)] to-[var(--primary-green)]">
+            <div class="absolute inset-0 flex items-center px-6">
+                <div class="text-white">
+                    <h2 class="text-2xl font-bold mb-1">Flash Sale ₦7,500</h2>
+                    <p class="text-lg mb-3">Today Only 🚀</p>
+                    <button class="bg-white text-[var(--primary-green)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
+                </div>
+            </div>
+            <div class="absolute bottom-4 right-4 flex space-x-2">
+                <div class="w-2 h-2 bg-white rounded-full"></div>
+                <div class="w-2 h-2 bg-white bg-opacity-50 rounded-full"></div>
+                <div class="w-2 h-2 bg-white bg-opacity-50 rounded-full"></div>
+            </div>
+        </div>
+        
+        <!-- Flash Deals -->
+        <section class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Flash Deals</h2>
+                <div class="flex items-center text-sm text-[var(--primary-green)]">
+                    <span class="mr-2">Ends in</span>
+                    <div class="flex space-x-1" id="countdown-timer">
+                        <div class="bg-[var(--primary-green)] text-white px-2 py-1 rounded">
+                            <span class="countdown-digit">00</span>
+                        </div>
+                        <span>:</span>
+                        <div class="bg-[var(--primary-green)] text-white px-2 py-1 rounded">
+                            <span class="countdown-digit">00</span>
+                        </div>
+                        <span>:</span>
+                        <div class="bg-[var(--primary-green)] text-white px-2 py-1 rounded">
+                            <span class="countdown-digit">00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="flash-deals">
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+            </div>
+        </section>
+        
+        <!-- Trending Categories -->
+        <section class="mb-8">
+            <h2 class="text-xl font-bold mb-4">Trending Categories</h2>
+            <div class="grid grid-cols-5 gap-2 text-center" id="trending-categories">
+                <div class="flex flex-col items-center">
+                    <div class="shimmer shimmer-circle mb-1"></div>
+                    <div class="shimmer w-12 h-3"></div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="shimmer shimmer-circle mb-1"></div>
+                    <div class="shimmer w-12 h-3"></div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="shimmer shimmer-circle mb-1"></div>
+                    <div class="shimmer w-12 h-3"></div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="shimmer shimmer-circle mb-1"></div>
+                    <div class="shimmer w-12 h-3"></div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="shimmer shimmer-circle mb-1"></div>
+                    <div class="shimmer w-12 h-3"></div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Best Sellers -->
+        <section class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Best Sellers</h2>
+                <a href="/products.html?isBestSeller=true" class="text-sm text-[var(--primary-green)]">See all</a>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="best-sellers">
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+            </div>
+        </section>
+        
+        <!-- Price Tabs -->
+        <section class="mb-8">
+            <div class="flex border-b border-gray-200 mb-4">
+                <button class="price-tab flex-1 py-2 px-4 text-center font-medium border-b-2 border-[var(--primary-green)] text-[var(--primary-green)]" data-range="0-5000" data-flag="isUnder5k">Under ₦5k</button>
+                <button class="price-tab flex-1 py-2 px-4 text-center font-medium text-[var(--neutral-gray)]" data-range="0-10000" data-flag="isUnder10k">Under ₦10k</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="price-tab-products">
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+                <div class="shimmer shimmer-card h-64"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating WhatsApp Button -->
+    <div class="fixed bottom-24 right-4 z-20">
+        <button class="bg-green-500 text-white p-3 rounded-full shadow-lg hover:bg-green-600 transition-colors ripple" onclick="window.location.href='/chat.html'">
+            <i data-feather="message-circle" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-10">
+        <div class="flex justify-around items-center h-16">
+            <a href="index.html" class="flex flex-col items-center text-[var(--primary-green)]">
+                <i data-feather="home" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Home</span>
+            </a>
+            <a href="categories.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="grid" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Categories</span>
+            </a>
+            <a href="cart.html" class="flex flex-col items-center text-[var(--neutral-gray)] cart-button">
+                <div class="relative">
+                    <i data-feather="shopping-cart" class="w-6 h-6"></i>
+                    <span class="absolute -top-1 -right-1 bg-[var(--primary-green)] text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center" id="bottom-cart-count">0</span>
+                </div>
+                <span class="text-xs mt-1">Cart</span>
+            </a>
+            <a href="orders.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="package" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Orders</span>
+            </a>
+            <a href="profile.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="user" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Profile</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        feather.replace();
+
+        const API_BASE_URL = 'https://bazukastore.com/api';
+        let currentImageIndex = 0;
+        let productImages = [];
+
+        // Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type} shadow-lg`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 2000);
+        }
+
+        // Full-Screen Image Modal
+        function showFullImage(images, index) {
+            productImages = images;
+            currentImageIndex = index;
+            const modal = document.getElementById('image-modal');
+            const fullImage = document.getElementById('full-image');
+            fullImage.src = productImages[index].url || 'https://via.placeholder.com/400x400?text=No+Image';
+            fullImage.alt = 'Product Image';
+            modal.classList.add('show');
+            feather.replace();
+        }
+
+        function setupImageModal() {
+            const modal = document.getElementById('image-modal');
+            const closeBtn = document.querySelector('.image-modal-close');
+            const prevBtn = document.querySelector('.image-modal-nav.prev');
+            const nextBtn = document.querySelector('.image-modal-nav.next');
+
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('show');
+            });
+
+            prevBtn.addEventListener('click', () => {
+                currentImageIndex = (currentImageIndex - 1 + productImages.length) % productImages.length;
+                showFullImage(productImages, currentImageIndex);
+            });
+
+            nextBtn.addEventListener('click', () => {
+                currentImageIndex = (currentImageIndex + 1) % productImages.length;
+                showFullImage(productImages, currentImageIndex);
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+        }
+
+        // Sign-Up Modal functionality
+        function setupModal() {
+            const modal = document.getElementById('signup-modal');
+            const closeModalBtn = document.getElementById('close-modal');
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                setTimeout(() => {
+                    modal.style.display = 'flex';
+                    modal.classList.add('show');
+                }, 5000);
+            }
+
+            closeModalBtn.addEventListener('click', () => {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                    }, 300);
+                }
+            });
+        }
+
+        // Countdown timer
+        function startCountdown() {
+            const endTime = new Date();
+            endTime.setHours(endTime.getHours() + 2);
+            setInterval(() => {
+                const now = new Date();
+                const timeLeft = endTime - now;
+                if (timeLeft <= 0) return;
+
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+                const digits = document.querySelectorAll('#countdown-timer .countdown-digit');
+                digits[0].textContent = hours;
+                digits[1].textContent = minutes;
+                digits[2].textContent = seconds;
+
+                digits.forEach(digit => {
+                    digit.classList.add('active');
+                    setTimeout(() => digit.classList.remove('active'), 300);
+                });
+            }, 1000);
+        }
+
+        // Fetch and render products
+        async function fetchProducts(sectionId, query = '') {
+            try {
+                const response = await fetch(`${API_BASE_URL}/public/products?${query}`);
+                if (!response.ok) throw new Error('Failed to fetch products');
+                let products = await response.json();
+                const guestWishlist = JSON.parse(localStorage.getItem('guestWishlist') || '[]');
+                const token = localStorage.getItem('token');
+                let userWishlist = [];
+
+                if (token) {
+                    try {
+                        const wishlistResponse = await fetch(`${API_BASE_URL}/wishlist/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                            },
+                        });
+                        if (wishlistResponse.ok) {
+                            userWishlist = await wishlistResponse.json();
+                        }
+                    } catch (error) {
+                        console.error('Error fetching wishlist:', error);
+                    }
+                }
+
+                if (sectionId === '#flash-deals') {
+                    products = products.filter(product => product.isFlashDeal && !product.isBestSeller);
+                } else if (sectionId === '#best-sellers') {
+                    products = products.filter(product => product.isBestSeller && !product.isFlashDeal);
+                }
+
+                const container = document.querySelector(sectionId);
+                container.innerHTML = products.map(product => {
+                    const isWishlisted = token ? userWishlist.includes(product._id) : guestWishlist.includes(product._id);
+                    return `
+                        <div class="bg-white rounded-xl p-3 shadow-sm product-card transition-all duration-300">
+                            <div class="relative product-image-container bg-white rounded-lg mb-2 overflow-hidden cursor-pointer" onclick="showFullImage(${JSON.stringify(product.images)}, 0)">
+                                <a href="/product.html?id=${product._id}">
+                                    <img src="${product.images[0]?.url || 'https://via.placeholder.com/150'}" alt="${product.name}" class="w-full h-full object-contain">
+                                    ${product.discount ? `<div class="absolute top-2 left-2 bg-[var(--primary-green)] text-white text-xs px-2 py-1 rounded">-${product.discount}%</div>` : ''}
+                                    ${product.isFlashDeal ? `<div class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded flash-deal-tag">Flash Deal</div>` : ''}
+                                    ${product.isBestSeller ? `<div class="absolute bottom-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">Best Seller</div>` : ''}
+                                </a>
+                            </div>
+                            <h3 class="text-sm font-medium mb-1 truncate">${product.name}</h3>
+                            <div class="flex items-center mb-1">
+                                <div class="flex text-yellow-400 text-xs">
+                                    ${Array.from({ length: 5 }, (_, i) => `
+                                        <i data-feather="star" class="w-3 h-3 ${i < Math.round(product.rating || 0) ? 'fill-current' : ''}"></i>
+                                    `).join('')}
+                                </div>
+                                <span class="text-xs text-[var(--neutral-gray)] ml-1">(${product.reviews?.length || 0})</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-[var(--primary-green)] font-bold">₦${product.price.toLocaleString()}</p>
+                                    ${product.originalPrice ? `<p class="text-[var(--neutral-gray)] text-xs line-through">₦${product.originalPrice.toLocaleString()}</p>` : ''}
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button class="text-[var(--neutral-gray)] hover:text-[var(--primary-green)] ripple" onclick="addToCart('${product._id}', 1)">
+                                        <i data-feather="shopping-cart" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="text-[var(--neutral-gray)] hover:text-red-500 ripple" onclick="toggleWishlist('${product._id}', this)">
+                                        <i data-feather="heart" class="w-4 h-4 ${isWishlisted ? 'fill-current text-red-500' : ''}"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                feather.replace();
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                showToast('Failed to load products.', 'error');
+                document.querySelector(sectionId).innerHTML = '<p class="text-center text-[var(--neutral-gray)]">Failed to load products.</p>';
+            }
+        }
+
+        // Toggle Wishlist
+        async function toggleWishlist(productId, button) {
+            const token = localStorage.getItem('token');
+            const heartIcon = button.querySelector('svg');
+            let guestWishlist = JSON.parse(localStorage.getItem('guestWishlist') || '[]');
+
+            if (token) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/wishlist/toggle`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ productId }),
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to toggle wishlist');
+                    }
+                    const result = await response.json();
+                    const isWishlisted = result.action === 'added';
+                    heartIcon.classList.toggle('fill-current', isWishlisted);
+                    heartIcon.classList.toggle('text-red-500', isWishlisted);
+                    showToast(isWishlisted ? 'Added to wishlist!' : 'Removed from wishlist!', 'success');
+                } catch (error) {
+                    console.error('Error toggling wishlist:', error);
+                    showToast(`Failed to toggle wishlist: ${error.message}`, 'error');
+                }
+            } else {
+                const index = guestWishlist.indexOf(productId);
+                if (index === -1) {
+                    guestWishlist.push(productId);
+                    heartIcon.classList.add('fill-current', 'text-red-500');
+                    showToast('Added to wishlist! Sign in to save.', 'success');
+                } else {
+                    guestWishlist.splice(index, 1);
+                    heartIcon.classList.remove('fill-current', 'text-red-500');
+                    showToast('Removed from wishlist!', 'success');
+                }
+                localStorage.setItem('guestWishlist', JSON.stringify(guestWishlist));
+            }
+        }
+
+        // Add to cart
+        async function addToCart(productId, quantity) {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(50); // Short vibration for feedback
+            }
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/carts/add`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ productId, quantity }),
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to add to cart');
+                    }
+                    await fetchCart();
+                    showToast('Added to cart!', 'success');
+                } catch (error) {
+                    console.error('Error adding to cart:', error);
+                    showToast(`Failed to add to cart: ${error.message}`, 'error');
+                }
+            } else {
+                const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                const itemIndex = guestCart.findIndex(item => item.productId === productId);
+                if (itemIndex > -1) {
+                    guestCart[itemIndex].quantity += quantity;
+                } else {
+                    guestCart.push({ productId, quantity });
+                }
+                localStorage.setItem('guestCart', JSON.stringify(guestCart));
+                updateCartCount(guestCart);
+                showToast('Added to cart! Sign in to save your cart.', 'success');
+            }
+        }
+
+        // Update cart count
+        function updateCartCount(cart) {
+            const count = (cart || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
+            document.querySelectorAll('#bottom-cart-count').forEach(el => {
+                el.textContent = count;
+                el.classList.toggle('animate-bounce', count > 0);
+            });
+        }
+
+        // Fetch cart
+        async function fetchCart() {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    const response = await fetch(`${API_BASE_URL}/carts/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to fetch cart');
+                    }
+                    const cart = await response.json();
+                    updateCartCount(cart.items || []);
+                } else {
+                    const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                    updateCartCount(guestCart);
+                }
+            } catch (error) {
+                console.error('Error fetching cart:', error);
+                showToast(`Failed to load cart: ${error.message}`, 'error');
+                updateCartCount([]);
+            }
+        }
+
+        // Fetch and render categories
+        async function fetchCategories() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/public/categories`);
+                if (!response.ok) throw new Error('Failed to fetch categories');
+                const categories = await response.json();
+                const container = document.querySelector('#trending-categories');
+                container.innerHTML = categories.map(category => `
+                    <div class="flex flex-col items-center">
+                        <a href="/products.html?category=${category._id}">
+                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-1 shadow-sm">
+                                <i data-feather="${category.icon || 'shopping-bag'}" class="text-[var(--primary-green)]"></i>
+                            </div>
+                            <span class="text-xs">${category.name}</span>
+                        </a>
+                    </div>
+                `).join('');
+                feather.replace();
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                showToast('Failed to load categories.', 'error');
+                document.querySelector('#trending-categories').innerHTML = '<p class="text-center text-[var(--neutral-gray)]">Failed to load categories.</p>';
+            }
+        }
+
+        // Search functionality
+        function setupSearch() {
+            const searchInputs = document.querySelectorAll('#desktop-search, #mobile-search');
+            searchInputs.forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const query = e.target.value.trim();
+                        if (query) {
+                            window.location.href = `/products.html?search=${encodeURIComponent(query)}`;
+                        }
+                    }
+                });
+            });
+        }
+
+        // Price tab switching
+        function setupPriceTabs() {
+            const tabs = document.querySelectorAll('.price-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => {
+                        t.classList.remove('border-[var(--primary-green)]', 'text-[var(--primary-green)]');
+                        t.classList.add('text-[var(--neutral-gray)]');
+                    });
+                    tab.classList.add('border-[var(--primary-green)]', 'text-[var(--primary-green)]');
+                    const range = tab.getAttribute('data-range');
+                    const flag = tab.getAttribute('data-flag');
+                    document.querySelector('#price-tab-products').innerHTML = `
+                        <div class="shimmer shimmer-card h-64"></div>
+                        <div class="shimmer shimmer-card h-64"></div>
+                        <div class="shimmer shimmer-card h-64"></div>
+                        <div class="shimmer shimmer-card h-64"></div>
+                        <div class="shimmer shimmer-card h-64"></div>
+                    `;
+                    fetchProducts('#price-tab-products', `priceRange=${range}&${flag}=true`);
+                });
+            });
+        }
+
+        // Ripple effect for buttons
+        function setupRippleEffect() {
+            document.querySelectorAll('.ripple').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    this.style.setProperty('--x', x + 'px');
+                    this.style.setProperty('--y', y + 'px');
+                });
+            });
+        }
+
+        // Cart navigation
+        function setupCartNavigation() {
+            document.querySelectorAll('.cart-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    window.location.href = '/cart.html';
+                });
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            startCountdown();
+            fetchProducts('#flash-deals', 'isFlashDeal=true&sort=discount-desc');
+            fetchProducts('#best-sellers', 'isBestSeller=true&sort=rating-desc');
+            fetchProducts('#price-tab-products', 'priceRange=0-5000&isUnder5k=true');
+            fetchCategories();
+            fetchCart();
+            setupSearch();
+            setupPriceTabs();
+            setupRippleEffect();
+            setupCartNavigation();
+            setupModal();
+            setupImageModal();
+        });
+    </script>
+</body>
+</html>
