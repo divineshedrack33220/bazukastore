@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10kVendor | Sales & Orders</title>
+    <link rel="icon" type="image/x-icon" href="/admin/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF7A2F',
+                        dark: '#3A1F0B',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        .sidebar-collapsed { width: 80px; }
+        .sidebar-collapsed .nav-text { display: none; }
+        .sidebar-collapsed .logo-text { display: none; }
+        .sidebar-collapsed .nav-item { justify-content: center; }
+        .dark .dark\:bg-dark { background-color: #1a120b; }
+        .chart-container { position: relative; height: 300px; }
+        .skeleton { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: .5; }
+            50% { opacity: .2; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-dark text-dark dark:text-gray-200 transition-colors duration-300">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-lg flex flex-col transition-all duration-300">
+            <div class="p-4 flex items-center border-b border-gray-200 dark:border-gray-700">
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                    <i data-feather="zap" class="text-white"></i>
+                </div>
+                <span class="logo-text ml-3 font-bold text-xl">10kVendor</span>
+            </div>
+            <div class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 mb-6">
+                    <div class="relative">
+                        <input type="text" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                        <i data-feather="search" class="absolute left-3 top-2.5 text-gray-500"></i>
+                    </div>
+                </div>
+                <nav>
+                    <div class="px-2">
+                        <div class="nav-item mb-1">
+                            <a href="/admin/index.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="home"></i>
+                                <span class="nav-text ml-3">Dashboard</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/visitors.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="users"></i>
+                                <span class="nav-text ml-3">Visitors</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/ads-marketing.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="dollar-sign"></i>
+                                <span class="nav-text ml-3">Ads & Marketing</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/sales-orders.html" class="flex items-center px-4 py-3 rounded-lg bg-primary bg-opacity-10 text-primary">
+                                <i data-feather="shopping-bag"></i>
+                                <span class="nav-text ml-3">Sales & Orders</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/products.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="package"></i>
+                                <span class="nav-text ml-3">Products</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/shipping.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="truck"></i>
+                                <span class="nav-text ml-3">Shipping</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/customers.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="user"></i>
+                                <span class="nav-text ml-3">Customers</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/financials.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="bar-chart-2"></i>
+                                <span class="nav-text ml-3">Financials</span>
+                            </a>
+                        </div>
+                        <div class="nav-item mb-1">
+                            <a href="/admin/security.html" class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i data-feather="shield"></i>
+                                <span class="nav-text ml-3">Security</span>
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                        <i data-feather="user" class="text-white"></i>
+                    </div>
+                    <div class="ml-3">
+                        <div id="admin-name" class="font-medium">Admin User</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Super Admin</div>
+                    </div>
+                    <button id="theme-toggle" class="ml-auto p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i data-feather="moon" class="hidden dark:block"></i>
+                        <i data-feather="sun" class="dark:hidden"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <header class="bg-white dark:bg-gray-800 shadow-sm">
+                <div class="px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <button id="sidebar-toggle" class="mr-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-feather="menu"></i>
+                        </button>
+                        <h1 class="text-xl font-semibold">Sales & Orders Overview</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 relative">
+                            <i data-feather="bell"></i>
+                            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                        <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i data-feather="message-square"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="p-6">
+                <div id="error-message" class="hidden text-red-500 text-sm mb-4 text-center"></div>
+
+                <!-- Filters -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6" data-aos="fade-up">
+                    <h2 class="font-semibold mb-4">Filters</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-500 dark:text-gray-400">Status</label>
+                            <select id="filter-status" class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="">All Statuses</option>
+                                <option value="Placed">Placed</option>
+                                <option value="Packed">Packed</option>
+                                <option value="In Transit">In Transit</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="applyFilters()" class="w-full px-4 py-2 bg-primary text-white rounded-lg">Apply Filters</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-l-4 border-primary" data-aos="fade-up">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400">Total Sales</p>
+                                <h3 id="total-sales" class="text-2xl font-bold mt-1 skeleton">₦0</h3>
+                                <p id="sales-trend" class="text-sm text-green-500 flex items-center mt-1">
+                                    <i data-feather="trending-up" class="w-4 h-4 mr-1"></i>
+                                    <span>Loading...</span>
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-primary bg-opacity-10">
+                                <i data-feather="dollar-sign" class="text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-l-4 border-purple-500" data-aos="fade-up">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400">Total Orders</p>
+                                <h3 id="total-orders" class="text-2xl font-bold mt-1 skeleton">0</h3>
+                                <p id="orders-trend" class="text-sm text-green-500 flex items-center mt-1">
+                                    <i data-feather="trending-up" class="w-4 h-4 mr-1"></i>
+                                    <span>Loading...</span>
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-purple-500 bg-opacity-10">
+                                <i data-feather="shopping-bag" class="text-purple-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-l-4 border-blue-500" data-aos="fade-up">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 dark:text-gray-400">Avg Order Value</p>
+                                <h3 id="avg-order-value" class="text-2xl font-bold mt-1 skeleton">₦0</h3>
+                                <p id="avg-trend" class="text-sm text-green-500 flex items-center mt-1">
+                                    <i data-feather="trending-up" class="w-4 h-4 mr-1"></i>
+                                    <span>Loading...</span>
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-blue-500 bg-opacity-10">
+                                <i data-feather="bar-chart" class="text-blue-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6" data-aos="fade-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="font-semibold">Order Status Distribution</h2>
+                            <button onclick="downloadCSV()" class="text-primary text-sm flex items-center">
+                                <i data-feather="download" class="w-4 h-4 mr-1"></i>
+                                Export CSV
+                            </button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6" data-aos="fade-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="font-semibold">Sales Over Time</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-xs rounded-lg bg-gray-100 dark:bg-gray-700" onclick="loadCharts('7d')">7D</button>
+                                <button class="px-3 py-1 text-xs rounded-lg bg-primary text-white" onclick="loadCharts('30d')">30D</button>
+                                <button class="px-3 py-1 text-xs rounded-lg bg-gray-100 dark:bg-gray-700" onclick="loadCharts('90d')">90D</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Orders -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6" data-aos="fade-up">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="font-semibold">Recent Orders</h2>
+                        <button class="text-primary text-sm flex items-center" onclick="loadOrdersTable()">
+                            <i data-feather="refresh-cw" class="w-4 h-4 mr-1"></i>
+                            Refresh
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left border-b border-gray-200 dark:border-gray-700">
+                                    <th class="pb-3">Order Number</th>
+                                    <th class="pb-3">Customer</th>
+                                    <th class="pb-3">Total</th>
+                                    <th class="pb-3">Status</th>
+                                    <th class="pb-3">Date</th>
+                                    <th class="pb-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table"></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <div id="table-info" class="text-sm text-gray-500 dark:text-gray-400">
+                            Loading...
+                        </div>
+                        <div class="flex space-x-2" id="pagination"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs/lib/anime.iife.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" onerror="loadLocalAOS()"></script>
+    <script>
+        // Fallback for AOS if CDN fails
+        function loadLocalAOS() {
+            const script = document.createElement('script');
+            script.src = '/admin/static/aos.js';
+            document.body.appendChild(script);
+        }
+
+        // Initialize on DOM content loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof AOS !== 'undefined') {
+                AOS.init();
+            } else {
+                console.warn('AOS not loaded, animations disabled');
+            }
+
+            const token = await checkAuth();
+            if (token) {
+                await Promise.all([loadMetrics(), loadCharts('30d'), loadOrdersTable()]);
+                initWebSocket(token);
+            }
+            feather.replace();
+        });
+
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+        });
+
+        // Sidebar toggle
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('sidebar-collapsed');
+        });
+
+        // Error display function
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            if (typeof anime === 'function') {
+                anime({
+                    targets: '#error-message',
+                    opacity: [0, 1],
+                    translateY: [-10, 0],
+                    duration: 500
+                });
+            }
+        }
+
+        // Authentication check
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/admin/login.html';
+                return false;
+            }
+            try {
+                const response = await fetch('/api/users/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error(`Profile fetch failed: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+                if (!data.isAdmin) {
+                    localStorage.removeItem('token');
+                    window.location.href = '/admin/login.html';
+                    return false;
+                }
+                document.getElementById('admin-name').textContent = data.name || 'Admin User';
+                return token;
+            } catch (error) {
+                console.error('Auth check error:', error);
+                showError('Authentication failed. Please log in again.');
+                localStorage.removeItem('token');
+                window.location.href = '/admin/login.html';
+                return false;
+            }
+        }
+
+        // Initialize WebSocket
+        let socket;
+        async function initWebSocket(token) {
+            socket = io('https://bazukastore.com');
+            socket.on('connect', () => {
+                socket.emit('joinAdmin', `Bearer ${token}`);
+            });
+            socket.on('newOrder', (order) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700';
+                row.innerHTML = `
+                    <td class="py-4">${order.orderNumber}</td>
+                    <td class="py-4">${order.user?.name || 'Unknown'}</td>
+                    <td class="py-4">₦${order.total.toLocaleString()}</td>
+                    <td class="py-4">${order.status}</td>
+                    <td class="py-4">${new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td class="py-4">
+                        <select onchange="updateOrderStatus('${order._id}', this.value)" class="p-1 rounded bg-gray-100 dark:bg-gray-700">
+                            <option value="Placed" ${order.status === 'Placed' ? 'selected' : ''}>Placed</option>
+                            <option value="Packed" ${order.status === 'Packed' ? 'selected' : ''}>Packed</option>
+                            <option value="In Transit" ${order.status === 'In Transit' ? 'selected' : ''}>In Transit</option>
+                            <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                            <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                        </select>
+                    </td>
+                `;
+                const tbody = document.getElementById('orders-table');
+                tbody.prepend(row);
+                feather.replace();
+                loadMetrics(); // Update metrics on new order
+            });
+            socket.on('orderStatusUpdate', (order) => {
+                loadOrdersTable(); // Refresh table on status update
+                loadCharts(); // Refresh charts
+                loadMetrics(); // Refresh metrics
+            });
+        }
+
+        // Fetch and update metrics
+        async function loadMetrics() {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch('/api/orders?count=true', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error(`Metrics fetch failed: ${response.status} ${response.statusText}`);
+                }
+                const { count } = await response.json();
+                document.getElementById('total-orders').textContent = count.toLocaleString();
+                document.getElementById('total-orders').classList.remove('skeleton');
+                document.getElementById('orders-trend').innerHTML = '<i data-feather="trending-up" class="w-4 h-4 mr-1"></i>Updated';
+
+                const salesResponse = await fetch('/api/orders/sales', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!salesResponse.ok) {
+                    throw new Error(`Sales fetch failed: ${salesResponse.status} ${salesResponse.statusText}`);
+                }
+                const { totalSales, avgOrderValue } = await salesResponse.json();
+                document.getElementById('total-sales').textContent = `₦${totalSales.toLocaleString()}`;
+                document.getElementById('total-sales').classList.remove('skeleton');
+                document.getElementById('sales-trend').innerHTML = '<i data-feather="trending-up" class="w-4 h-4 mr-1"></i>Updated';
+                document.getElementById('avg-order-value').textContent = `₦${avgOrderValue.toLocaleString()}`;
+                document.getElementById('avg-order-value').classList.remove('skeleton');
+                document.getElementById('avg-trend').innerHTML = '<i data-feather="trending-up" class="w-4 h-4 mr-1"></i>Updated';
+                feather.replace();
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+                showError('Failed to load metrics. Please try again.');
+            }
+        }
+
+        // Fetch and update charts
+        let statusChartInstance, salesChartInstance;
+        async function loadCharts(period = '30d') {
+            const token = localStorage.getItem('token');
+            const status = document.getElementById('filter-status').value;
+            try {
+                const url = `/api/orders?period=${period}${status ? `&status=${status}` : ''}`;
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error(`Analytics fetch failed: ${response.status} ${response.statusText}`);
+                }
+                const orders = await response.json();
+
+                const statusCounts = orders.reduce((acc, order) => {
+                    acc[order.status] = (acc[order.status] || 0) + 1;
+                    return acc;
+                }, {});
+                const statusCtx = document.getElementById('statusChart').getContext('2d');
+                if (statusChartInstance) statusChartInstance.destroy();
+                statusChartInstance = new Chart(statusCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Placed', 'Packed', 'In Transit', 'Delivered', 'Cancelled'],
+                        datasets: [{
+                            label: 'Orders',
+                            data: [
+                                statusCounts['Placed'] || 0,
+                                statusCounts['Packed'] || 0,
+                                statusCounts['In Transit'] || 0,
+                                statusCounts['Delivered'] || 0,
+                                statusCounts['Cancelled'] || 0
+                            ],
+                            backgroundColor: 'rgba(255, 122, 47, 0.7)',
+                            borderColor: '#FF7A2F',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top' } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                const salesData = orders.reduce((acc, order) => {
+                    const date = new Date(order.createdAt).toLocaleDateString();
+                    acc[date] = (acc[date] || 0) + order.total;
+                    return acc;
+                }, {});
+                const labels = Object.keys(salesData).sort((a, b) => new Date(a) - new Date(b));
+                const data = labels.map(date => salesData[date]);
+                const salesCtx = document.getElementById('salesChart').getContext('2d');
+                if (salesChartInstance) salesChartInstance.destroy();
+                salesChartInstance = new Chart(salesCtx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Sales (₦)',
+                            data,
+                            borderColor: '#4BC0C0',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top' } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading charts:', error);
+                showError('Failed to load charts. Please try again.');
+            }
+        }
+
+        // Fetch and update orders table
+        async function loadOrdersTable(page = 1, limit = 5) {
+            const token = localStorage.getItem('token');
+            const status = document.getElementById('filter-status').value;
+            try {
+                const url = `/api/orders?page=${page}&limit=${limit}${status ? `&status=${status}` : ''}`;
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error(`Orders fetch failed: ${response.status} ${response.statusText}`);
+                }
+                const orders = await response.json();
+                const tbody = document.getElementById('orders-table');
+                tbody.innerHTML = '';
+
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center">No orders found</td></tr>';
+                    document.getElementById('table-info').textContent = 'No orders available';
+                    document.getElementById('pagination').innerHTML = '';
+                    return;
+                }
+
+                orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700';
+                    row.innerHTML = `
+                        <td class="py-4">${order.orderNumber}</td>
+                        <td class="py-4">${order.user?.name || 'Unknown'}</td>
+                        <td class="py-4">₦${order.total.toLocaleString()}</td>
+                        <td class="py-4">${order.status}</td>
+                        <td class="py-4">${new Date(order.createdAt).toLocaleDateString()}</td>
+                        <td class="py-4">
+                            <select onchange="updateOrderStatus('${order._id}', this.value)" class="p-1 rounded bg-gray-100 dark:bg-gray-700">
+                                <option value="Placed" ${order.status === 'Placed' ? 'selected' : ''}>Placed</option>
+                                <option value="Packed" ${order.status === 'Packed' ? 'selected' : ''}>Packed</option>
+                                <option value="In Transit" ${order.status === 'In Transit' ? 'selected' : ''}>In Transit</option>
+                                <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                            </select>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                const countResponse = await fetch(`/api/orders?count=true${status ? `&status=${status}` : ''}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const { count } = await countResponse.json();
+                const totalPages = Math.ceil(count / limit);
+                document.getElementById('table-info').textContent = `Showing ${orders.length} of ${count} orders`;
+                document.getElementById('pagination').innerHTML = `
+                    <button class="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700" onclick="loadOrdersTable(${page - 1})" ${page === 1 ? 'disabled' : ''}>
+                        <i data-feather="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <button class="px-3 py-1 rounded-lg bg-primary text-white">${page}</button>
+                    <button class="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700" onclick="loadOrdersTable(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>
+                        <i data-feather="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                `;
+                feather.replace();
+            } catch (error) {
+                console.error('Error loading orders table:', error);
+                showError('Failed to load orders. Please try again.');
+                document.getElementById('orders-table').innerHTML = '<tr><td colspan="6" class="py-4 text-center">Error loading orders</td></tr>';
+                document.getElementById('table-info').textContent = 'Error loading orders';
+                document.getElementById('pagination').innerHTML = '';
+            }
+        }
+
+        // Update order status
+        async function updateOrderStatus(orderId, status) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`/api/orders/${orderId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+                if (!response.ok) {
+                    throw new Error(`Status update failed: ${response.status} ${response.statusText}`);
+                }
+                await Promise.all([loadMetrics(), loadCharts(), loadOrdersTable()]);
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                showError('Failed to update order status. Please try again.');
+            }
+        }
+
+        // Apply filters
+        async function applyFilters() {
+            await Promise.all([loadMetrics(), loadCharts(), loadOrdersTable()]);
+        }
+
+        // Download CSV
+        async function downloadCSV() {
+            const token = localStorage.getItem('token');
+            const status = document.getElementById('filter-status').value;
+            const url = `/api/orders/export${status ? `?status=${status}` : ''}`;
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>
