@@ -8,6 +8,7 @@ const { Server } = require('socket.io');
 const VisitorLocation = require('./models/VisitorLocation');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
+const fs = require('fs');
 
 // Connect DB
 const connectDB = require('./config/db');
@@ -70,9 +71,13 @@ const upload = multer({ dest: 'uploads/' });
 app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
     const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'uploads'
+      folder: 'uploads',
     });
-    res.json({ url: result.secure_url });
+
+    // Delete local file after upload to save space
+    fs.unlinkSync(req.file.path);
+
+    res.json({ url: result.secure_url, public_id: result.public_id });
   } catch (err) {
     console.error('Upload error:', err.message);
     res.status(500).json({ error: 'Upload failed' });
@@ -97,6 +102,7 @@ connectDB();
 // WebSocket for real-time updates
 io.on('connection', (socket) => {
   console.log('WebSocket client connected:', socket.id);
+
   socket.on('joinAdmin', async (token) => {
     try {
       const decoded = require('jsonwebtoken').verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
@@ -114,6 +120,7 @@ io.on('connection', (socket) => {
       socket.disconnect();
     }
   });
+
   socket.on('joinUser', async ({ token }) => {
     try {
       const decoded = require('jsonwebtoken').verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
@@ -131,15 +138,19 @@ io.on('connection', (socket) => {
       socket.disconnect();
     }
   });
+
   socket.on('categoryUpdate', () => {
     io.to('adminRoom').emit('categoryUpdate');
   });
+
   socket.on('productUpdate', () => {
     io.to('adminRoom').emit('productUpdate');
   });
-  socket.on('submissionUpdate', () => { // Added for submission updates
+
+  socket.on('submissionUpdate', () => {
     io.to('adminRoom').emit('submissionUpdate');
   });
+
   socket.on('orderStatusUpdate', (order) => {
     io.to('adminRoom').emit('orderStatusUpdate', order);
     if (order.user) {
@@ -166,7 +177,7 @@ app.use(async (req, res, next) => {
 console.log('✅ Registering API routes');
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/product-submissions', productSubmissionRoutes); // Added
+app.use('/api/product-submissions', productSubmissionRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/chats', chatRoutes);
