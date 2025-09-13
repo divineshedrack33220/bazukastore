@@ -7,7 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const VisitorLocation = require('./models/VisitorLocation');
 const cloudinary = require('cloudinary').v2;
-const fileUpload = require('express-fileupload');
+const multer = require('multer');
 
 // Connect DB
 const connectDB = require('./config/db');
@@ -62,7 +62,22 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(fileUpload()); // Required for Cloudinary uploads
+
+// Multer setup for file uploads
+const upload = multer({ dest: 'uploads/' });
+
+// Example Cloudinary upload route
+app.post('/api/upload', upload.single('image'), async (req, res) => {
+  try {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'uploads'
+    });
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    console.error('Upload error:', err.message);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
@@ -149,7 +164,6 @@ app.use(async (req, res, next) => {
 
 // API Routes
 console.log('✅ Registering API routes');
-console.log('✅ productRoutes loaded:', productRoutes.stack.map(r => `${r.route.path} (${r.route.stack[0].method})`));
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/product-submissions', productSubmissionRoutes); // Added
