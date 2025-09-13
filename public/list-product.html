@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bazuka Store - List a Product</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #6C5CE7;    /* Main brand purple */
+            --secondary-yellow: #FDCB6E;  /* Fun highlight */
+            --accent-light: #F3F0FF;      /* Soft violet background */
+            --neutral-gray: #4B4B4B;      /* Neutral text */
+            --light-gray: #F5F5F5;        /* Light block background */
+            --alert-red: #FF7675;         /* Accent red */
+            --white: #FFFFFF;             /* Background white */
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--accent-light);
+            color: var(--neutral-gray);
+        }
+        
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple:after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10,10);
+            opacity: 0;
+            transition: transform .5s, opacity 1s;
+        }
+        
+        .ripple:active:after {
+            transform: scale(0,0);
+            opacity: .3;
+            transition: 0s;
+        }
+
+        .toast {
+            position: fixed;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            z-index: 50;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: var(--primary-purple);
+            color: var(--white);
+        }
+
+        .toast.error {
+            background-color: var(--alert-red);
+            color: var(--white);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .tooltip {
+            position: absolute;
+            top: -2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--neutral-gray);
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-content:hover .tooltip {
+            opacity: 1;
+        }
+
+        .listing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        @media (min-width: 768px) {
+            .bottom-nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20 md:pb-0">
+    <!-- Top Navigation -->
+    <header class="bg-[var(--white)] shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="text-2xl font-bold text-[var(--primary-purple)]">Bazuka<span class="text-[var(--neutral-gray)]">Store</span></div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-[var(--light-gray)] ripple">
+                    <i data-feather="bell" class="w-6 h-6 text-[var(--neutral-gray)]"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-4">
+        <section class="mb-8">
+            <h2 class="text-xl font-bold mb-4">List a New Product</h2>
+            <div class="bg-[var(--white)] rounded-xl p-4 shadow-sm text-center" id="submission-message" style="display: none;">
+                <p class="text-sm text-[var(--neutral-gray)] mb-4">Thank you for submitting your product! Our team will review it and contact you shortly for approval.</p>
+                <a href="/profile.html" class="py-2 px-4 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600">Back to Profile</a>
+            </div>
+            <div class="bg-[var(--white)] rounded-xl p-4 shadow-sm text-center" id="pending-message" style="display: none;">
+                <p class="text-sm text-[var(--neutral-gray)] mb-4">Your seller application is pending approval. You will be able to list products once approved.</p>
+                <a href="/profile.html" class="py-2 px-4 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600">Back to Profile</a>
+            </div>
+            <div class="bg-[var(--white)] rounded-xl p-4 shadow-sm" id="listing-section" style="display: none;">
+                <form id="list-product-form">
+                    <div class="mb-4">
+                        <label for="product-name" class="block text-sm font-medium mb-1">Product Name</label>
+                        <input type="text" id="product-name" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter product name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="shop-name" class="block text-sm font-medium mb-1">Shop Name</label>
+                        <input type="text" id="shop-name" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter your shop name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="product-description" class="block text-sm font-medium mb-1">Description</label>
+                        <textarea id="product-description" class="w-full py-2 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" rows="4" placeholder="Describe your product" required></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="product-price" class="block text-sm font-medium mb-1">Original Price (NGN)</label>
+                        <input type="number" id="product-price" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter original price" min="0" step="0.01" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="deal-price" class="block text-sm font-medium mb-1">Deal Price (NGN)</label>
+                        <input type="number" id="deal-price" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter deal price" min="0" step="0.01" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="product-category" class="block text-sm font-medium mb-1">Category</label>
+                        <select id="product-category" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" required>
+                            <option value="" disabled selected>Select a category</option>
+                            <option value="electronics">Electronics</option>
+                            <option value="fashion">Fashion</option>
+                            <option value="home">Home & Living</option>
+                            <option value="beauty">Beauty</option>
+                            <option value="others">Others</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="product-image" class="block text-sm font-medium mb-1">Product Image</label>
+                        <input type="file" id="product-image" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none" accept="image/*">
+                    </div>
+                    <div id="form-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                    <div class="flex space-x-4">
+                        <button type="submit" class="w-1/2 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600">Submit for Approval</button>
+                        <a href="/profile.html" class="w-1/2 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple text-center">Cancel</a>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-[var(--white)] rounded-xl p-4 shadow-sm text-center" id="start-listing-section" style="display: none;">
+                <p class="text-sm text-[var(--neutral-gray)] mb-4">Ready to list your product? Answer a few questions to get started.</p>
+                <button id="start-listing-btn" class="py-2 px-4 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600">Start Listing</button>
+            </div>
+        </section>
+
+        <!-- My Listings Section -->
+        <section class="mb-8">
+            <h2 class="text-xl font-bold mb-4">My Listings</h2>
+            <div class="bg-[var(--white)] rounded-xl p-4 shadow-sm" id="listings-container">
+                <p class="text-sm text-[var(--neutral-gray)] text-center" id="no-listings">No listings found.</p>
+            </div>
+        </section>
+
+        <!-- Questionnaire Modals -->
+        <div class="modal" id="modal-name">
+            <div class="modal-content">
+                <span class="tooltip">Enter your full name for seller verification</span>
+                <h3 class="text-lg font-bold mb-4">Your Name</h3>
+                <div id="modal-name-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <input type="text" id="input-name" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter your full name" required>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/2 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="next-name-btn">Next</button>
+                    <button class="w-1/2 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-name-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="modal-phone">
+            <div class="modal-content">
+                <span class="tooltip">Provide a phone number for contact purposes</span>
+                <h3 class="text-lg font-bold mb-4">Phone Number</h3>
+                <div id="modal-phone-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <input type="tel" id="input-phone" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter your phone number" required>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="prev-phone-btn">Previous</button>
+                    <button class="w-1/3 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="next-phone-btn">Next</button>
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-phone-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="modal-country">
+            <div class="modal-content">
+                <span class="tooltip">Select your country for shipping and compliance</span>
+                <h3 class="text-lg font-bold mb-4">Country</h3>
+                <div id="modal-country-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <select id="input-country" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" required>
+                    <option value="" disabled selected>Select your country</option>
+                    <option value="Nigeria">Nigeria</option>
+                    <option value="Ghana">Ghana</option>
+                    <option value="Kenya">Kenya</option>
+                    <option value="South Africa">South Africa</option>
+                    <option value="Other">Other</option>
+                </select>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="prev-country-btn">Previous</button>
+                    <button class="w-1/3 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="next-country-btn">Next</button>
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-country-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="modal-address">
+            <div class="modal-content">
+                <span class="tooltip">Provide your address for seller verification</span>
+                <h3 class="text-lg font-bold mb-4">Home Address</h3>
+                <div id="modal-address-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <textarea id="input-address" class="w-full py-2 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" rows="4" placeholder="Enter your home address" required></textarea>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="prev-address-btn">Previous</button>
+                    <button class="w-1/3 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="next-address-btn">Next</button>
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-address-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="modal-product">
+            <div class="modal-content">
+                <span class="tooltip">Enter the name of the product you want to list</span>
+                <h3 class="text-lg font-bold mb-4">What Product Do You Want to List?</h3>
+                <div id="modal-product-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <input type="text" id="input-product" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter product name" required>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="prev-product-btn">Previous</button>
+                    <button class="w-1/3 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="next-product-btn">Next</button>
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-product-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="modal-shop">
+            <div class="modal-content">
+                <span class="tooltip">Enter the name of your shop or brand</span>
+                <h3 class="text-lg font-bold mb-4">Shop Name</h3>
+                <div id="modal-shop-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <input type="text" id="input-shop" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter your shop name" required>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="prev-shop-btn">Previous</button>
+                    <button class="w-1/3 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="next-shop-btn">Next</button>
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-shop-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="modal-price">
+            <div class="modal-content">
+                <span class="tooltip">Enter the original price of your product</span>
+                <h3 class="text-lg font-bold mb-4">Original Price (NGN)</h3>
+                <div id="modal-price-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <input type="number" id="input-price" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter original price" min="0" step="0.01" required>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="prev-price-btn">Previous</button>
+                    <button class="w-1/3 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="next-price-btn">Next</button>
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-price-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal" id="modal-deal-price">
+            <div class="modal-content">
+                <span class="tooltip">Enter the discounted deal price for your product</span>
+                <h3 class="text-lg font-bold mb-4">Deal Price (NGN)</h3>
+                <div id="modal-deal-price-error" class="hidden text-sm text-[var(--alert-red)] mb-2"></div>
+                <input type="number" id="input-deal-price" class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent" placeholder="Enter deal price" min="0" step="0.01" required>
+                <div class="flex space-x-4 mt-4">
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="prev-deal-price-btn">Previous</button>
+                    <button class="w-1/3 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600" id="finish-btn">Finish</button>
+                    <button class="w-1/3 py-2 bg-[var(--light-gray)] text-[var(--neutral-gray)] rounded-full font-medium ripple" id="cancel-deal-price-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-[var(--white)] shadow-lg border-t border-gray-200 z-10">
+        <div class="flex justify-around items-center h-16">
+            <a href="/index.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="home" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Home</span>
+            </a>
+            <a href="/categories.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="grid" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Categories</span>
+            </a>
+            <a href="/cart.html" class="flex flex-col items-center text-[var(--neutral-gray)] cart-button">
+                <div class="relative">
+                    <i data-feather="shopping-cart" class="w-6 h-6"></i>
+                    <span class="absolute -top-1 -right-1 bg-[var(--primary-purple)] text-[var(--white)] text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center" id="bottom-cart-count">0</span>
+                </div>
+                <span class="text-xs mt-1">Cart</span>
+            </a>
+            <a href="/orders.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="package" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Orders</span>
+            </a>
+            <a href="/profile.html" class="flex flex-col items-center text-[var(--primary-purple)]">
+                <i data-feather="user" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Profile</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        feather.replace();
+
+        const API_BASE_URL = 'https://bazukastore.com/api';
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type} shadow-lg`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 100);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => { toast.remove(); }, 300); }, 2000);
+        }
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Please log in to list a product', 'error');
+                setTimeout(() => { window.location.href = '/login.html?redirect=list-product'; }, 2000);
+                return false;
+            }
+            return true;
+        }
+
+        async function fetchCart() {
+            try {
+                const token = localStorage.getItem('token');
+                let cart = [];
+                if (token) {
+                    const response = await fetch(`${API_BASE_URL}/carts/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) {
+                        let errorMessage = 'Failed to fetch cart';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || errorMessage;
+                        } catch (jsonError) {
+                            errorMessage = 'Network error occurred';
+                        }
+                        throw new Error(errorMessage);
+                    }
+                    cart = (await response.json()).items || [];
+                } else {
+                    cart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                }
+                updateCartCount(cart);
+            } catch (error) {
+                console.error('Error fetching cart:', error);
+                showToast(`Failed to load cart: ${error.message}`, 'error');
+            }
+        }
+
+        function updateCartCount(cartItems) {
+            const count = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+            document.querySelector('#bottom-cart-count').textContent = count;
+            document.querySelector('#bottom-cart-count').classList.toggle('animate-bounce', count > 0);
+        }
+
+        function setupCartNavigation() {
+            document.querySelectorAll('.cart-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate(50);
+                    }
+                    window.location.href = '/cart.html';
+                });
+            });
+        }
+
+        function setupRippleEffect() {
+            document.querySelectorAll('.ripple').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    this.style.setProperty('--x', x + 'px');
+                    this.style.setProperty('--y', y + 'px');
+                });
+            });
+        }
+
+        // Seller Approval and Questionnaire Logic
+        const questionnaireData = {
+            name: '',
+            phone: '',
+            country: '',
+            address: '',
+            product: '',
+            shop: '',
+            price: '',
+            dealPrice: ''
+        };
+
+        let sellerProfile = null;
+
+        const modals = [
+            { id: 'modal-name', input: 'input-name', error: 'modal-name-error', next: 'next-name-btn', cancel: 'cancel-name-btn' },
+            { id: 'modal-phone', input: 'input-phone', error: 'modal-phone-error', prev: 'prev-phone-btn', next: 'next-phone-btn', cancel: 'cancel-phone-btn' },
+            { id: 'modal-country', input: 'input-country', error: 'modal-country-error', prev: 'prev-country-btn', next: 'next-country-btn', cancel: 'cancel-country-btn' },
+            { id: 'modal-address', input: 'input-address', error: 'modal-address-error', prev: 'prev-address-btn', next: 'next-address-btn', cancel: 'cancel-address-btn' },
+            { id: 'modal-product', input: 'input-product', error: 'modal-product-error', prev: 'prev-product-btn', next: 'next-product-btn', cancel: 'cancel-product-btn' },
+            { id: 'modal-shop', input: 'input-shop', error: 'modal-shop-error', prev: 'prev-shop-btn', next: 'next-shop-btn', cancel: 'cancel-shop-btn' },
+            { id: 'modal-price', input: 'input-price', error: 'modal-price-error', prev: 'prev-price-btn', next: 'next-price-btn', cancel: 'cancel-price-btn' },
+            { id: 'modal-deal-price', input: 'input-deal-price', error: 'modal-deal-price-error', prev: 'prev-deal-price-btn', next: 'finish-btn', cancel: 'cancel-deal-price-btn' }
+        ];
+
+        let currentModalIndex = 0;
+
+        function showModal(index) {
+            modals.forEach((modal, i) => {
+                document.getElementById(modal.id).classList.toggle('show', i === index);
+                document.getElementById(modal.error).classList.add('hidden');
+            });
+        }
+
+        function hideAllModals() {
+            modals.forEach(modal => {
+                document.getElementById(modal.id).classList.remove('show');
+            });
+        }
+
+        function validateInput(modal, value) {
+            if (!value.trim()) {
+                document.getElementById(modal.error).textContent = 'This field is required.';
+                document.getElementById(modal.error).classList.remove('hidden');
+                return false;
+            }
+            if (modal.id === 'modal-phone') {
+                const phoneRegex = /^\+?\d{10,15}$/;
+                if (!phoneRegex.test(value)) {
+                    document.getElementById(modal.error).textContent = 'Please enter a valid phone number (10-15 digits).';
+                    document.getElementById(modal.error).classList.remove('hidden');
+                    return false;
+                }
+            }
+            if (modal.id === 'modal-price' || modal.id === 'modal-deal-price') {
+                const price = parseFloat(value);
+                if (isNaN(price) || price <= 0) {
+                    document.getElementById(modal.error).textContent = 'Please enter a valid price greater than 0.';
+                    document.getElementById(modal.error).classList.remove('hidden');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        async function fetchSellerProfile() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/users/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    let errorMessage = 'Failed to fetch seller profile';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (jsonError) {
+                        errorMessage = 'Network error occurred';
+                    }
+                    throw new Error(errorMessage);
+                }
+                sellerProfile = await response.json();
+                return sellerProfile;
+            } catch (error) {
+                console.error('Error fetching seller profile:', error);
+                showToast(`Failed to load seller profile: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function checkSellerStatus() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/product-submissions/pending-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    let errorMessage = 'Failed to check seller status';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (jsonError) {
+                        errorMessage = 'Network error occurred';
+                    }
+                    throw new Error(errorMessage);
+                }
+                const status = await response.json();
+                sellerProfile = status; // Update sellerProfile with status data
+                if (status.isApprovedSeller) {
+                    // Approved seller: show listing form directly
+                    document.getElementById('start-listing-section').style.display = 'none';
+                    document.getElementById('pending-message').style.display = 'none';
+                    document.getElementById('listing-section').style.display = 'block';
+                    document.getElementById('shop-name').value = status.shopName || '';
+                    return true;
+                } else if (status.hasPendingListings) {
+                    // Pending listings: show pending message
+                    document.getElementById('start-listing-section').style.display = 'none';
+                    document.getElementById('listing-section').style.display = 'none';
+                    document.getElementById('pending-message').style.display = 'block';
+                    return false;
+                } else {
+                    // New seller: show questionnaire
+                    document.getElementById('start-listing-section').style.display = 'block';
+                    document.getElementById('listing-section').style.display = 'none';
+                    document.getElementById('pending-message').style.display = 'none';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error checking seller status:', error);
+                showToast(`Failed to check seller status: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function setupModalNavigation() {
+            document.getElementById('start-listing-btn').addEventListener('click', () => {
+                if (checkAuth()) {
+                    showModal(0);
+                }
+            });
+
+            modals.forEach((modal, index) => {
+                if (modal.next) {
+                    document.getElementById(modal.next).addEventListener('click', () => {
+                        const value = document.getElementById(modal.input).value;
+                        if (validateInput(modal, value)) {
+                            questionnaireData[modal.id.replace('modal-', '')] = value;
+                            if (modal.next === 'finish-btn') {
+                                hideAllModals();
+                                document.getElementById('start-listing-section').style.display = 'none';
+                                document.getElementById('listing-section').style.display = 'block';
+                                // Pre-fill form fields
+                                document.getElementById('product-name').value = questionnaireData.product;
+                                document.getElementById('shop-name').value = questionnaireData.shop;
+                                document.getElementById('product-price').value = questionnaireData.price;
+                                document.getElementById('deal-price').value = questionnaireData.dealPrice;
+                            } else {
+                                showModal(index + 1);
+                            }
+                        }
+                    });
+                }
+                if (modal.prev) {
+                    document.getElementById(modal.prev).addEventListener('click', () => {
+                        showModal(index - 1);
+                    });
+                }
+                if (modal.cancel) {
+                    document.getElementById(modal.cancel).addEventListener('click', () => {
+                        hideAllModals();
+                        Object.keys(questionnaireData).forEach(key => questionnaireData[key] = '');
+                    });
+                }
+            });
+        }
+
+        async function listProduct(event) {
+            event.preventDefault();
+            if (!checkAuth()) return;
+
+            const name = document.querySelector('#product-name').value.trim();
+            const shopName = document.querySelector('#shop-name').value.trim();
+            const description = document.querySelector('#product-description').value.trim();
+            const price = parseFloat(document.querySelector('#product-price').value);
+            const dealPrice = parseFloat(document.querySelector('#deal-price').value);
+            const category = document.querySelector('#product-category').value;
+            const image = document.querySelector('#product-image').files[0];
+            const formError = document.querySelector('#form-error');
+
+            if (!name || !shopName || !description || !price || !dealPrice || !category) {
+                formError.textContent = 'All fields except image are required.';
+                formError.classList.remove('hidden');
+                return;
+            }
+
+            if (price <= 0 || dealPrice <= 0) {
+                formError.textContent = 'Prices must be greater than 0.';
+                formError.classList.remove('hidden');
+                return;
+            }
+
+            if (dealPrice > price) {
+                formError.textContent = 'Deal price cannot be higher than original price.';
+                formError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('shopName', shopName);
+                formData.append('description', description);
+                formData.append('price', price);
+                formData.append('dealPrice', dealPrice);
+                formData.append('category', category);
+                if (!sellerProfile.isApprovedSeller) {
+                    formData.append('sellerName', questionnaireData.name);
+                    formData.append('sellerPhone', questionnaireData.phone);
+                    formData.append('sellerCountry', questionnaireData.country);
+                    formData.append('sellerAddress', questionnaireData.address);
+                }
+                if (image) formData.append('image', image);
+
+                const response = await fetch(`${API_BASE_URL}/product-submissions`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    let errorMessage = 'Failed to submit product';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (jsonError) {
+                        errorMessage = 'Network error occurred';
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                document.getElementById('listing-section').style.display = 'none';
+                document.getElementById('submission-message').style.display = 'block';
+                showToast('Product submitted for approval', 'success');
+                fetchListings();
+            } catch (error) {
+                console.error('Error submitting product:', error);
+                formError.textContent = `Failed to submit product: ${error.message}`;
+                formError.classList.remove('hidden');
+            }
+        }
+
+        async function fetchListings() {
+            if (!checkAuth()) return;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/product-submissions/my-listings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    let errorMessage = 'Failed to fetch listings';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (jsonError) {
+                        errorMessage = 'Network error occurred';
+                    }
+                    throw new Error(errorMessage);
+                }
+                const listings = await response.json();
+                renderListings(listings);
+            } catch (error) {
+                console.error('Error fetching listings:', error);
+                showToast(`Failed to load listings: ${error.message}`, 'error');
+            }
+        }
+
+        function renderListings(listings) {
+            const container = document.getElementById('listings-container');
+            const noListings = document.getElementById('no-listings');
+            if (listings.length === 0) {
+                noListings.style.display = 'block';
+                container.innerHTML = '<p class="text-sm text-[var(--neutral-gray)] text-center" id="no-listings">No listings found.</p>';
+                return;
+            }
+            noListings.style.display = 'none';
+            container.innerHTML = listings.map(listing => `
+                <div class="listing-card bg-[var(--white)] rounded-xl p-4 shadow-sm mb-4 flex items-center justify-between transition-all duration-300">
+                    <div class="flex items-center">
+                        ${listing.image ? `<img src="${listing.image}" class="w-16 h-16 rounded-lg object-cover mr-4" alt="${listing.name}">` : 
+                        `<i data-feather="image" class="w-16 h-16 text-[var(--primary-purple)] mr-4"></i>`}
+                        <div>
+                            <p class="text-sm font-medium">${listing.name}</p>
+                            <p class="text-xs text-[var(--neutral-gray)]">Status: ${listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}</p>
+                            <p class="text-xs text-[var(--neutral-gray)]">Price: ₦${listing.dealPrice.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    ${listing.status === 'approved' ? `
+                        <button class="py-2 px-4 bg-[var(--primary-purple)] text-[var(--white)] rounded-full font-medium ripple hover:bg-purple-600 boost-btn" data-id="${listing._id}">
+                            ${listing.isBoosted ? 'Boosted' : 'Boost Listing'}
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+            feather.replace();
+            setupBoostButtons();
+        }
+
+        async function boostListing(productId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/product-submissions/${productId}/boost`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) {
+                    let errorMessage = 'Failed to boost listing';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (jsonError) {
+                        errorMessage = 'Network error occurred';
+                    }
+                    throw new Error(errorMessage);
+                }
+                showToast('Boost request submitted', 'success');
+                fetchListings();
+            } catch (error) {
+                console.error('Error boosting listing:', error);
+                showToast(`Failed to boost listing: ${error.message}`, 'error');
+            }
+        }
+
+        function setupBoostButtons() {
+            document.querySelectorAll('.boost-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const productId = button.getAttribute('data-id');
+                    boostListing(productId);
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            if (checkAuth()) {
+                fetchCart();
+                fetchListings();
+                checkSellerStatus();
+                setupCartNavigation();
+                setupRippleEffect();
+                setupModalNavigation();
+                document.querySelector('#list-product-form').addEventListener('submit', listProduct);
+            }
+        });
+    </script>
+</body>
+</html>
