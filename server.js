@@ -1,3 +1,4 @@
+// app.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -5,6 +6,8 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const VisitorLocation = require('./models/VisitorLocation');
+const cloudinary = require('cloudinary').v2;
+const fileUpload = require('express-fileupload');
 
 // Connect DB
 const connectDB = require('./config/db');
@@ -16,6 +19,7 @@ const auth = require('./middleware/auth');
 // Routes
 const userRoutes = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
+const productSubmissionRoutes = require('./routes/productSubmissionRoutes'); // Added
 const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const chatRoutes = require('./routes/chatRoutes');
@@ -30,6 +34,13 @@ const visitorRoutes = require('./routes/visitorRoutes');
 const adRoutes = require('./routes/adRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const customerRoutes = require('./routes/customerRoutes');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -51,6 +62,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(fileUpload()); // Required for Cloudinary uploads
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
@@ -110,6 +122,9 @@ io.on('connection', (socket) => {
   socket.on('productUpdate', () => {
     io.to('adminRoom').emit('productUpdate');
   });
+  socket.on('submissionUpdate', () => { // Added for submission updates
+    io.to('adminRoom').emit('submissionUpdate');
+  });
   socket.on('orderStatusUpdate', (order) => {
     io.to('adminRoom').emit('orderStatusUpdate', order);
     if (order.user) {
@@ -137,6 +152,7 @@ console.log('✅ Registering API routes');
 console.log('✅ productRoutes loaded:', productRoutes.stack.map(r => `${r.route.path} (${r.route.stack[0].method})`));
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/product-submissions', productSubmissionRoutes); // Added
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/chats', chatRoutes);
