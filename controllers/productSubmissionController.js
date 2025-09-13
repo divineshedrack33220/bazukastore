@@ -2,7 +2,6 @@
 const ProductSubmission = require('../models/ProductSubmission');
 const User = require('../models/User');
 const cloudinary = require('cloudinary').v2;
-const streamifier = require('streamifier');
 
 // Submit a new product
 const submitProduct = async (req, res) => {
@@ -43,23 +42,16 @@ const submitProduct = async (req, res) => {
     let image = null;
     if (req.files?.image) {
       const file = req.files.image;
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'product_submissions' },
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary upload error:', error);
-            throw new Error('Failed to upload image to Cloudinary');
-          }
-          image = {
-            url: result.secure_url,
-            public_id: result.public_id,
-          };
-        }
-      );
-      streamifier.createReadStream(file.data).pipe(uploadStream);
 
-      // Wait for upload to complete
-      await new Promise(resolve => uploadStream.on('finish', resolve));
+      // Direct upload to Cloudinary
+      const result = await cloudinary.uploader.upload(file.tempFilePath, {
+        folder: 'product_submissions',
+      });
+
+      image = {
+        url: result.secure_url,
+        public_id: result.public_id,
+      };
     }
 
     const submission = new ProductSubmission({
