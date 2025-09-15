@@ -353,190 +353,190 @@
             </div>
         </div>
         
-       <!-- Hero Banner - Swipeable Carousel with Auto-Scroll (No Scrollbar on PC) -->
-<div class="relative rounded-xl overflow-hidden mb-6 h-48">
-    <!-- Swipeable track: horizontal flex with snap, hidden scrollbar -->
-    <div class="flex h-full snap-x snap-mandatory overflow-x-auto scroll-smooth scrollbar-hide" id="hero-track">
-        <!-- Slide 1: Original Flash Sale -->
-        <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-[var(--primary-purple)]">
-            <div class="absolute inset-0 flex items-center px-6">
-                <div class="text-[var(--white)]">
-                    <h2 class="text-2xl font-bold mb-1">Flash Sale ₦7,500</h2>
-                    <p class="text-lg mb-3">Today Only 🚀</p>
-                    <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
+        <!-- Hero Banner - Swipeable Carousel with Auto-Scroll (No Scrollbar on PC) -->
+        <div class="relative rounded-xl overflow-hidden mb-6 h-48">
+            <!-- Swipeable track: horizontal flex with snap, hidden scrollbar -->
+            <div class="flex h-full snap-x snap-mandatory overflow-x-auto scroll-smooth scrollbar-hide" id="hero-track">
+                <!-- Slide 1: Original Flash Sale -->
+                <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-[var(--primary-purple)]">
+                    <div class="absolute inset-0 flex items-center px-6">
+                        <div class="text-[var(--white)]">
+                            <h2 class="text-2xl font-bold mb-1">Flash Sale ₦7,500</h2>
+                            <p class="text-lg mb-3">Today Only 🚀</p>
+                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Slide 2: Placeholder (e.g., another deal - customize with image or gradient) -->
+                <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] via-blue-500 to-[var(--primary-purple)]">
+                    <div class="absolute inset-0 flex items-center px-6">
+                        <div class="text-[var(--white)]">
+                            <h2 class="text-2xl font-bold mb-1">Weekend Deal ₦5,000</h2>
+                            <p class="text-lg mb-3">Saturday Special 🎉</p>
+                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Slide 3: Placeholder (add more as needed) -->
+                <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-pink-500">
+                    <div class="absolute inset-0 flex items-center px-6">
+                        <div class="text-[var(--white)]">
+                            <h2 class="text-2xl font-bold mb-1">New Arrival ₦10,000</h2>
+                            <p class="text-lg mb-3">Limited Time ⚡</p>
+                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Slide 2: Placeholder (e.g., another deal - customize with image or gradient) -->
-        <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] via-blue-500 to-[var(--primary-purple)]">
-            <div class="absolute inset-0 flex items-center px-6">
-                <div class="text-[var(--white)]">
-                    <h2 class="text-2xl font-bold mb-1">Weekend Deal ₦5,000</h2>
-                    <p class="text-lg mb-3">Saturday Special 🎉</p>
-                    <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
-                </div>
+            
+            <!-- Dots indicator: positioned bottom-right, clickable -->
+            <div class="absolute bottom-4 right-4 flex space-x-2" id="hero-dots">
+                <button class="w-2 h-2 bg-[var(--white)] rounded-full active-dot" data-slide="0"></button>
+                <button class="w-2 h-2 bg-[var(--white)] bg-opacity-50 rounded-full" data-slide="1"></button>
+                <button class="w-2 h-2 bg-[var(--white)] bg-opacity-50 rounded-full" data-slide="2"></button>
             </div>
         </div>
-        
-        <!-- Slide 3: Placeholder (add more as needed) -->
-        <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-pink-500">
-            <div class="absolute inset-0 flex items-center px-6">
-                <div class="text-[var(--white)]">
-                    <h2 class="text-2xl font-bold mb-1">New Arrival ₦10,000</h2>
-                    <p class="text-lg mb-3">Limited Time ⚡</p>
-                    <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Dots indicator: positioned bottom-right, clickable -->
-    <div class="absolute bottom-4 right-4 flex space-x-2" id="hero-dots">
-        <button class="w-2 h-2 bg-[var(--white)] rounded-full active-dot" data-slide="0"></button>
-        <button class="w-2 h-2 bg-[var(--white)] bg-opacity-50 rounded-full" data-slide="1"></button>
-        <button class="w-2 h-2 bg-[var(--white)] bg-opacity-50 rounded-full" data-slide="2"></button>
-    </div>
-</div>
 
-<!-- Inline script for swipe + dot handling + auto-scroll (vanilla JS) -->
-<script>
-    (function() {
-        const track = document.getElementById('hero-track');
-        const dots = document.querySelectorAll('#hero-dots button');
-        if (!track || dots.length === 0) return; // Safety check
+        <!-- Inline script for swipe + dot handling + auto-scroll (vanilla JS) -->
+        <script>
+            (function() {
+                const track = document.getElementById('hero-track');
+                const dots = document.querySelectorAll('#hero-dots button');
+                if (!track || dots.length === 0) return; // Safety check
 
-        let currentIndex = 0;
-        const totalSlides = track.children.length;
-        let startX = 0;
-        let isDragging = false;
-        const threshold = 50; // Min drag px to switch slide
-        let autoScrollInterval = null;
+                let currentIndex = 0;
+                const totalSlides = track.children.length;
+                let startX = 0;
+                let isDragging = false;
+                const threshold = 50; // Min drag px to switch slide
+                let autoScrollInterval = null;
 
-        // Update active dot
-        function updateDots() {
-            dots.forEach((dot, index) => {
-                dot.classList.toggle('bg-opacity-50', index !== currentIndex);
-                dot.classList.toggle('bg-opacity-100', index === currentIndex);
-            });
-        }
+                // Update active dot
+                function updateDots() {
+                    dots.forEach((dot, index) => {
+                        dot.classList.toggle('bg-opacity-50', index !== currentIndex);
+                        dot.classList.toggle('bg-opacity-100', index === currentIndex);
+                    });
+                }
 
-        // Start auto-scroll (every 10s)
-        function startAutoScroll() {
-            if (autoScrollInterval) clearInterval(autoScrollInterval); // Clear existing
-            autoScrollInterval = setInterval(() => {
-                currentIndex = (currentIndex + 1) % totalSlides; // Loop back
-                track.scrollTo({ left: currentIndex * track.offsetWidth, behavior: 'smooth' });
+                // Start auto-scroll (every 10s)
+                function startAutoScroll() {
+                    if (autoScrollInterval) clearInterval(autoScrollInterval); // Clear existing
+                    autoScrollInterval = setInterval(() => {
+                        currentIndex = (currentIndex + 1) % totalSlides; // Loop back
+                        track.scrollTo({ left: currentIndex * track.offsetWidth, behavior: 'smooth' });
+                        updateDots();
+                    }, 10000); // 10 seconds
+                }
+
+                // Stop auto-scroll during interaction
+                function stopAutoScroll() {
+                    if (autoScrollInterval) clearInterval(autoScrollInterval);
+                }
+
+                // Resume auto-scroll after interaction
+                function resumeAutoScroll() {
+                    stopAutoScroll();
+                    setTimeout(startAutoScroll, 10000); // Wait 10s before restarting
+                }
+
+                // Click dots to jump to slide
+                dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => {
+                        currentIndex = index;
+                        track.scrollTo({ left: index * track.offsetWidth, behavior: 'smooth' });
+                        updateDots();
+                        resumeAutoScroll(); // Reset timer on manual interaction
+                    });
+                });
+
+                // Touch events for mobile swipe
+                track.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    isDragging = true;
+                    track.style.scrollSnapType = 'none'; // Allow free scroll
+                    stopAutoScroll(); // Pause auto-scroll
+                }, { passive: true });
+
+                track.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault(); // Prevent page scroll
+                }, { passive: false });
+
+                track.addEventListener('touchend', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    track.style.scrollSnapType = 'x mandatory';
+
+                    const endX = track.scrollLeft;
+                    const slideWidth = track.offsetWidth;
+                    currentIndex = Math.round(endX / slideWidth);
+                    currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
+                    track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
+                    updateDots();
+                    resumeAutoScroll(); // Resume after swipe
+                }, { passive: true });
+
+                // Mouse events for desktop drag
+                track.addEventListener('mousedown', (e) => {
+                    startX = e.clientX;
+                    isDragging = true;
+                    track.style.scrollSnapType = 'none';
+                    stopAutoScroll();
+                    e.preventDefault();
+                });
+
+                track.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const diff = startX - e.clientX;
+                    track.scrollLeft += diff * 2; // Amplify for better feel
+                });
+
+                track.addEventListener('mouseup', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    track.style.scrollSnapType = 'x mandatory';
+
+                    const slideWidth = track.offsetWidth;
+                    currentIndex = Math.round(track.scrollLeft / slideWidth);
+                    currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
+                    track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
+                    updateDots();
+                    resumeAutoScroll();
+                });
+
+                // Prevent drag outside
+                document.addEventListener('mouseleave', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        track.style.scrollSnapType = 'x mandatory';
+                        const slideWidth = track.offsetWidth;
+                        currentIndex = Math.round(track.scrollLeft / slideWidth);
+                        currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
+                        track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
+                        updateDots();
+                        resumeAutoScroll();
+                    }
+                });
+
+                // Initial setup
                 updateDots();
-            }, 10000); // 10 seconds
-        }
+                startAutoScroll(); // Kick off auto-scroll
 
-        // Stop auto-scroll during interaction
-        function stopAutoScroll() {
-            if (autoScrollInterval) clearInterval(autoScrollInterval);
-        }
-
-        // Resume auto-scroll after interaction
-        function resumeAutoScroll() {
-            stopAutoScroll();
-            setTimeout(startAutoScroll, 10000); // Wait 10s before restarting
-        }
-
-        // Click dots to jump to slide
-        dots.forEach((dot, index) => {
-            dot.addEventListener('click', () => {
-                currentIndex = index;
-                track.scrollTo({ left: index * track.offsetWidth, behavior: 'smooth' });
-                updateDots();
-                resumeAutoScroll(); // Reset timer on manual interaction
-            });
-        });
-
-        // Touch events for mobile swipe
-        track.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            isDragging = true;
-            track.style.scrollSnapType = 'none'; // Allow free scroll
-            stopAutoScroll(); // Pause auto-scroll
-        }, { passive: true });
-
-        track.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault(); // Prevent page scroll
-        }, { passive: false });
-
-        track.addEventListener('touchend', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            track.style.scrollSnapType = 'x mandatory';
-
-            const endX = track.scrollLeft;
-            const slideWidth = track.offsetWidth;
-            currentIndex = Math.round(endX / slideWidth);
-            currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
-            track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
-            updateDots();
-            resumeAutoScroll(); // Resume after swipe
-        }, { passive: true });
-
-        // Mouse events for desktop drag
-        track.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            isDragging = true;
-            track.style.scrollSnapType = 'none';
-            stopAutoScroll();
-            e.preventDefault();
-        });
-
-        track.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const diff = startX - e.clientX;
-            track.scrollLeft += diff * 2; // Amplify for better feel
-        });
-
-        track.addEventListener('mouseup', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            track.style.scrollSnapType = 'x mandatory';
-
-            const slideWidth = track.offsetWidth;
-            currentIndex = Math.round(track.scrollLeft / slideWidth);
-            currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
-            track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
-            updateDots();
-            resumeAutoScroll();
-        });
-
-        // Prevent drag outside
-        document.addEventListener('mouseleave', () => {
-            if (isDragging) {
-                isDragging = false;
-                track.style.scrollSnapType = 'x mandatory';
-                const slideWidth = track.offsetWidth;
-                currentIndex = Math.round(track.scrollLeft / slideWidth);
-                currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
-                track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
-                updateDots();
-                resumeAutoScroll();
-            }
-        });
-
-        // Initial setup
-        updateDots();
-        startAutoScroll(); // Kick off auto-scroll
-
-        // Clean up on unload
-        window.addEventListener('beforeunload', () => {
-            stopAutoScroll();
-            track.removeEventListener('touchstart', () => {});
-            track.removeEventListener('touchmove', () => {});
-            track.removeEventListener('touchend', () => {});
-            track.removeEventListener('mousedown', () => {});
-            track.removeEventListener('mousemove', () => {});
-            track.removeEventListener('mouseup', () => {});
-        });
-    })();
-</script>
+                // Clean up on unload
+                window.addEventListener('beforeunload', () => {
+                    stopAutoScroll();
+                    track.removeEventListener('touchstart', () => {});
+                    track.removeEventListener('touchmove', () => {});
+                    track.removeEventListener('touchend', () => {});
+                    track.removeEventListener('mousedown', () => {});
+                    track.removeEventListener('mousemove', () => {});
+                    track.removeEventListener('mouseup', () => {});
+                });
+            })();
+        </script>
         
         <!-- Flash Deals -->
         <section class="mb-8">
@@ -569,26 +569,26 @@
         </section>
         
         <!-- Trending Categories -->
-        <section class="mb-8">
-            <h2 class="text-xl font-bold mb-4">Trending Categories</h2>
-            <div class="grid grid-cols-5 gap-2 text-center" id="trending-categories">
-                <div class="flex flex-col items-center">
+        <section class="mb-8" aria-labelledby="trending-categories-heading">
+            <h2 class="text-xl font-bold mb-4" id="trending-categories-heading">Trending Categories</h2>
+            <div class="grid grid-cols-5 gap-2 text-center" id="trending-categories" role="list">
+                <div class="flex flex-col items-center" role="listitem">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center" role="listitem">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center" role="listitem">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center" role="listitem">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center" role="listitem">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
@@ -987,9 +987,13 @@
                 if (!response.ok) throw new Error('Failed to fetch categories');
                 const categories = await response.json();
                 const container = document.querySelector('#trending-categories');
+                if (categories.length === 0) {
+                    container.innerHTML = '<p class="text-center text-[var(--neutral-gray)]">No categories available.</p>';
+                    return;
+                }
                 container.innerHTML = categories.map(category => `
-                    <div class="flex flex-col items-center">
-                        <a href="/products.html?category=${category._id}">
+                    <div class="flex flex-col items-center" role="listitem">
+                        <a href="/products.html?category=${category._id}" aria-label="View ${category.name} category">
                             <div class="w-12 h-12 bg-[var(--white)] rounded-full flex items-center justify-center mb-1 shadow-sm">
                                 <i data-feather="${category.icon || 'shopping-bag'}" class="text-[var(--primary-purple)]"></i>
                             </div>
