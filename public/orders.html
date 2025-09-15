@@ -28,6 +28,7 @@
             min-height: 100vh;
             margin: 0;
             padding: 1rem;
+            padding-bottom: 5rem; /* Space for bottom nav on mobile */
         }
         
         .ripple {
@@ -187,9 +188,30 @@
             border-radius: 50%;
             padding: 0.25rem;
         }
+
+        /* Bottom Navigation Styles */
+        @media (min-width: 768px) {
+            .bottom-nav {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Top Navigation -->
+    <header class="bg-[var(--white)] shadow-sm sticky top-0 z-10" role="banner">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="text-2xl font-bold text-[var(--primary-purple)]" aria-label="Bazuka Store logo">Bazuka<span class="text-[var(--neutral-gray)]">Store</span></div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="Notifications">
+                    <i data-feather="bell" class="w-6 h-6 text-[var(--neutral-gray)]" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
     <!-- Order Details Modal -->
     <div id="order-details-modal" class="modal" role="dialog" aria-labelledby="order-details-modal-title">
         <div class="modal-content">
@@ -235,6 +257,42 @@
             </div>
         </section>
     </main>
+
+    <!-- Floating WhatsApp Button -->
+    <div class="fixed bottom-24 right-4 z-20">
+        <button class="bg-[var(--primary-purple)] text-[var(--white)] p-3 rounded-full shadow-lg hover:bg-[var(--primary-purple)]/90 transition-colors ripple" onclick="window.location.href='/chat.html'" aria-label="Chat with us on WhatsApp">
+            <i data-feather="message-circle" class="w-6 h-6" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-[var(--white)] shadow-lg border-t border-gray-200 z-10" role="navigation" aria-label="Main navigation">
+        <div class="flex justify-around items-center h-16">
+            <a href="/index.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="home" class="w-6 h-6" aria-hidden="true"></i>
+                <span class="text-xs mt-1">Home</span>
+            </a>
+            <a href="/categories.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="grid" class="w-6 h-6" aria-hidden="true"></i>
+                <span class="text-xs mt-1">Categories</span>
+            </a>
+            <a href="/cart.html" class="flex flex-col items-center text-[var(--neutral-gray)] cart-button">
+                <div class="relative">
+                    <i data-feather="shopping-cart" class="w-6 h-6" aria-hidden="true"></i>
+                    <span class="absolute -top-1 -right-1 bg-[var(--primary-purple)] text-[var(--white)] text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center" id="bottom-cart-count" aria-label="Cart items count">0</span>
+                </div>
+                <span class="text-xs mt-1">Cart</span>
+            </a>
+            <a href="/orders.html" class="flex flex-col items-center text-[var(--primary-purple)]" aria-current="page">
+                <i data-feather="package" class="w-6 h-6" aria-hidden="true"></i>
+                <span class="text-xs mt-1">Orders</span>
+            </a>
+            <a href="/profile.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+                <i data-feather="user" class="w-6 h-6" aria-hidden="true"></i>
+                <span class="text-xs mt-1">Profile</span>
+            </a>
+        </div>
+    </nav>
 
     <script>
         feather.replace();
@@ -318,6 +376,7 @@
                 }
                 const orders = await response.json();
                 renderOrders(orders);
+                fetchCart(); // Ensure cart count updates after orders
             } catch (error) {
                 console.error('Error fetching orders:', error);
                 showError('Failed to load orders. Please try again.');
