@@ -3,49 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BazukaStore - Affordable Online Shopping in Nigeria</title>
-    <meta name="description" content="Shop affordable electronics, fashion, and home goods at BazukaStore, Nigeria's trusted online store. Fast delivery, great deals!">
-    <meta name="keywords" content="BazukaStore, online shopping Nigeria, affordable electronics, fashion, home goods, flash deals">
-    <!-- Open Graph Tags -->
-    <meta property="og:title" content="BazukaStore - Affordable Online Shopping in Nigeria">
-    <meta property="og:description" content="Shop affordable electronics, fashion, and home goods at BazukaStore. Fast delivery and great deals in Nigeria!">
-    <meta property="og:image" content="https://bazukastore.com/images/og-image.jpg">
-    <meta property="og:url" content="https://bazukastore.com/">
-    <meta property="og:type" content="website">
-    <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="BazukaStore - Affordable Online Shopping in Nigeria">
-    <meta name="twitter:description" content="Shop affordable electronics, fashion, and home goods at BazukaStore. Fast delivery and great deals!">
-    <meta name="twitter:image" content="https://bazukastore.com/images/og-image.jpg">
-    <!-- Sitemap and Robots -->
-    <link rel="sitemap" href="/sitemap.xml">
-    <meta name="robots" content="index, follow">
-    <!-- Preload Critical Assets -->
-    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style">
+    <title>Bazuka Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs/lib/anime.iife.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-purple: #6C5CE7;
-            --secondary-yellow: #FDCB6E;
-            --accent-light: #F3F0FF;
-            --neutral-gray: #4B4B4B;
-            --light-gray: #F5F5F5;
-            --alert-red: #FF7675;
-            --white: #FFFFFF;
+            --primary-purple: #6C5CE7;    /* Main brand purple */
+            --secondary-yellow: #FDCB6E;  /* Fun highlight */
+            --accent-light: #F3F0FF;      /* Soft violet background */
+            --neutral-gray: #4B4B4B;      /* Neutral text */
+            --light-gray: #F5F5F5;        /* Light block background */
+            --alert-red: #FF7675;         /* Accent red */
+            --white: #FFFFFF;             /* Background white */
         }
+        
         body {
             font-family: 'Poppins', sans-serif;
             background-color: var(--accent-light);
             color: var(--neutral-gray);
         }
+        
         .ripple {
             position: relative;
             overflow: hidden;
         }
+        
         .ripple:after {
             content: "";
             display: block;
@@ -62,22 +46,28 @@
             opacity: 0;
             transition: transform .5s, opacity 1s;
         }
+        
         .ripple:active:after {
             transform: scale(0,0);
             opacity: .3;
             transition: 0s;
         }
+        
         .product-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
+        
         .countdown-digit {
             transition: all 0.3s ease;
         }
+        
         .countdown-digit.active {
             color: var(--primary-purple);
             transform: scale(1.1);
         }
+
+        /* Toast Notification */
         .toast {
             position: fixed;
             top: 0.5rem;
@@ -91,26 +81,34 @@
             font-size: 0.75rem;
             line-height: 1rem;
         }
+
         .toast.show {
             opacity: 1;
             transform: translateY(0);
         }
+
         .toast.success {
             background-color: var(--secondary-yellow);
             color: var(--neutral-gray);
         }
+
         .toast.error {
             background-color: var(--alert-red);
             color: var(--white);
         }
+
+        /* Flash Deal Pulse */
         .flash-deal-tag {
             animation: pulse 1.5s infinite;
         }
+
         @keyframes pulse {
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.1); opacity: 0.7; }
             100% { transform: scale(1); opacity: 1; }
         }
+
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -123,6 +121,7 @@
             align-items: center;
             justify-content: center;
         }
+        
         .modal-content {
             background-color: var(--accent-light);
             padding: 1.5rem;
@@ -136,16 +135,19 @@
             opacity: 0;
             transition: transform 0.3s ease-out, opacity 0.3s ease-out;
         }
+
         @media (max-width: 640px) {
             .modal-content {
                 width: 90%;
                 padding: 1rem;
             }
         }
+
         .modal.show .modal-content {
             transform: scale(1);
             opacity: 1;
         }
+
         .modal-content a, .modal-content button {
             transition: all 0.2s ease;
             display: inline-flex;
@@ -153,9 +155,11 @@
             justify-content: center;
             height: 2.5rem;
         }
+
         .modal-content a:hover, .modal-content button:hover {
             transform: translateY(-2px);
         }
+
         .modal-close {
             position: absolute;
             top: 0.5rem;
@@ -165,6 +169,7 @@
             border-radius: 50%;
             padding: 0.25rem;
         }
+
         .modal-icon {
             background: var(--light-gray);
             border-radius: 50%;
@@ -173,6 +178,8 @@
             align-items: center;
             justify-content: center;
         }
+
+        /* Full-Screen Image Modal */
         .image-modal {
             display: none;
             position: fixed;
@@ -185,9 +192,11 @@
             align-items: center;
             justify-content: center;
         }
+
         .image-modal.show {
             display: flex;
         }
+
         .image-modal-content {
             position: relative;
             width: 100%;
@@ -196,11 +205,13 @@
             align-items: center;
             justify-content: center;
         }
+
         .image-modal-content img {
             max-width: 90%;
             max-height: 90%;
             object-fit: contain;
         }
+
         .image-modal-nav {
             position: absolute;
             top: 50%;
@@ -211,12 +222,15 @@
             border-radius: 50%;
             cursor: pointer;
         }
+
         .image-modal-nav.prev {
             left: 1rem;
         }
+
         .image-modal-nav.next {
             right: 1rem;
         }
+
         .image-modal-close {
             position: absolute;
             top: 1rem;
@@ -225,79 +239,78 @@
             font-size: 2rem;
             cursor: pointer;
         }
+
+        /* Shimmer Loading Styles */
         .shimmer {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
         }
+
         @keyframes shimmer {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+
         .shimmer-card {
             background: #f0f0f0;
             border-radius: 0.5rem;
             height: 100%;
         }
+
         .shimmer-circle {
             background: #f0f0f0;
             border-radius: 50%;
             height: 3rem;
             width: 3rem;
         }
+
+        /* Product Card Width Control */
         .product-card {
             width: 100%;
             max-width: 100%;
         }
+
+        /* Product Image Container */
         .product-image-container {
             aspect-ratio: 1 / 1;
             overflow: hidden;
         }
+
+        /* Responsive Adjustments */
         @media (min-width: 768px) {
             .bottom-nav {
                 display: none;
             }
         }
+
         @layer utilities {
             .scrollbar-hide {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
+                -ms-overflow-style: none;  /* IE and Edge */
+                scrollbar-width: none;  /* Firefox */
             }
             .scrollbar-hide::-webkit-scrollbar {
-                display: none;
+                display: none;  /* Chrome, Safari, Opera */
             }
         }
     </style>
-    <!-- Breadcrumb Schema -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-            {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": "https://bazukastore.com/"
-            }
-        ]
-    }
-    </script>
 </head>
 <body class="min-h-screen pb-20 md:pb-0">
     <!-- Top Navigation -->
     <header class="bg-[var(--white)] shadow-sm sticky top-0 z-10">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center">
-                <h1 class="text-2xl font-bold text-[var(--primary-purple)]">Bazuka<span class="text-[var(--neutral-gray)]">Store</span></h1>
+                <div class="text-2xl font-bold text-[var(--primary-purple)]">Bazuka<span class="text-[var(--neutral-gray)]">Store</span></div>
             </div>
+            
             <div class="hidden md:flex flex-1 mx-6">
                 <div class="relative w-full max-w-md">
-                    <input type="text" id="desktop-search" placeholder="Search affordable products..." 
+                    <input type="text" id="desktop-search" placeholder="Search under ₦10k..." 
                            class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent">
                     <i data-feather="search" class="absolute right-3 top-2.5 text-[var(--neutral-gray)]"></i>
                 </div>
             </div>
+            
             <div class="flex items-center space-x-4">
                 <button class="p-2 rounded-full hover:bg-[var(--light-gray)] ripple">
                     <i data-feather="bell" class="text-[var(--neutral-gray)]"></i>
@@ -313,8 +326,8 @@
             <i data-feather="user" class="w-8 h-8 text-[var(--primary-purple)] mb-4 modal-icon"></i>
             <p class="text-sm text-[var(--neutral-gray)] mb-4 font-medium sm:text-base">Join the Bazuka Store family! Sign up to save your cart, track orders, and unlock exclusive deals! 🎉</p>
             <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <a href="/register" class="bg-[var(--white)] text-[var(--primary-purple)] border border-[var(--primary-purple)] px-4 py-2 rounded-full font-medium hover:bg-[var(--accent-light)] ripple">Sign Up</a>
-                <a href="/login" class="bg-[var(--white)] text-[var(--primary-purple)] border border-[var(--primary-purple)] px-4 py-2 rounded-full font-medium hover:bg-[var(--accent-light)] ripple">Sign In</a>
+                <a href="/register.html" class="bg-[var(--white)] text-[var(--primary-purple)] border border-[var(--primary-purple)] px-4 py-2 rounded-full font-medium hover:bg-[var(--accent-light)] ripple">Sign Up</a>
+                <a href="/login.html" class="bg-[var(--white)] text-[var(--primary-purple)] border border-[var(--primary-purple)] px-4 py-2 rounded-full font-medium hover:bg-[var(--accent-light)] ripple">Sign In</a>
             </div>
         </div>
     </div>
@@ -323,10 +336,7 @@
     <div id="image-modal" class="image-modal">
         <div class="image-modal-content">
             <span class="image-modal-close">&times;</span>
-            <picture>
-                <source srcset="https://bazukastore.com/images/product-placeholder.webp" type="image/webp">
-                <img id="full-image" src="https://bazukastore.com/images/product-placeholder.jpg" alt="Full-screen product image Nigeria - BazukaStore" loading="lazy">
-            </picture>
+            <img id="full-image" src="" alt="Full-screen product image">
             <button class="image-modal-nav prev"><i data-feather="chevron-left" class="w-6 h-6"></i></button>
             <button class="image-modal-nav next"><i data-feather="chevron-right" class="w-6 h-6"></i></button>
         </div>
@@ -337,43 +347,51 @@
         <!-- Mobile Search -->
         <div class="md:hidden mb-4">
             <div class="relative">
-                <input type="text" id="mobile-search" placeholder="Search affordable products..." 
+                <input type="text" id="mobile-search" placeholder="Search under ₦10k..." 
                        class="w-full py-2 px-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--primary-purple)] focus:border-transparent">
                 <i data-feather="search" class="absolute right-3 top-2.5 text-[var(--neutral-gray)]"></i>
             </div>
         </div>
         
-        <!-- Hero Banner -->
+        <!-- Hero Banner - Swipeable Carousel with Auto-Scroll (No Scrollbar on PC) -->
         <div class="relative rounded-xl overflow-hidden mb-6 h-48">
+            <!-- Swipeable track: horizontal flex with snap, hidden scrollbar -->
             <div class="flex h-full snap-x snap-mandatory overflow-x-auto scroll-smooth scrollbar-hide" id="hero-track">
+                <!-- Slide 1: Original Flash Sale -->
                 <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-[var(--primary-purple)]">
                     <div class="absolute inset-0 flex items-center px-6">
                         <div class="text-[var(--white)]">
                             <h2 class="text-2xl font-bold mb-1">Flash Sale ₦7,500</h2>
                             <p class="text-lg mb-3">Today Only 🚀</p>
-                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/flash-deals'">Shop Now</button>
+                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Slide 2: Placeholder (e.g., another deal - customize with image or gradient) -->
                 <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] via-blue-500 to-[var(--primary-purple)]">
                     <div class="absolute inset-0 flex items-center px-6">
                         <div class="text-[var(--white)]">
                             <h2 class="text-2xl font-bold mb-1">Weekend Deal ₦5,000</h2>
                             <p class="text-lg mb-3">Saturday Special 🎉</p>
-                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/weekend-deals'">Shop Now</button>
+                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Slide 3: Placeholder (add more as needed) -->
                 <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-pink-500">
                     <div class="absolute inset-0 flex items-center px-6">
                         <div class="text-[var(--white)]">
                             <h2 class="text-2xl font-bold mb-1">New Arrival ₦10,000</h2>
                             <p class="text-lg mb-3">Limited Time ⚡</p>
-                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/new-arrivals'">Shop Now</button>
+                            <button class="bg-[var(--white)] text-[var(--primary-purple)] px-4 py-1 rounded-full font-medium ripple" onclick="window.location.href='/products.html?isFlashDeal=true'">Shop Now</button>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <!-- Dots indicator: positioned bottom-right, clickable -->
             <div class="absolute bottom-4 right-4 flex space-x-2" id="hero-dots">
                 <button class="w-2 h-2 bg-[var(--white)] rounded-full active-dot" data-slide="0"></button>
                 <button class="w-2 h-2 bg-[var(--white)] bg-opacity-50 rounded-full" data-slide="1"></button>
@@ -381,11 +399,149 @@
             </div>
         </div>
 
+        <!-- Inline script for swipe + dot handling + auto-scroll (vanilla JS) -->
+        <script>
+            (function() {
+                const track = document.getElementById('hero-track');
+                const dots = document.querySelectorAll('#hero-dots button');
+                if (!track || dots.length === 0) return; // Safety check
+
+                let currentIndex = 0;
+                const totalSlides = track.children.length;
+                let startX = 0;
+                let isDragging = false;
+                const threshold = 50; // Min drag px to switch slide
+                let autoScrollInterval = null;
+
+                // Update active dot
+                function updateDots() {
+                    dots.forEach((dot, index) => {
+                        dot.classList.toggle('bg-opacity-50', index !== currentIndex);
+                        dot.classList.toggle('bg-opacity-100', index === currentIndex);
+                    });
+                }
+
+                // Start auto-scroll (every 10s)
+                function startAutoScroll() {
+                    if (autoScrollInterval) clearInterval(autoScrollInterval); // Clear existing
+                    autoScrollInterval = setInterval(() => {
+                        currentIndex = (currentIndex + 1) % totalSlides; // Loop back
+                        track.scrollTo({ left: currentIndex * track.offsetWidth, behavior: 'smooth' });
+                        updateDots();
+                    }, 10000); // 10 seconds
+                }
+
+                // Stop auto-scroll during interaction
+                function stopAutoScroll() {
+                    if (autoScrollInterval) clearInterval(autoScrollInterval);
+                }
+
+                // Resume auto-scroll after interaction
+                function resumeAutoScroll() {
+                    stopAutoScroll();
+                    setTimeout(startAutoScroll, 10000); // Wait 10s before restarting
+                }
+
+                // Click dots to jump to slide
+                dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => {
+                        currentIndex = index;
+                        track.scrollTo({ left: index * track.offsetWidth, behavior: 'smooth' });
+                        updateDots();
+                        resumeAutoScroll(); // Reset timer on manual interaction
+                    });
+                });
+
+                // Touch events for mobile swipe
+                track.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    isDragging = true;
+                    track.style.scrollSnapType = 'none'; // Allow free scroll
+                    stopAutoScroll(); // Pause auto-scroll
+                }, { passive: true });
+
+                track.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault(); // Prevent page scroll
+                }, { passive: false });
+
+                track.addEventListener('touchend', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    track.style.scrollSnapType = 'x mandatory';
+
+                    const endX = track.scrollLeft;
+                    const slideWidth = track.offsetWidth;
+                    currentIndex = Math.round(endX / slideWidth);
+                    currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
+                    track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
+                    updateDots();
+                    resumeAutoScroll(); // Resume after swipe
+                }, { passive: true });
+
+                // Mouse events for desktop drag
+                track.addEventListener('mousedown', (e) => {
+                    startX = e.clientX;
+                    isDragging = true;
+                    track.style.scrollSnapType = 'none';
+                    stopAutoScroll();
+                    e.preventDefault();
+                });
+
+                track.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const diff = startX - e.clientX;
+                    track.scrollLeft += diff * 2; // Amplify for better feel
+                });
+
+                track.addEventListener('mouseup', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    track.style.scrollSnapType = 'x mandatory';
+
+                    const slideWidth = track.offsetWidth;
+                    currentIndex = Math.round(track.scrollLeft / slideWidth);
+                    currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
+                    track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
+                    updateDots();
+                    resumeAutoScroll();
+                });
+
+                // Prevent drag outside
+                document.addEventListener('mouseleave', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        track.style.scrollSnapType = 'x mandatory';
+                        const slideWidth = track.offsetWidth;
+                        currentIndex = Math.round(track.scrollLeft / slideWidth);
+                        currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
+                        track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
+                        updateDots();
+                        resumeAutoScroll();
+                    }
+                });
+
+                // Initial setup
+                updateDots();
+                startAutoScroll(); // Kick off auto-scroll
+
+                // Clean up on unload
+                window.addEventListener('beforeunload', () => {
+                    stopAutoScroll();
+                    track.removeEventListener('touchstart', () => {});
+                    track.removeEventListener('touchmove', () => {});
+                    track.removeEventListener('touchend', () => {});
+                    track.removeEventListener('mousedown', () => {});
+                    track.removeEventListener('mousemove', () => {});
+                    track.removeEventListener('mouseup', () => {});
+                });
+            })();
+        </script>
+        
         <!-- Flash Deals -->
         <section class="mb-8">
-            <h2 class="text-xl font-bold mb-4">Flash Deals</h2>
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold">Deal of the Day</h3>
+                <h2 class="text-xl font-bold">Deal day</h2>
                 <div class="flex items-center text-sm text-[var(--primary-purple)]">
                     <span class="mr-2">Ends in</span>
                     <div class="flex space-x-1" id="countdown-timer">
@@ -412,26 +568,26 @@
         </section>
         
         <!-- Trending Categories -->
-        <section class="mb-8" aria-labelledby="trending-categories-heading">
-            <h2 class="text-xl font-bold mb-4" id="trending-categories-heading">Trending Categories</h2>
-            <div class="grid grid-cols-5 gap-2 text-center" id="trending-categories" role="list">
-                <div class="flex flex-col items-center" role="listitem">
+        <section class="mb-8">
+            <h2 class="text-xl font-bold mb-4">Trending Categories</h2>
+            <div class="grid grid-cols-5 gap-2 text-center" id="trending-categories">
+                <div class="flex flex-col items-center">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center" role="listitem">
+                <div class="flex flex-col items-center">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center" role="listitem">
+                <div class="flex flex-col items-center">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center" role="listitem">
+                <div class="flex flex-col items-center">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
-                <div class="flex flex-col items-center" role="listitem">
+                <div class="flex flex-col items-center">
                     <div class="shimmer shimmer-circle mb-1"></div>
                     <div class="shimmer w-12 h-3"></div>
                 </div>
@@ -440,8 +596,10 @@
         
         <!-- Best Sellers -->
         <section class="mb-8">
-            <h2 class="text-xl font-bold mb-4">Best Sellers</h2>
-            <h3 class="text-lg font-semibold mb-2">Top-Rated Products</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Best Sellers</h2>
+                <a href="/products.html?isBestSeller=true" class="text-sm text-[var(--primary-purple)]">See all</a>
+            </div>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="best-sellers">
                 <div class="shimmer shimmer-card h-64"></div>
                 <div class="shimmer shimmer-card h-64"></div>
@@ -449,12 +607,10 @@
                 <div class="shimmer shimmer-card h-64"></div>
                 <div class="shimmer shimmer-card h-64"></div>
             </div>
-            <a href="/best-sellers" class="text-sm text-[var(--primary-purple)] mt-4 inline-block">See All Best Sellers</a>
         </section>
         
         <!-- Price Tabs -->
         <section class="mb-8">
-            <h2 class="text-xl font-bold mb-4">Shop by Price</h2>
             <div class="flex border-b border-gray-200 mb-4">
                 <button class="price-tab flex-1 py-2 px-4 text-center font-medium border-b-2 border-[var(--primary-purple)] text-[var(--primary-purple)]" data-range="0-5000" data-flag="isUnder5k">Under ₦5k</button>
                 <button class="price-tab flex-1 py-2 px-4 text-center font-medium text-[var(--neutral-gray)]" data-range="0-10000" data-flag="isUnder10k">Under ₦10k</button>
@@ -471,7 +627,7 @@
 
     <!-- Floating WhatsApp Button -->
     <div class="fixed bottom-24 right-4 z-20">
-        <button class="bg-[var(--primary-purple)] text-[var(--white)] p-3 rounded-full shadow-lg hover:bg-[var(--secondary-yellow)] transition-colors ripple" onclick="window.location.href='/chat'">
+        <button class="bg-[var(--primary-purple)] text-[var(--white)] p-3 rounded-full shadow-lg hover:bg-[var(--secondary-yellow)] transition-colors ripple" onclick="window.location.href='/chat.html'">
             <i data-feather="message-circle" class="w-6 h-6"></i>
         </button>
     </div>
@@ -479,26 +635,26 @@
     <!-- Bottom Navigation -->
     <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-[var(--white)] shadow-lg border-t border-gray-200 z-10">
         <div class="flex justify-around items-center h-16">
-            <a href="/" class="flex flex-col items-center text-[var(--primary-purple)]">
+            <a href="index.html" class="flex flex-col items-center text-[var(--primary-purple)]">
                 <i data-feather="home" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Home</span>
             </a>
-            <a href="/categories" class="flex flex-col items-center text-[var(--neutral-gray)]">
+            <a href="categories.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
                 <i data-feather="grid" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Categories</span>
             </a>
-            <a href="/cart" class="flex flex-col items-center text-[var(--neutral-gray)] cart-button">
+            <a href="cart.html" class="flex flex-col items-center text-[var(--neutral-gray)] cart-button">
                 <div class="relative">
                     <i data-feather="shopping-cart" class="w-6 h-6"></i>
                     <span class="absolute -top-1 -right-1 bg-[var(--primary-purple)] text-[var(--white)] text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center" id="bottom-cart-count">0</span>
                 </div>
                 <span class="text-xs mt-1">Cart</span>
             </a>
-            <a href="/orders" class="flex flex-col items-center text-[var(--neutral-gray)]">
+            <a href="orders.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
                 <i data-feather="package" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Orders</span>
             </a>
-            <a href="/profile" class="flex flex-col items-center text-[var(--neutral-gray)]">
+            <a href="profile.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
                 <i data-feather="user" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Profile</span>
             </a>
@@ -507,6 +663,7 @@
 
     <script>
         feather.replace();
+
         const API_BASE_URL = 'https://bazukastore.com/api';
         let currentImageIndex = 0;
         let productImages = [];
@@ -517,9 +674,11 @@
             toast.className = `toast ${type} shadow-lg`;
             toast.textContent = message;
             document.body.appendChild(toast);
+
             setTimeout(() => {
                 toast.classList.add('show');
             }, 100);
+
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => {
@@ -534,9 +693,8 @@
             currentImageIndex = index;
             const modal = document.getElementById('image-modal');
             const fullImage = document.getElementById('full-image');
-            fullImage.src = productImages[index].url || 'https://bazukastore.com/images/product-placeholder.jpg';
-            fullImage.srcset = productImages[index].url ? `${productImages[index].url}.webp` : 'https://bazukastore.com/images/product-placeholder.webp';
-            fullImage.alt = productImages[index].alt || 'Product Image Nigeria - BazukaStore';
+            fullImage.src = productImages[index].url || 'https://via.placeholder.com/400x400?text=No+Image';
+            fullImage.alt = 'Product Image';
             modal.classList.add('show');
             feather.replace();
         }
@@ -546,17 +704,21 @@
             const closeBtn = document.querySelector('.image-modal-close');
             const prevBtn = document.querySelector('.image-modal-nav.prev');
             const nextBtn = document.querySelector('.image-modal-nav.next');
+
             closeBtn.addEventListener('click', () => {
                 modal.classList.remove('show');
             });
+
             prevBtn.addEventListener('click', () => {
                 currentImageIndex = (currentImageIndex - 1 + productImages.length) % productImages.length;
                 showFullImage(productImages, currentImageIndex);
             });
+
             nextBtn.addEventListener('click', () => {
                 currentImageIndex = (currentImageIndex + 1) % productImages.length;
                 showFullImage(productImages, currentImageIndex);
             });
+
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -564,23 +726,26 @@
             });
         }
 
-        // Sign-Up Modal
+        // Sign-Up Modal functionality
         function setupModal() {
             const modal = document.getElementById('signup-modal');
             const closeModalBtn = document.getElementById('close-modal');
             const token = localStorage.getItem('token');
+
             if (!token) {
                 setTimeout(() => {
                     modal.style.display = 'flex';
                     modal.classList.add('show');
                 }, 5000);
             }
+
             closeModalBtn.addEventListener('click', () => {
                 modal.classList.remove('show');
                 setTimeout(() => {
                     modal.style.display = 'none';
                 }, 300);
             });
+
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.classList.remove('show');
@@ -599,13 +764,16 @@
                 const now = new Date();
                 const timeLeft = endTime - now;
                 if (timeLeft <= 0) return;
+
                 const hours = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
                 const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
                 const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
                 const digits = document.querySelectorAll('#countdown-timer .countdown-digit');
                 digits[0].textContent = hours;
                 digits[1].textContent = minutes;
                 digits[2].textContent = seconds;
+
                 digits.forEach(digit => {
                     digit.classList.add('active');
                     setTimeout(() => digit.classList.remove('active'), 300);
@@ -622,6 +790,7 @@
                 const guestWishlist = JSON.parse(localStorage.getItem('guestWishlist') || '[]');
                 const token = localStorage.getItem('token');
                 let userWishlist = [];
+
                 if (token) {
                     try {
                         const wishlistResponse = await fetch(`${API_BASE_URL}/wishlist/me`, {
@@ -636,23 +805,21 @@
                         console.error('Error fetching wishlist:', error);
                     }
                 }
+
                 if (sectionId === '#flash-deals') {
                     products = products.filter(product => product.isFlashDeal && !product.isBestSeller).slice(0, 4);
                 } else if (sectionId === '#best-sellers') {
                     products = products.filter(product => product.isBestSeller && !product.isFlashDeal);
                 }
+
                 const container = document.querySelector(sectionId);
                 container.innerHTML = products.map(product => {
                     const isWishlisted = token ? userWishlist.includes(product._id) : guestWishlist.includes(product._id);
-                    const productUrl = `/products/${product.categorySlug}/${product.slug}`;
                     return `
                         <div class="bg-[var(--white)] rounded-xl p-3 shadow-sm product-card transition-all duration-300">
                             <div class="relative product-image-container bg-[var(--white)] rounded-lg mb-2 overflow-hidden cursor-pointer" onclick="showFullImage(${JSON.stringify(product.images)}, 0)">
-                                <a href="${productUrl}">
-                                    <picture>
-                                        <source srcset="${product.images[0]?.url ? product.images[0].url + '.webp' : 'https://bazukastore.com/images/product-placeholder.webp'}" type="image/webp">
-                                        <img src="${product.images[0]?.url || 'https://bazukastore.com/images/product-placeholder.jpg'}" alt="${product.name} Nigeria - BazukaStore" class="w-full h-full object-contain" loading="lazy">
-                                    </picture>
+                                <a href="/product.html?id=${product._id}">
+                                    <img src="${product.images[0]?.url || 'https://via.placeholder.com/150'}" alt="${product.name}" class="w-full h-full object-contain">
                                     ${product.discount ? `<div class="absolute top-2 left-2 bg-[var(--primary-purple)] text-[var(--white)] text-xs px-2 py-1 rounded">-${product.discount}%</div>` : ''}
                                     ${product.isFlashDeal ? `<div class="absolute top-2 right-2 bg-[var(--alert-red)] text-[var(--white)] text-xs px-2 py-1 rounded flash-deal-tag">Flash Deal</div>` : ''}
                                     ${product.isBestSeller ? `<div class="absolute bottom-2 right-2 bg-[var(--secondary-yellow)] text-[var(--neutral-gray)] text-xs px-2 py-1 rounded">Best Seller</div>` : ''}
@@ -681,49 +848,6 @@
                                     </button>
                                 </div>
                             </div>
-                            <!-- Product Schema -->
-                            <script type="application/ld+json">
-                            {
-                                "@context": "https://schema.org",
-                                "@type": "Product",
-                                "name": "${product.name}",
-                                "description": "${product.description || 'Buy ' + product.name + ' at BazukaStore, Nigeria. Affordable prices and fast delivery!'}",
-                                "image": "${product.images[0]?.url || 'https://bazukastore.com/images/product-placeholder.jpg'}",
-                                "sku": "${product._id}",
-                                "brand": {
-                                    "@type": "Brand",
-                                    "name": "${product.brand || 'BazukaStore'}"
-                                },
-                                "offers": {
-                                    "@type": "Offer",
-                                    "priceCurrency": "NGN",
-                                    "price": ${product.price},
-                                    "availability": "${product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}",
-                                    "url": "https://bazukastore.com${productUrl}"
-                                },
-                                "aggregateRating": {
-                                    "@type": "AggregateRating",
-                                    "ratingValue": "${product.rating || 0}",
-                                    "reviewCount": "${product.reviews?.length || 0}"
-                                },
-                                "review": [
-                                    ${product.reviews?.map(review => `
-                                    {
-                                        "@type": "Review",
-                                        "reviewRating": {
-                                            "@type": "Rating",
-                                            "ratingValue": "${review.rating || 0}"
-                                        },
-                                        "author": {
-                                            "@type": "Person",
-                                            "name": "${review.author || 'Anonymous'}"
-                                        },
-                                        "reviewBody": "${review.body || ''}"
-                                    }
-                                    `).join(',') || ''}
-                                ]
-                            }
-                            </script>
                         </div>
                     `;
                 }).join('');
@@ -740,6 +864,7 @@
             const token = localStorage.getItem('token');
             const heartIcon = button.querySelector('svg');
             let guestWishlist = JSON.parse(localStorage.getItem('guestWishlist') || '[]');
+
             if (token) {
                 try {
                     const response = await fetch(`${API_BASE_URL}/wishlist/toggle`, {
@@ -781,7 +906,7 @@
         // Add to cart
         async function addToCart(productId, quantity) {
             if ('vibrate' in navigator) {
-                navigator.vibrate(50);
+                navigator.vibrate(50); // Short vibration for feedback
             }
             const token = localStorage.getItem('token');
             if (token) {
@@ -861,13 +986,9 @@
                 if (!response.ok) throw new Error('Failed to fetch categories');
                 const categories = await response.json();
                 const container = document.querySelector('#trending-categories');
-                if (categories.length === 0) {
-                    container.innerHTML = '<p class="text-center text-[var(--neutral-gray)]">No categories available.</p>';
-                    return;
-                }
                 container.innerHTML = categories.map(category => `
-                    <div class="flex flex-col items-center" role="listitem">
-                        <a href="/categories/${category.slug}" aria-label="View ${category.name} category">
+                    <div class="flex flex-col items-center">
+                        <a href="/products.html?category=${category._id}">
                             <div class="w-12 h-12 bg-[var(--white)] rounded-full flex items-center justify-center mb-1 shadow-sm">
                                 <i data-feather="${category.icon || 'shopping-bag'}" class="text-[var(--primary-purple)]"></i>
                             </div>
@@ -891,7 +1012,7 @@
                     if (e.key === 'Enter') {
                         const query = e.target.value.trim();
                         if (query) {
-                            window.location.href = `/search/${encodeURIComponent(query)}`;
+                            window.location.href = `/products.html?search=${encodeURIComponent(query)}`;
                         }
                     }
                 });
@@ -939,134 +1060,10 @@
         function setupCartNavigation() {
             document.querySelectorAll('.cart-button').forEach(button => {
                 button.addEventListener('click', () => {
-                    window.location.href = '/cart';
+                    window.location.href = '/cart.html';
                 });
             });
         }
-
-        // Hero Banner Auto-Scroll
-        (function() {
-            const track = document.getElementById('hero-track');
-            const dots = document.querySelectorAll('#hero-dots button');
-            if (!track || dots.length === 0) return;
-            let currentIndex = 0;
-            const totalSlides = track.children.length;
-            let startX = 0;
-            let isDragging = false;
-            const threshold = 50;
-            let autoScrollInterval = null;
-
-            function updateDots() {
-                dots.forEach((dot, index) => {
-                    dot.classList.toggle('bg-opacity-50', index !== currentIndex);
-                    dot.classList.toggle('bg-opacity-100', index === currentIndex);
-                });
-            }
-
-            function startAutoScroll() {
-                if (autoScrollInterval) clearInterval(autoScrollInterval);
-                autoScrollInterval = setInterval(() => {
-                    currentIndex = (currentIndex + 1) % totalSlides;
-                    track.scrollTo({ left: currentIndex * track.offsetWidth, behavior: 'smooth' });
-                    updateDots();
-                }, 10000);
-            }
-
-            function stopAutoScroll() {
-                if (autoScrollInterval) clearInterval(autoScrollInterval);
-            }
-
-            function resumeAutoScroll() {
-                stopAutoScroll();
-                setTimeout(startAutoScroll, 10000);
-            }
-
-            dots.forEach((dot, index) => {
-                dot.addEventListener('click', () => {
-                    currentIndex = index;
-                    track.scrollTo({ left: index * track.offsetWidth, behavior: 'smooth' });
-                    updateDots();
-                    resumeAutoScroll();
-                });
-            });
-
-            track.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-                isDragging = true;
-                track.style.scrollSnapType = 'none';
-                stopAutoScroll();
-            }, { passive: true });
-
-            track.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-            }, { passive: false });
-
-            track.addEventListener('touchend', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                track.style.scrollSnapType = 'x mandatory';
-                const endX = track.scrollLeft;
-                const slideWidth = track.offsetWidth;
-                currentIndex = Math.round(endX / slideWidth);
-                currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
-                track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
-                updateDots();
-                resumeAutoScroll();
-            }, { passive: true });
-
-            track.addEventListener('mousedown', (e) => {
-                startX = e.clientX;
-                isDragging = true;
-                track.style.scrollSnapType = 'none';
-                stopAutoScroll();
-                e.preventDefault();
-            });
-
-            track.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const diff = startX - e.clientX;
-                track.scrollLeft += diff * 2;
-            });
-
-            track.addEventListener('mouseup', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                track.style.scrollSnapType = 'x mandatory';
-                const slideWidth = track.offsetWidth;
-                currentIndex = Math.round(track.scrollLeft / slideWidth);
-                currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
-                track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
-                updateDots();
-                resumeAutoScroll();
-            });
-
-            document.addEventListener('mouseleave', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    track.style.scrollSnapType = 'x mandatory';
-                    const slideWidth = track.offsetWidth;
-                    currentIndex = Math.round(track.scrollLeft / slideWidth);
-                    currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
-                    track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
-                    updateDots();
-                    resumeAutoScroll();
-                }
-            });
-
-            updateDots();
-            startAutoScroll();
-
-            window.addEventListener('beforeunload', () => {
-                stopAutoScroll();
-                track.removeEventListener('touchstart', () => {});
-                track.removeEventListener('touchmove', () => {});
-                track.removeEventListener('touchend', () => {});
-                track.removeEventListener('mousedown', () => {});
-                track.removeEventListener('mousemove', () => {});
-                track.removeEventListener('mouseup', () => {});
-            });
-        })();
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
