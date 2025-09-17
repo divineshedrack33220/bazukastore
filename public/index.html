@@ -403,8 +403,7 @@
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="flash-deals">
-                <div class="shimmer shimmer-card h-64"></div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="flash-deals">
                 <div class="shimmer shimmer-card h-64"></div>
                 <div class="shimmer shimmer-card h-64"></div>
                 <div class="shimmer shimmer-card h-64"></div>
@@ -638,14 +637,13 @@
                     }
                 }
                 if (sectionId === '#flash-deals') {
-                    products = products.filter(product => product.isFlashDeal && !product.isBestSeller);
+                    products = products.filter(product => product.isFlashDeal && !product.isBestSeller).slice(0, 4);
                 } else if (sectionId === '#best-sellers') {
                     products = products.filter(product => product.isBestSeller && !product.isFlashDeal);
                 }
                 const container = document.querySelector(sectionId);
                 container.innerHTML = products.map(product => {
                     const isWishlisted = token ? userWishlist.includes(product._id) : guestWishlist.includes(product._id);
-                    // Generate SEO-friendly URL
                     const productUrl = `/products/${product.categorySlug}/${product.slug}`;
                     return `
                         <div class="bg-[var(--white)] rounded-xl p-3 shadow-sm product-card transition-all duration-300">
@@ -1073,7 +1071,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             startCountdown();
-            fetchProducts('#flash-deals', 'isFlashDeal=true&sort=discount-desc');
+            fetchProducts('#flash-deals', 'isFlashDeal=true&sort=discount-desc&limit=4');
             fetchProducts('#best-sellers', 'isBestSeller=true&sort=rating-desc');
             fetchProducts('#price-tab-products', 'priceRange=0-5000&isUnder5k=true');
             fetchCategories();
