@@ -1,33 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bazuka Store</title>
-    <!-- Open Graph Tags for WhatsApp Sharing -->
-    <meta property="og:title" content="Bazuka Store - Affordable Online Shopping in Nigeria">
-    <meta property="og:description" content="Shop affordable electronics, fashion, and home goods at Bazuka Store. Fast delivery, great deals!">
-    <meta property="og:image" content="https://bazukastore.com/images/og-image.jpg">
+    <!-- Open Graph Tags for WhatsApp and Social Media Sharing -->
+    <meta property="og:title" content="Bazuka Store - Shop Amazing Deals in Nigeria">
+    <meta property="og:description" content="Discover flash sales, electronics, fashion, and more at Bazuka Store. Shop now for deals under ₦10,000!">
+    <meta property="og:image" content="https://bazukastore.com/images/fallback-preview-image.jpg" id="og-image">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:url" content="https://bazukastore.com/">
     <meta property="og:type" content="website">
-    <!-- Twitter Card Tags (Optional, but improves compatibility) -->
+    <meta property="og:site_name" content="Bazuka Store">
+    <!-- Twitter Card Tags for Additional Compatibility -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Bazuka Store - Affordable Online Shopping in Nigeria">
-    <meta name="twitter:description" content="Shop affordable electronics, fashion, and home goods at Bazuka Store. Fast delivery, great deals!">
-    <meta name="twitter:image" content="https://bazukastore.com/images/og-image.jpg">
+    <meta name="twitter:title" content="Bazuka Store - Shop Amazing Deals in Nigeria">
+    <meta name="twitter:description" content="Discover flash sales, electronics, fashion, and more at Bazuka Store. Shop now for deals under ₦10,000!">
+    <meta name="twitter:image" content="https://bazukastore.com/images/fallback-preview-image.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs/lib/anime.iife.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-purple: #6C5CE7;    /* Main brand purple */
-            --secondary-yellow: #FDCB6E;  /* Fun highlight */
-            --accent-light: #F3F0FF;      /* Soft violet background */
-            --neutral-gray: #4B4B4B;      /* Neutral text */
-            --light-gray: #F5F5F5;        /* Light block background */
-            --alert-red: #FF7675;         /* Accent red */
-            --white: #FFFFFF;             /* Background white */
+            --primary-purple: #6C5CE7;
+            --secondary-yellow: #FDCB6E;
+            --accent-light: #F3F0FF;
+            --neutral-gray: #4B4B4B;
+            --light-gray: #F5F5F5;
+            --alert-red: #FF7675;
+            --white: #FFFFFF;
         }
         
         body {
@@ -78,7 +81,6 @@
             transform: scale(1.1);
         }
 
-        /* Toast Notification */
         .toast {
             position: fixed;
             top: 0.5rem;
@@ -108,7 +110,6 @@
             color: var(--white);
         }
 
-        /* Flash Deal Pulse */
         .flash-deal-tag {
             animation: pulse 1.5s infinite;
         }
@@ -119,7 +120,6 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -190,7 +190,6 @@
             justify-content: center;
         }
 
-        /* Full-Screen Image Modal */
         .image-modal {
             display: none;
             position: fixed;
@@ -251,7 +250,6 @@
             cursor: pointer;
         }
 
-        /* Shimmer Loading Styles */
         .shimmer {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
@@ -276,19 +274,16 @@
             width: 3rem;
         }
 
-        /* Product Card Width Control */
         .product-card {
             width: 100%;
             max-width: 100%;
         }
 
-        /* Product Image Container */
         .product-image-container {
             aspect-ratio: 1 / 1;
             overflow: hidden;
         }
 
-        /* Responsive Adjustments */
         @media (min-width: 768px) {
             .bottom-nav {
                 display: none;
@@ -297,11 +292,11 @@
 
         @layer utilities {
             .scrollbar-hide {
-                -ms-overflow-style: none;  /* IE and Edge */
-                scrollbar-width: none;  /* Firefox */
+                -ms-overflow-style: none;
+                scrollbar-width: none;
             }
             .scrollbar-hide::-webkit-scrollbar {
-                display: none;  /* Chrome, Safari, Opera */
+                display: none;
             }
         }
     </style>
@@ -366,9 +361,7 @@
         
         <!-- Hero Banner - Swipeable Carousel with Auto-Scroll (No Scrollbar on PC) -->
         <div class="relative rounded-xl overflow-hidden mb-6 h-48">
-            <!-- Swipeable track: horizontal flex with snap, hidden scrollbar -->
             <div class="flex h-full snap-x snap-mandatory overflow-x-auto scroll-smooth scrollbar-hide" id="hero-track">
-                <!-- Slide 1: Original Flash Sale -->
                 <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-[var(--primary-purple)]">
                     <div class="absolute inset-0 flex items-center px-6">
                         <div class="text-[var(--white)]">
@@ -378,8 +371,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Slide 2: Placeholder (e.g., another deal - customize with image or gradient) -->
                 <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] via-blue-500 to-[var(--primary-purple)]">
                     <div class="absolute inset-0 flex items-center px-6">
                         <div class="text-[var(--white)]">
@@ -389,8 +380,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Slide 3: Placeholder (add more as needed) -->
                 <div class="flex-shrink-0 w-full snap-start relative bg-gradient-to-r from-[var(--primary-purple)] to-pink-500">
                     <div class="absolute inset-0 flex items-center px-6">
                         <div class="text-[var(--white)]">
@@ -401,8 +390,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Dots indicator: positioned bottom-right, clickable -->
             <div class="absolute bottom-4 right-4 flex space-x-2" id="hero-dots">
                 <button class="w-2 h-2 bg-[var(--white)] rounded-full active-dot" data-slide="0"></button>
                 <button class="w-2 h-2 bg-[var(--white)] bg-opacity-50 rounded-full" data-slide="1"></button>
@@ -410,21 +397,19 @@
             </div>
         </div>
 
-        <!-- Inline script for swipe + dot handling + auto-scroll (vanilla JS) -->
         <script>
             (function() {
                 const track = document.getElementById('hero-track');
                 const dots = document.querySelectorAll('#hero-dots button');
-                if (!track || dots.length === 0) return; // Safety check
+                if (!track || dots.length === 0) return;
 
                 let currentIndex = 0;
                 const totalSlides = track.children.length;
                 let startX = 0;
                 let isDragging = false;
-                const threshold = 50; // Min drag px to switch slide
+                const threshold = 50;
                 let autoScrollInterval = null;
 
-                // Update active dot
                 function updateDots() {
                     dots.forEach((dot, index) => {
                         dot.classList.toggle('bg-opacity-50', index !== currentIndex);
@@ -432,65 +417,58 @@
                     });
                 }
 
-                // Start auto-scroll (every 10s)
                 function startAutoScroll() {
-                    if (autoScrollInterval) clearInterval(autoScrollInterval); // Clear existing
+                    if (autoScrollInterval) clearInterval(autoScrollInterval);
                     autoScrollInterval = setInterval(() => {
-                        currentIndex = (currentIndex + 1) % totalSlides; // Loop back
+                        currentIndex = (currentIndex + 1) % totalSlides;
                         track.scrollTo({ left: currentIndex * track.offsetWidth, behavior: 'smooth' });
                         updateDots();
-                    }, 10000); // 10 seconds
+                    }, 10000);
                 }
 
-                // Stop auto-scroll during interaction
                 function stopAutoScroll() {
                     if (autoScrollInterval) clearInterval(autoScrollInterval);
                 }
 
-                // Resume auto-scroll after interaction
                 function resumeAutoScroll() {
                     stopAutoScroll();
-                    setTimeout(startAutoScroll, 10000); // Wait 10s before restarting
+                    setTimeout(startAutoScroll, 10000);
                 }
 
-                // Click dots to jump to slide
                 dots.forEach((dot, index) => {
                     dot.addEventListener('click', () => {
                         currentIndex = index;
                         track.scrollTo({ left: index * track.offsetWidth, behavior: 'smooth' });
                         updateDots();
-                        resumeAutoScroll(); // Reset timer on manual interaction
+                        resumeAutoScroll();
                     });
                 });
 
-                // Touch events for mobile swipe
                 track.addEventListener('touchstart', (e) => {
                     startX = e.touches[0].clientX;
                     isDragging = true;
-                    track.style.scrollSnapType = 'none'; // Allow free scroll
-                    stopAutoScroll(); // Pause auto-scroll
+                    track.style.scrollSnapType = 'none';
+                    stopAutoScroll();
                 }, { passive: true });
 
                 track.addEventListener('touchmove', (e) => {
                     if (!isDragging) return;
-                    e.preventDefault(); // Prevent page scroll
+                    e.preventDefault();
                 }, { passive: false });
 
                 track.addEventListener('touchend', () => {
                     if (!isDragging) return;
                     isDragging = false;
                     track.style.scrollSnapType = 'x mandatory';
-
                     const endX = track.scrollLeft;
                     const slideWidth = track.offsetWidth;
                     currentIndex = Math.round(endX / slideWidth);
                     currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
                     track.scrollTo({ left: currentIndex * slideWidth, behavior: 'smooth' });
                     updateDots();
-                    resumeAutoScroll(); // Resume after swipe
+                    resumeAutoScroll();
                 }, { passive: true });
 
-                // Mouse events for desktop drag
                 track.addEventListener('mousedown', (e) => {
                     startX = e.clientX;
                     isDragging = true;
@@ -502,14 +480,13 @@
                 track.addEventListener('mousemove', (e) => {
                     if (!isDragging) return;
                     const diff = startX - e.clientX;
-                    track.scrollLeft += diff * 2; // Amplify for better feel
+                    track.scrollLeft += diff * 2;
                 });
 
                 track.addEventListener('mouseup', () => {
                     if (!isDragging) return;
                     isDragging = false;
                     track.style.scrollSnapType = 'x mandatory';
-
                     const slideWidth = track.offsetWidth;
                     currentIndex = Math.round(track.scrollLeft / slideWidth);
                     currentIndex = Math.max(0, Math.min(currentIndex, totalSlides - 1));
@@ -518,7 +495,6 @@
                     resumeAutoScroll();
                 });
 
-                // Prevent drag outside
                 document.addEventListener('mouseleave', () => {
                     if (isDragging) {
                         isDragging = false;
@@ -532,11 +508,9 @@
                     }
                 });
 
-                // Initial setup
                 updateDots();
-                startAutoScroll(); // Kick off auto-scroll
+                startAutoScroll();
 
-                // Clean up on unload
                 window.addEventListener('beforeunload', () => {
                     stopAutoScroll();
                     track.removeEventListener('touchstart', () => {});
@@ -678,6 +652,26 @@
         const API_BASE_URL = 'https://bazukastore.com/api';
         let currentImageIndex = 0;
         let productImages = [];
+
+        // Update Open Graph image dynamically
+        async function updateOgImage() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/public/products?isFlashDeal=true&sort=discount-desc&limit=1`);
+                if (!response.ok) throw new Error('Failed to fetch product for OG image');
+                const products = await response.json();
+                const ogImageMeta = document.getElementById('og-image');
+                const twitterImageMeta = document.querySelector('meta[name="twitter:image"]');
+                const imageUrl = products[0]?.images[0]?.url || 'https://bazukastore.com/images/fallback-preview-image.jpg';
+                if (ogImageMeta) {
+                    ogImageMeta.content = imageUrl;
+                }
+                if (twitterImageMeta) {
+                    twitterImageMeta.content = imageUrl;
+                }
+            } catch (error) {
+                console.error('Error updating OG image:', error);
+            }
+        }
 
         // Toast Notification
         function showToast(message, type = 'success') {
@@ -917,7 +911,7 @@
         // Add to cart
         async function addToCart(productId, quantity) {
             if ('vibrate' in navigator) {
-                navigator.vibrate(50); // Short vibration for feedback
+                navigator.vibrate(50);
             }
             const token = localStorage.getItem('token');
             if (token) {
@@ -1090,8 +1084,8 @@
             setupCartNavigation();
             setupModal();
             setupImageModal();
+            updateOgImage(); // Call to update OG image dynamically
         });
     </script>
 </body>
 </html>
-
