@@ -3,42 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Categories - Bazuka Store</title>
+    <title>Shop Categories - BazukaStore Nigeria</title>
+    <meta name="description" content="Explore product categories at BazukaStore Nigeria. Shop electronics, fashion, home goods, and more with fast delivery!">
+    <meta name="keywords" content="BazukaStore, product categories, online shopping Nigeria, electronics, fashion, home goods">
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="Shop Categories - BazukaStore Nigeria">
+    <meta property="og:description" content="Explore electronics, fashion, home goods, and more at BazukaStore Nigeria. Fast delivery and great deals!">
+    <meta property="og:image" content="https://bazukastore.com/images/og-categories.jpg">
+    <meta property="og:url" content="https://bazukastore.com/categories">
+    <meta property="og:type" content="website">
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Shop Categories - BazukaStore Nigeria">
+    <meta name="twitter:description" content="Explore electronics, fashion, home goods, and more at BazukaStore Nigeria. Fast delivery and great deals!">
+    <meta name="twitter:image" content="https://bazukastore.com/images/og-categories.jpg">
+    <!-- Sitemap and Robots -->
+    <link rel="sitemap" href="/sitemap.xml">
+    <meta name="robots" content="index, follow">
+    <!-- Preload Critical Assets -->
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-purple: #6C5CE7;    /* Main brand purple */
-            --secondary-yellow: #FDCB6E;  /* Fun highlight */
-            --accent-light: #F3F0FF;      /* Soft violet background */
-            --neutral-gray: #4B4B4B;      /* Neutral text */
-            --light-gray: #F5F5F5;        /* Light block background */
-            --alert-red: #FF7675;         /* Accent red */
-            --white: #FFFFFF;             /* Background white */
+            --primary-purple: #6C5CE7;
+            --secondary-yellow: #FDCB6E;
+            --accent-light: #F3F0FF;
+            --neutral-gray: #4B4B4B;
+            --light-gray: #F5F5F5;
+            --alert-red: #FF7675;
+            --white: #FFFFFF;
         }
-        
         body {
             font-family: 'Poppins', sans-serif;
             background-color: var(--accent-light);
             color: var(--neutral-gray);
         }
-        
         .category-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-        
         .category-card:hover .category-icon {
             background-color: var(--primary-purple);
             color: var(--white);
         }
-
         .ripple {
             position: relative;
             overflow: hidden;
         }
-
         .ripple:after {
             content: "";
             position: absolute;
@@ -54,13 +68,11 @@
             opacity: 0;
             transition: transform 0.5s, opacity 1s;
         }
-
         .ripple:active:after {
             transform: scale(0, 0);
             opacity: 0.3;
             transition: 0s;
         }
-
         .toast {
             position: fixed;
             top: 0.5rem;
@@ -74,29 +86,24 @@
             font-size: 0.75rem;
             line-height: 1rem;
         }
-
         .toast.show {
             opacity: 1;
             transform: translateY(0);
         }
-
         .toast.success {
             background-color: var(--secondary-yellow);
             color: var(--neutral-gray);
         }
-
         .toast.error {
             background-color: var(--alert-red);
             color: var(--white);
         }
-
         .shimmer {
             position: relative;
             overflow: hidden;
             background-color: var(--light-gray);
             border-radius: 8px;
         }
-
         .shimmer::before {
             content: '';
             position: absolute;
@@ -112,25 +119,44 @@
             );
             animation: shimmer 1.5s infinite;
         }
-
         @keyframes shimmer {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
-
         @media (min-width: 768px) {
             .bottom-nav {
                 display: none;
             }
         }
     </style>
+    <!-- Breadcrumb Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://bazukastore.com/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Categories",
+                "item": "https://bazukastore.com/categories"
+            }
+        ]
+    }
+    </script>
 </head>
 <body class="min-h-screen pb-20 md:pb-0">
     <!-- Top Navigation -->
     <header class="bg-[var(--white)] shadow-sm sticky top-0 z-10">
         <div class="container mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center">
-                <div class="text-2xl font-bold text-[var(--primary-purple)]">Bazuka<span class="text-[var(--neutral-gray)]">Store</span></div>
+                <h1 class="text-2xl font-bold text-[var(--primary-purple)]">Bazuka<span class="text-[var(--neutral-gray)]">Store</span></h1>
             </div>
             <div class="flex items-center space-x-4">
                 <button class="p-2 rounded-full hover:bg-[var(--light-gray)] ripple">
@@ -143,6 +169,7 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-6">
         <h1 class="text-2xl font-bold mb-6">Shop Categories</h1>
+        <h2 class="text-lg font-semibold mb-4">Browse Our Collections</h2>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="category-list">
             <!-- Shimmer placeholders (4 cards) -->
             <div class="category-card bg-[var(--white)] rounded-xl p-4 shadow-sm">
@@ -166,11 +193,19 @@
                 <div class="h-4 w-1/2 shimmer mx-auto"></div>
             </div>
         </div>
+        <h2 class="text-lg font-semibold mt-8 mb-4">Popular Products</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="popular-products">
+            <div class="shimmer bg-[var(--white)] rounded-xl p-4 h-64"></div>
+            <div class="shimmer bg-[var(--white)] rounded-xl p-4 h-64"></div>
+            <div class="shimmer bg-[var(--white)] rounded-xl p-4 h-64"></div>
+            <div class="shimmer bg-[var(--white)] rounded-xl p-4 h-64"></div>
+        </div>
+        <a href="/best-sellers" class="text-sm text-[var(--primary-purple)] mt-4 inline-block">See All Popular Products</a>
     </main>
 
     <!-- Floating WhatsApp Button -->
     <div class="fixed bottom-24 right-4 z-20">
-        <button class="bg-[var(--primary-purple)] text-[var(--white)] p-3 rounded-full shadow-lg hover:bg-[var(--secondary-yellow)] transition-colors ripple" onclick="window.location.href='/chat.html'">
+        <button class="bg-[var(--primary-purple)] text-[var(--white)] p-3 rounded-full shadow-lg hover:bg-[var(--secondary-yellow)] transition-colors ripple" onclick="window.location.href='/chat'">
             <i data-feather="message-circle" class="w-6 h-6"></i>
         </button>
     </div>
@@ -178,26 +213,26 @@
     <!-- Bottom Navigation -->
     <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-[var(--white)] shadow-lg border-t border-gray-200 z-10">
         <div class="flex justify-around items-center h-16">
-            <a href="/index.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+            <a href="/" class="flex flex-col items-center text-[var(--neutral-gray)]">
                 <i data-feather="home" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Home</span>
             </a>
-            <a href="/categories.html" class="flex flex-col items-center text-[var(--primary-purple)]">
+            <a href="/categories" class="flex flex-col items-center text-[var(--primary-purple)]">
                 <i data-feather="grid" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Categories</span>
             </a>
-            <a href="/cart.html" class="flex flex-col items-center text-[var(--neutral-gray)] cart-button">
+            <a href="/cart" class="flex flex-col items-center text-[var(--neutral-gray)] cart-button">
                 <div class="relative">
                     <i data-feather="shopping-cart" class="w-6 h-6"></i>
                     <span class="absolute -top-1 -right-1 bg-[var(--primary-purple)] text-[var(--white)] text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center" id="bottom-cart-count">0</span>
                 </div>
                 <span class="text-xs mt-1">Cart</span>
             </a>
-            <a href="/orders.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+            <a href="/orders" class="flex flex-col items-center text-[var(--neutral-gray)]">
                 <i data-feather="package" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Orders</span>
             </a>
-            <a href="/profile.html" class="flex flex-col items-center text-[var(--neutral-gray)]">
+            <a href="/profile" class="flex flex-col items-center text-[var(--neutral-gray)]">
                 <i data-feather="user" class="w-6 h-6"></i>
                 <span class="text-xs mt-1">Profile</span>
             </a>
@@ -206,7 +241,6 @@
 
     <script>
         feather.replace();
-
         const API_BASE_URL = 'https://bazukastore.com/api';
 
         function showToast(message, type = 'success') {
@@ -236,12 +270,25 @@
                 container.innerHTML = categories.length === 0 
                     ? '<p class="text-center text-[var(--neutral-gray)] col-span-full">No categories found.</p>'
                     : categories.map(category => `
-                        <a href="/category-product.html?category=${category._id}" class="bg-[var(--white)] rounded-xl p-4 shadow-sm category-card transition-all duration-300 ripple">
+                        <a href="/categories/${category.slug}" class="bg-[var(--white)] rounded-xl p-4 shadow-sm category-card transition-all duration-300 ripple">
                             <div class="category-icon w-16 h-16 bg-[var(--light-gray)] rounded-full flex items-center justify-center mb-3 mx-auto transition-colors duration-300">
-                                <i data-feather="${category.icon || 'shopping-bag'}" class="text-[var(--primary-purple)] w-6 h-6"></i>
+                                <picture>
+                                    <source srcset="${category.iconUrl ? category.iconUrl + '.webp' : 'https://bazukastore.com/images/category-placeholder.webp'}" type="image/webp">
+                                    <img src="${category.iconUrl || 'https://bazukastore.com/images/category-placeholder.jpg'}" alt="${category.name} Category Icon - BazukaStore Nigeria" class="w-6 h-6" loading="lazy">
+                                </picture>
                             </div>
                             <h3 class="text-center font-medium">${category.name}</h3>
                             <p class="text-center text-xs text-gray-500 mt-1">${category.itemCount.toLocaleString()} items</p>
+                            <!-- Category Schema -->
+                            <script type="application/ld+json">
+                            {
+                                "@context": "https://schema.org",
+                                "@type": "CollectionPage",
+                                "name": "${category.name}",
+                                "description": "${category.description || 'Explore ' + category.name + ' at BazukaStore Nigeria. Shop affordable products with fast delivery!'}",
+                                "url": "https://bazukastore.com/categories/${category.slug}"
+                            }
+                            </script>
                         </a>
                     `).join('');
                 feather.replace();
@@ -250,6 +297,62 @@
                 console.error('Error fetching categories:', error);
                 document.querySelector('#category-list').innerHTML = '<p class="text-center text-[var(--neutral-gray)] col-span-full">Failed to load categories. Please try again.</p>';
                 showToast(`Failed to load categories: ${error.message}`, 'error');
+            }
+        }
+
+        async function fetchPopularProducts() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/public/products?sort=rating-desc&limit=4`);
+                if (!response.ok) throw new Error('Failed to fetch products');
+                const products = await response.json();
+                const container = document.querySelector('#popular-products');
+                container.innerHTML = products.map(product => {
+                    const productUrl = `/products/${product.categorySlug}/${product.slug}`;
+                    return `
+                        <div class="bg-[var(--white)] rounded-xl p-3 shadow-sm transition-all duration-300">
+                            <a href="${productUrl}">
+                                <picture>
+                                    <source srcset="${product.images[0]?.url ? product.images[0].url + '.webp' : 'https://bazukastore.com/images/product-placeholder.webp'}" type="image/webp">
+                                    <img src="${product.images[0]?.url || 'https://bazukastore.com/images/product-placeholder.jpg'}" alt="${product.name} Nigeria - BazukaStore" class="w-full h-32 object-contain mb-2" loading="lazy">
+                                </picture>
+                            </a>
+                            <h3 class="text-sm font-medium mb-1 truncate">${product.name}</h3>
+                            <p class="text-[var(--primary-purple)] font-bold">₦${product.price.toLocaleString()}</p>
+                            <!-- Product Schema -->
+                            <script type="application/ld+json">
+                            {
+                                "@context": "https://schema.org",
+                                "@type": "Product",
+                                "name": "${product.name}",
+                                "description": "${product.description || 'Buy ' + product.name + ' at BazukaStore Nigeria. Affordable prices and fast delivery!'}",
+                                "image": "${product.images[0]?.url || 'https://bazukastore.com/images/product-placeholder.jpg'}",
+                                "sku": "${product._id}",
+                                "brand": {
+                                    "@type": "Brand",
+                                    "name": "${product.brand || 'BazukaStore'}"
+                                },
+                                "offers": {
+                                    "@type": "Offer",
+                                    "priceCurrency": "NGN",
+                                    "price": ${product.price},
+                                    "availability": "${product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}",
+                                    "url": "https://bazukastore.com${productUrl}"
+                                },
+                                "aggregateRating": {
+                                    "@type": "AggregateRating",
+                                    "ratingValue": "${product.rating || 0}",
+                                    "reviewCount": "${product.reviews?.length || 0}"
+                                }
+                            }
+                            </script>
+                        </div>
+                    `;
+                }).join('');
+                feather.replace();
+            } catch (error) {
+                console.error('Error fetching popular products:', error);
+                document.querySelector('#popular-products').innerHTML = '<p class="text-center text-[var(--neutral-gray)] col-span-full">Failed to load products.</p>';
+                showToast('Failed to load popular products.', 'error');
             }
         }
 
@@ -294,7 +397,7 @@
                     if ('vibrate' in navigator) {
                         navigator.vibrate(50);
                     }
-                    window.location.href = '/cart.html';
+                    window.location.href = '/cart';
                 });
             });
         }
@@ -315,6 +418,7 @@
             feather.replace();
             setTimeout(() => {
                 fetchCategories();
+                fetchPopularProducts();
                 fetchCart();
                 setupCartNavigation();
             }, 100);
