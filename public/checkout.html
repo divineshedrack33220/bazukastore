@@ -6,17 +6,16 @@
     <title>Checkout - Bazuka Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="https://js.paystack.co/v1/inline.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-purple: #6C5CE7;    /* Main brand purple */
-            --secondary-yellow: #FDCB6E;  /* Fun highlight */
-            --accent-light: #F3F0FF;      /* Soft violet background */
-            --neutral-gray: #4B4B4B;      /* Neutral text */
-            --light-gray: #F5F5F5;        /* Light block background */
-            --alert-red: #FF7675;         /* Accent red */
-            --white: #FFFFFF;             /* Background white */
+            --primary-purple: #6C5CE7;
+            --secondary-yellow: #FDCB6E;
+            --accent-light: #F3F0FF;
+            --neutral-gray: #4B4B4B;
+            --light-gray: #F5F5F5;
+            --alert-red: #FF7675;
+            --white: #FFFFFF;
         }
         
         body {
@@ -277,7 +276,6 @@
 
         const API_BASE_URL = 'https://bazukastore.com/api';
         const DELIVERY_FEE = 5000;
-        const PAYSTACK_PUBLIC_KEY = 'pk_test_ef1440e093365ca4a90cc345374aa9fa168064c9';
 
         // Check authentication
         function checkAuth() {
@@ -385,7 +383,7 @@
         }
 
         // Render checkout data
-        function renderCheckoutData(data) {
+        async function renderCheckoutData(data) {
             const addressContainer = document.getElementById('address-container');
             if (!addressContainer) {
                 console.error('Address container not found');
@@ -433,6 +431,26 @@
             `;
             totalContainer.textContent = `₦${data.summary.total.toLocaleString()}`;
             transferAmount.textContent = `₦${data.summary.total.toLocaleString()}`;
+
+            // Fetch bank details dynamically
+            try {
+                const bankDetailsResponse = await fetch(`${API_BASE_URL}/orders/bank-details`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    },
+                });
+                if (bankDetailsResponse.ok) {
+                    const bankDetails = await bankDetailsResponse.json();
+                    document.getElementById('bank-details-modal').querySelector('div.space-y-3').innerHTML = `
+                        <p><strong>Account Number:</strong> ${bankDetails.accountNumber}</p>
+                        <p><strong>Bank:</strong> ${bankDetails.bank}</p>
+                        <p><strong>Account Name:</strong> ${bankDetails.accountName}</p>
+                        <p class="text-sm text-[var(--neutral-gray)]">Please make the transfer of <span id="transfer-amount">₦${data.summary.total.toLocaleString()}</span> to the above account. You'll need to upload proof of payment in the next step.</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error fetching bank details:', error.message);
+            }
 
             feather.replace();
         }
@@ -528,7 +546,7 @@
                 const formData = new FormData();
                 formData.append('proof', paymentProof);
 
-                const uploadResponse = await fetch(`${API_BASE_URL}/checkout/upload-proof`, {
+                const uploadResponse = await fetch(`${API_BASE_URL}/orders/upload-proof`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -543,7 +561,7 @@
                 const proofUrl = uploadResult.url;
 
                 // Create order
-                const orderResponse = await fetch(`${API_BASE_URL}/checkout/order`, {
+                const orderResponse = await fetch(`${API_BASE_URL}/orders`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
