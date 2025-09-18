@@ -77,6 +77,28 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+
+        /* Added loader styles for the submit button */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--white);
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-24 md:pb-0">
@@ -266,7 +288,10 @@
             </div>
             <div class="flex justify-end space-x-3 mt-6">
                 <button id="cancel-proof" class="px-4 py-2 bg-gray-200 text-[var(--neutral-gray)] rounded-lg ripple">Cancel</button>
-                <button id="submit-order" class="px-4 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-lg ripple">Submit Order</button>
+                <button id="submit-order" class="px-4 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-lg ripple flex items-center justify-center">
+                    <span id="submit-order-text">Submit Order</span>
+                    <span id="submit-order-loader" class="loader hidden"></span>
+                </button>
             </div>
         </div>
     </div>
@@ -503,6 +528,17 @@
 
         // Submit order with proof of payment
         async function submitOrder(retryCount = 0, maxRetries = 2) {
+            const submitButton = document.getElementById('submit-order');
+            const submitText = document.getElementById('submit-order-text');
+            const submitLoader = document.getElementById('submit-order-loader');
+
+            // Show loading state
+            if (submitButton && submitText && submitLoader) {
+                submitButton.disabled = true;
+                submitText.textContent = 'Submitting...';
+                submitLoader.classList.remove('hidden');
+            }
+
             try {
                 const token = localStorage.getItem('token');
                 const paymentProof = document.getElementById('payment-proof').files[0];
@@ -510,11 +546,23 @@
 
                 if (!paymentProof) {
                     alert('Please upload proof of payment.');
+                    // Reset loading state
+                    if (submitButton && submitText && submitLoader) {
+                        submitButton.disabled = false;
+                        submitText.textContent = 'Submit Order';
+                        submitLoader.classList.add('hidden');
+                    }
                     return;
                 }
 
                 if (paymentProof.size > 5 * 1024 * 1024) {
                     alert('Proof of payment file size exceeds 5MB.');
+                    // Reset loading state
+                    if (submitButton && submitText && submitLoader) {
+                        submitButton.disabled = false;
+                        submitText.textContent = 'Submit Order';
+                        submitLoader.classList.add('hidden');
+                    }
                     return;
                 }
 
@@ -528,6 +576,12 @@
                     console.warn('Unauthorized access, clearing token');
                     localStorage.removeItem('token');
                     window.location.href = '/login.html?redirect=checkout';
+                    // Reset loading state
+                    if (submitButton && submitText && submitLoader) {
+                        submitButton.disabled = false;
+                        submitText.textContent = 'Submit Order';
+                        submitLoader.classList.add('hidden');
+                    }
                     return;
                 }
                 if (!addressResponse.ok) {
@@ -539,6 +593,12 @@
                 if (!defaultAddress) {
                     alert('Please select a delivery address.');
                     window.location.href = '/saved-addresses.html';
+                    // Reset loading state
+                    if (submitButton && submitText && submitLoader) {
+                        submitButton.disabled = false;
+                        submitText.textContent = 'Submit Order';
+                        submitLoader.classList.add('hidden');
+                    }
                     return;
                 }
 
@@ -578,6 +638,12 @@
                     console.warn('Unauthorized access, clearing token');
                     localStorage.removeItem('token');
                     window.location.href = '/login.html?redirect=checkout';
+                    // Reset loading state
+                    if (submitButton && submitText && submitLoader) {
+                        submitButton.disabled = false;
+                        submitText.textContent = 'Submit Order';
+                        submitLoader.classList.add('hidden');
+                    }
                     return;
                 }
                 if (!orderResponse.ok) {
@@ -596,6 +662,13 @@
                     return submitOrder(retryCount + 1, maxRetries);
                 }
                 alert(`Failed to submit order: ${error.message}`);
+            } finally {
+                // Reset loading state
+                if (submitButton && submitText && submitLoader) {
+                    submitButton.disabled = false;
+                    submitText.textContent = 'Submit Order';
+                    submitLoader.classList.add('hidden');
+                }
             }
         }
 
