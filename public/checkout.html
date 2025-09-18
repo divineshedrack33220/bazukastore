@@ -183,7 +183,18 @@
             <!-- Payment Method -->
             <div class="bg-[var(--white)] rounded-xl p-4 shadow-sm mb-6">
                 <h2 class="font-bold mb-3">Payment Method</h2>
-                <div class="space-y-3" id="payment-methods"></div>
+                <div class="space-y-3" id="payment-methods">
+                    <div class="payment-method border rounded-lg p-3 flex items-center cursor-pointer active" data-payment-type="bank_transfer">
+                        <div class="w-8 h-8 bg-[rgba(108,92,231,0.1)] rounded-full flex items-center justify-center mr-3">
+                            <i data-feather="repeat" class="text-[var(--primary-purple)] w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Bank Transfer</p>
+                            <p class="text-xs text-[var(--neutral-gray)]">Pay via bank transfer to our account</p>
+                        </div>
+                        <i data-feather="check" class="text-[var(--primary-purple)] w-5 h-5"></i>
+                    </div>
+                </div>
             </div>
             
             <!-- Order Notes -->
@@ -228,6 +239,38 @@
             </a>
         </div>
     </nav>
+
+    <!-- Bank Details Modal -->
+    <div id="bank-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-[var(--white)] rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="font-bold text-lg mb-4">Bank Transfer Details</h3>
+            <div class="space-y-3">
+                <p><strong>Account Number:</strong> 6500447330</p>
+                <p><strong>Bank:</strong> Providus Bank</p>
+                <p><strong>Account Name:</strong> David Akinwumi</p>
+                <p class="text-sm text-[var(--neutral-gray)]">Please make the transfer of <span id="transfer-amount">₦0</span> to the above account. You'll need to upload proof of payment in the next step.</p>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="cancel-bank-details" class="px-4 py-2 bg-gray-200 text-[var(--neutral-gray)] rounded-lg ripple">Cancel</button>
+                <button id="proceed-to-proof" class="px-4 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-lg ripple">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proof of Payment Modal -->
+    <div id="proof-payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-[var(--white)] rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="font-bold text-lg mb-4">Upload Proof of Payment</h3>
+            <div class="space-y-3">
+                <input type="file" id="payment-proof" accept="image/*,.pdf" class="w-full p-2 border border-gray-300 rounded-lg">
+                <p class="text-sm text-[var(--neutral-gray)]">Upload a screenshot or PDF of your payment confirmation (max 5MB).</p>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="cancel-proof" class="px-4 py-2 bg-gray-200 text-[var(--neutral-gray)] rounded-lg ripple">Cancel</button>
+                <button id="submit-order" class="px-4 py-2 bg-[var(--primary-purple)] text-[var(--white)] rounded-lg ripple">Submit Order</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         feather.replace();
@@ -361,11 +404,13 @@
             const orderItems = document.getElementById('order-items');
             const summaryDetails = document.getElementById('summary-details');
             const totalContainer = document.getElementById('total');
-            if (!orderItems || !summaryDetails || !totalContainer) {
+            const transferAmount = document.getElementById('transfer-amount');
+            if (!orderItems || !summaryDetails || !totalContainer || !transferAmount) {
                 console.error('Order summary elements not found:', {
                     orderItems: !!orderItems,
                     summaryDetails: !!summaryDetails,
-                    totalContainer: !!totalContainer
+                    totalContainer: !!totalContainer,
+                    transferAmount: !!transferAmount
                 });
                 return;
             }
@@ -387,94 +432,9 @@
                 </div>
             `;
             totalContainer.textContent = `₦${data.summary.total.toLocaleString()}`;
-
-            const paymentContainer = document.getElementById('payment-methods');
-            if (!paymentContainer) {
-                console.error('Payment methods container not found');
-                return;
-            }
-            paymentContainer.innerHTML = `
-                <div class="payment-method border rounded-lg p-3 flex items-center cursor-pointer ${!data.paymentMethods.length && data.defaultAddress ? 'active' : ''}" data-payment-type="cash">
-                    <div class="w-8 h-8 bg-[var(--light-gray)] rounded-full flex items-center justify-center mr-3">
-                        <i data-feather="dollar-sign" class="text-[var(--primary-purple)] w-4 h-4"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-medium">Pay on Delivery</p>
-                        <p class="text-xs text-[var(--neutral-gray)]">Pay cash when your order arrives</p>
-                    </div>
-                    <i data-feather="check" class="text-[var(--primary-purple)] w-5 h-5 ${!data.paymentMethods.length && data.defaultAddress ? '' : 'hidden'}"></i>
-                </div>
-                <div class="payment-method border rounded-lg p-3 flex items-center cursor-pointer" data-payment-type="paystack">
-                    <div class="w-8 h-8 bg-[var(--light-gray)] rounded-full flex items-center justify-center mr-3">
-                        <i data-feather="credit-card" class="text-[var(--neutral-gray)] w-4 h-4"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-medium">Pay with Paystack</p>
-                        <p class="text-xs text-[var(--neutral-gray)]">Card, Bank Transfer, USSD, and more</p>
-                    </div>
-                    <i data-feather="check" class="text-[var(--primary-purple)] w-5 h-5 hidden"></i>
-                </div>
-            `;
-            data.paymentMethods.forEach(payment => {
-                const isCard = payment.type === 'card';
-                const isBank = payment.type === 'bank';
-                if (!isCard && !isBank) {
-                    console.warn('Invalid payment method type:', payment.type);
-                    return;
-                }
-                const number = isCard ? payment.cardNumber : payment.accountNumber;
-                const displayNumber = (number && typeof number === 'string' && number.length >= 4) ? `****${number.slice(-4)}` : '****XXXX';
-                paymentContainer.innerHTML += `
-                    <div class="payment-method border border-gray-200 rounded-lg p-3 flex items-center cursor-pointer ${payment.isDefault && data.defaultAddress ? 'active' : ''}" data-payment-type="${payment.type}">
-                        <div class="w-8 h-8 bg-[var(--light-gray)] rounded-full flex items-center justify-center mr-3">
-                            <i data-feather="${isCard ? 'credit-card' : 'repeat'}" class="text-[var(--neutral-gray)] w-4 h-4"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="font-medium">${isCard ? 'Card Payment' : 'Bank Transfer'}</p>
-                            <p class="text-xs text-[var(--neutral-gray)]">${displayNumber}</p>
-                        </div>
-                        <i data-feather="check" class="text-[var(--primary-purple)] w-5 h-5 ${payment.isDefault && data.defaultAddress ? '' : 'hidden'}"></i>
-                    </div>
-                `;
-            });
+            transferAmount.textContent = `₦${data.summary.total.toLocaleString()}`;
 
             feather.replace();
-            setupPaymentSelection();
-            console.log('Payment methods rendered, event listeners attached:', document.querySelectorAll('.payment-method').length);
-        }
-
-        // Update payment method selection
-        function setupPaymentSelection() {
-            const paymentMethods = document.querySelectorAll('.payment-method');
-            if (!paymentMethods.length) {
-                console.warn('No payment methods found for event listener setup');
-                return;
-            }
-            paymentMethods.forEach((method, index) => {
-                const newMethod = method.cloneNode(true);
-                method.parentNode.replaceChild(newMethod, method);
-                newMethod.addEventListener('click', function() {
-                    paymentMethods.forEach(m => {
-                        m.classList.remove('active');
-                        const iconContainer = m.querySelector('div:first-child');
-                        if (iconContainer) {
-                            iconContainer.classList.remove('bg-[var(--light-gray)]');
-                            iconContainer.classList.add('bg-[var(--light-gray)]');
-                        }
-                        const checkIcon = m.querySelector('i:last-child');
-                        if (checkIcon) checkIcon.classList.add('hidden');
-                    });
-                    this.classList.add('active');
-                    const iconContainer = this.querySelector('div:first-child');
-                    if (iconContainer) {
-                        iconContainer.classList.remove('bg-[var(--light-gray)]');
-                        iconContainer.classList.add('bg-[rgba(108,92,231,0.1)]');
-                    }
-                    const checkIcon = this.querySelector('i:last-child');
-                    if (checkIcon) checkIcon.classList.remove('hidden');
-                    console.log(`Payment method ${index} clicked and set as active`);
-                });
-            });
         }
 
         // Update cart count
@@ -484,78 +444,6 @@
             if (cartCount) {
                 cartCount.textContent = count;
                 cartCount.classList.toggle('animate-bounce', count > 0);
-            }
-        }
-
-        // Verify Paystack payment
-        async function verifyPaystackPayment(reference, orderId) {
-            try {
-                const token = localStorage.getItem('token');
-                const verifyResponse = await fetch(`${API_BASE_URL}/checkout/verify-payment`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                        reference,
-                        orderId
-                    }),
-                });
-                if (!verifyResponse.ok) {
-                    const errorData = await verifyResponse.json().catch(() => ({}));
-                    throw new Error(`Payment verification failed: ${errorData.message || verifyResponse.status}`);
-                }
-                const verification = await verifyResponse.json();
-                if (verification.status === 'success') {
-                    alert(`Order placed successfully! Order #${verification.orderNumber}`);
-                    window.location.href = '/orders.html';
-                } else {
-                    throw new Error('Payment verification failed: Invalid status');
-                }
-            } catch (error) {
-                console.error('Error verifying payment:', error.message);
-                alert(`Payment verification failed: ${error.message}. Please contact support.`);
-            }
-        }
-
-        // Initiate Paystack payment
-        async function initiatePaystackPayment(total, email, orderData, retryCount = 0, maxRetries = 2) {
-            try {
-                const handler = PaystackPop.setup({
-                    key: PAYSTACK_PUBLIC_KEY,
-                    email: email || 'customer@example.com',
-                    amount: total * 100,
-                    currency: 'NGN',
-                    ref: 'TX-' + Math.floor((Math.random() * 1000000000) + 1),
-                    metadata: {
-                        orderId: orderData.orderId || 'pending',
-                        custom_fields: [
-                            {
-                                display_name: "Order Notes",
-                                variable_name: "order_notes",
-                                value: orderData.orderNotes || ''
-                            }
-                        ]
-                    },
-                    callback: function(response) {
-                        console.log('Paystack payment completed, reference:', response.reference);
-                        verifyPaystackPayment(response.reference, orderData.orderId);
-                    },
-                    onClose: function() {
-                        console.log('Paystack payment window closed');
-                        alert('Payment cancelled. Please try again or choose another payment method.');
-                    }
-                });
-                handler.openIframe();
-            } catch (error) {
-                console.error('Error initiating Paystack payment:', error.message);
-                if (retryCount < maxRetries) {
-                    console.log(`Retrying initiatePaystackPayment (${retryCount + 1}/${maxRetries})...`);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    return initiatePaystackPayment(total, email, orderData, retryCount + 1, maxRetries);
-                }
-                alert(`Failed to initiate payment: ${error.message}. Please try again.`);
             }
         }
 
@@ -571,13 +459,46 @@
                 }
 
                 const selectedPayment = document.querySelector('.payment-method.active');
-                if (!selectedPayment) {
-                    alert('Please select a payment method.');
+                if (!selectedPayment || selectedPayment.getAttribute('data-payment-type') !== 'bank_transfer') {
+                    alert('Please select bank transfer as the payment method.');
                     return;
                 }
-                const paymentType = selectedPayment.getAttribute('data-payment-type');
-                const paymentMethod = selectedPayment.querySelector('p.font-medium').textContent;
+
+                // Show bank details modal
+                const bankDetailsModal = document.getElementById('bank-details-modal');
+                if (!bankDetailsModal) {
+                    console.error('Bank details modal not found');
+                    alert('Error: Payment modal not available. Please try again.');
+                    return;
+                }
+                bankDetailsModal.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error in placeOrder:', error.message);
+                if (retryCount < maxRetries && !error.message.includes('401')) {
+                    console.log(`Retrying placeOrder (${retryCount + 1}/${maxRetries})...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return placeOrder(retryCount + 1, maxRetries);
+                }
+                alert(`Failed to initiate order: ${error.message}`);
+            }
+        }
+
+        // Submit order with proof of payment
+        async function submitOrder(retryCount = 0, maxRetries = 2) {
+            try {
+                const token = localStorage.getItem('token');
+                const paymentProof = document.getElementById('payment-proof').files[0];
                 const orderNotes = document.getElementById('order-notes').value.trim();
+
+                if (!paymentProof) {
+                    alert('Please upload proof of payment.');
+                    return;
+                }
+
+                if (paymentProof.size > 5 * 1024 * 1024) {
+                    alert('Proof of payment file size exceeds 5MB.');
+                    return;
+                }
 
                 // Fetch default address ID
                 const addressResponse = await fetch(`${API_BASE_URL}/addresses`, {
@@ -603,6 +524,24 @@
                     return;
                 }
 
+                // Upload proof of payment
+                const formData = new FormData();
+                formData.append('proof', paymentProof);
+
+                const uploadResponse = await fetch(`${API_BASE_URL}/checkout/upload-proof`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: formData,
+                });
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json().catch(() => ({}));
+                    throw new Error(`Failed to upload proof: ${errorData.message || uploadResponse.status}`);
+                }
+                const uploadResult = await uploadResponse.json();
+                const proofUrl = uploadResult.url;
+
                 // Create order
                 const orderResponse = await fetch(`${API_BASE_URL}/checkout/order`, {
                     method: 'POST',
@@ -612,8 +551,9 @@
                     },
                     body: JSON.stringify({
                         addressId: defaultAddress._id,
-                        paymentMethod: paymentType === 'paystack' ? 'Paystack' : paymentMethod,
-                        orderNotes
+                        paymentMethod: 'Bank Transfer',
+                        orderNotes,
+                        paymentProof: proofUrl,
                     }),
                 });
                 if (orderResponse.status === 401) {
@@ -628,28 +568,48 @@
                 }
 
                 const order = await orderResponse.json();
-
-                // Handle Paystack payment if selected
-                if (paymentType === 'paystack') {
-                    const userEmail = window.checkoutData?.user?.email || 'customer@example.com';
-                    const total = window.checkoutData?.summary?.total || 0;
-                    await initiatePaystackPayment(total, userEmail, {
-                        orderId: order._id,
-                        orderNotes
-                    });
-                } else {
-                    alert(`Order placed successfully! Order #${order.orderNumber}`);
-                    window.location.href = '/orders.html';
-                }
+                alert(`Order placed successfully! Order #${order.orderNumber}. We will verify your payment and update you soon.`);
+                window.location.href = '/orders.html';
             } catch (error) {
-                console.error('Error placing order:', error.message);
+                console.error('Error submitting order:', error.message);
                 if (retryCount < maxRetries && !error.message.includes('401')) {
-                    console.log(`Retrying placeOrder (${retryCount + 1}/${maxRetries})...`);
+                    console.log(`Retrying submitOrder (${retryCount + 1}/${maxRetries})...`);
                     await new Promise(resolve => setTimeout(resolve, 1000));
-                    return placeOrder(retryCount + 1, maxRetries);
+                    return submitOrder(retryCount + 1, maxRetries);
                 }
-                alert(`Failed to place order: ${error.message}`);
+                alert(`Failed to submit order: ${error.message}`);
             }
+        }
+
+        // Modal event listeners
+        function setupModalEvents() {
+            const bankDetailsModal = document.getElementById('bank-details-modal');
+            const proofPaymentModal = document.getElementById('proof-payment-modal');
+            const cancelBankDetails = document.getElementById('cancel-bank-details');
+            const proceedToProof = document.getElementById('proceed-to-proof');
+            const cancelProof = document.getElementById('cancel-proof');
+            const submitOrderBtn = document.getElementById('submit-order');
+
+            if (!bankDetailsModal || !proofPaymentModal || !cancelBankDetails || !proceedToProof || !cancelProof || !submitOrderBtn) {
+                console.error('Modal elements not found');
+                return;
+            }
+
+            cancelBankDetails.addEventListener('click', () => {
+                bankDetailsModal.classList.add('hidden');
+            });
+
+            proceedToProof.addEventListener('click', () => {
+                bankDetailsModal.classList.add('hidden');
+                proofPaymentModal.classList.remove('hidden');
+            });
+
+            cancelProof.addEventListener('click', () => {
+                proofPaymentModal.classList.add('hidden');
+                document.getElementById('payment-proof').value = '';
+            });
+
+            submitOrderBtn.addEventListener('click', submitOrder);
         }
 
         // Ripple effect for buttons
@@ -696,6 +656,7 @@
                 document.getElementById('change-address').addEventListener('click', () => {
                     window.location.href = '/saved-addresses.html';
                 });
+                setupModalEvents();
                 setupDOMObserver();
             }
         });
