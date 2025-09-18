@@ -1,4 +1,3 @@
-// app.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -6,9 +5,8 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const VisitorLocation = require('./models/VisitorLocation');
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require('./utils/cloudinary'); // Use your Cloudinary configuration
 const multer = require('multer');
-const fs = require('fs');
 
 // Connect DB
 const connectDB = require('./config/db');
@@ -20,7 +18,7 @@ const auth = require('./middleware/auth');
 // Routes
 const userRoutes = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
-const productSubmissionRoutes = require('./routes/productSubmissionRoutes'); // Added
+const productSubmissionRoutes = require('./routes/productSubmissionRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const chatRoutes = require('./routes/chatRoutes');
@@ -28,7 +26,6 @@ const publicRoutes = require('./routes/publicRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const authRoutes = require('./routes/authRoutes');
 const addressRoutes = require('./routes/addressRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
 const checkoutRoutes = require('./routes/checkoutRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const visitorRoutes = require('./routes/visitorRoutes');
@@ -36,18 +33,11 @@ const adRoutes = require('./routes/adRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'https://bazukastore.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   },
@@ -58,30 +48,23 @@ app.set('io', io);
 
 // Global Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'https://bazukastore.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Multer setup for file uploads
-const upload = multer({ dest: 'uploads/' });
-
-// Example Cloudinary upload route
-app.post('/api/upload', upload.single('image'), async (req, res) => {
-  try {
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'uploads',
-    });
-
-    // Delete local file after upload to save space
-    fs.unlinkSync(req.file.path);
-
-    res.json({ url: result.secure_url, public_id: result.public_id });
-  } catch (err) {
-    console.error('Upload error:', err.message);
-    res.status(500).json({ error: 'Upload failed' });
-  }
+// Multer setup for file uploads (used in orderRoutes for payment proof)
+const upload = multer({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images and PDFs are allowed.'));
+    }
+  },
 });
 
 // Log all incoming requests for debugging
@@ -102,7 +85,6 @@ connectDB();
 // WebSocket for real-time updates
 io.on('connection', (socket) => {
   console.log('WebSocket client connected:', socket.id);
-
   socket.on('joinAdmin', async (token) => {
     try {
       const decoded = require('jsonwebtoken').verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
@@ -120,7 +102,6 @@ io.on('connection', (socket) => {
       socket.disconnect();
     }
   });
-
   socket.on('joinUser', async ({ token }) => {
     try {
       const decoded = require('jsonwebtoken').verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
@@ -138,19 +119,15 @@ io.on('connection', (socket) => {
       socket.disconnect();
     }
   });
-
   socket.on('categoryUpdate', () => {
     io.to('adminRoom').emit('categoryUpdate');
   });
-
   socket.on('productUpdate', () => {
     io.to('adminRoom').emit('productUpdate');
   });
-
   socket.on('submissionUpdate', () => {
     io.to('adminRoom').emit('submissionUpdate');
   });
-
   socket.on('orderStatusUpdate', (order) => {
     io.to('adminRoom').emit('orderStatusUpdate', order);
     if (order.user) {
@@ -185,7 +162,6 @@ app.use('/api/public', publicRoutes);
 app.use('/api/carts', cartRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/addresses', addressRoutes);
-app.use('/api/payments', paymentRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/visitors', visitorRoutes);
@@ -219,9 +195,6 @@ app.get('/categories.html', (req, res) => {
 });
 
 app.get('/orders.html', auth, (req, res) => {
-  if (!req.user?.isAdmin) {
-    return res.status(403).send('Admin access required');
-  }
   res.sendFile(path.join(__dirname, 'public', 'orders.html'), (err) => {
     if (err) {
       console.error(`Error serving orders.html: ${err.message}`);
