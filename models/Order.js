@@ -2,13 +2,13 @@ const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  addressId: { type: mongoose.Schema.Types.ObjectId, ref: 'Address', required: true }, // Changed to reference Address model
+  addressId: { type: mongoose.Schema.Types.ObjectId, ref: 'Address', required: true },
   items: [{
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true, min: 0 },
   }],
-  subtotal: { type: Number, required: true, min: 0 }, // Added to store subtotal before delivery fee
+  subtotal: { type: Number, required: true, min: 0 },
   deliveryFee: { type: Number, default: 5000, min: 0 },
   total: { type: Number, required: true, min: 0 },
   status: { 
@@ -26,7 +26,8 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed'], 
     default: 'pending' 
   },
-  paymentReference: { type: String }, // To store Paystack transaction reference
+  paymentReference: { type: String },
+  paymentProof: { type: String },
   orderNotes: { type: String, trim: true },
   tracking: [{
     status: { type: String, required: true },
@@ -47,7 +48,6 @@ orderSchema.pre('save', async function(next) {
       try {
         const count = await mongoose.model('Order').countDocuments();
         this.orderNumber = `ORD-${(count + 1).toString().padStart(6, '0')}`;
-        // Verify uniqueness
         const existingOrder = await mongoose.model('Order').findOne({ orderNumber: this.orderNumber });
         if (!existingOrder) {
           isUnique = true;
@@ -57,7 +57,6 @@ orderSchema.pre('save', async function(next) {
         if (attempts >= maxAttempts) {
           return next(new Error('Failed to generate unique order number after multiple attempts'));
         }
-        // Wait briefly before retrying
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
