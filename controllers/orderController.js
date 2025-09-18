@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Cart = require('../models/Cart'); // Assuming a Cart model exists
 const { Parser } = require('json2csv');
 const { createNotification } = require('./notificationController');
 const cloudinary = require('../utils/cloudinary');
@@ -11,18 +12,21 @@ exports.uploadPaymentProof = async (req, res) => {
     }
 
     // Upload to Cloudinary
-    const result = await cloudinary.uploader.upload_stream(
-      {
-        folder: 'payment-proofs',
-        resource_type: 'auto', // Supports images and PDFs
-      },
-      (error, result) => {
-        if (error) {
-          throw new Error(`Cloudinary upload failed: ${error.message}`);
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: 'payment-proofs',
+          resource_type: 'auto', // Supports images and PDFs
+        },
+        (error, result) => {
+          if (error) {
+            reject(new Error(`Cloudinary upload failed: ${error.message}`));
+          } else {
+            resolve(result);
+          }
         }
-        return result;
-      }
-    ).end(req.file.buffer);
+      ).end(req.file.buffer);
+    });
 
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
@@ -36,16 +40,17 @@ exports.createOrder = async (req, res) => {
     const { addressId, paymentMethod, orderNotes, paymentProof } = req.body;
     const user = req.user;
 
-    // Fetch cart items
-    const cartResponse = await fetch(`${process.env.API_BASE_URL}/cart`, {
-      headers: { 'Authorization': `Bearer ${req.headers.authorization.split(' ')[1]}` },
-    });
-    if (!cartResponse.ok) {
-      throw new Error('Failed to fetch cart');
+    if (paymentMethod !== 'Bank Transfer') {
+      return res.status(400).json({ message: 'Only Bank Transfer is supported' });
     }
-    const cart = await cartResponse.json();
 
-    const items = cart.map(item => ({
+    // Fetch cart items directly from MongoDB
+    const cart = await Cart.findOne({ user: user._id }).populate('items.product');
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+
+    const items = cart.items.map(item => ({
       product: item.product._id,
       quantity: item.quantity,
       price: item.product.price,
@@ -66,12 +71,13 @@ exports.createOrder = async (req, res) => {
       paymentProof,
       orderNotes,
       tracking: [{ status: 'Placed' }],
-      paymentStatus: paymentMethod === 'Bank Transfer' ? 'pending' : 'completed',
+      paymentStatus: 'pending',
     });
 
     await order.save();
-    user.cart = [];
-    await user.save();
+
+    // Clear the cart
+    await Cart.deleteOne({ user: user._id });
 
     // Emit WebSocket event for new order
     req.app.get('io').to('adminRoom').emit('newOrder', {
@@ -166,6 +172,35 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
+exports.verifyPaymentProof = async (req, res) => {
+  try {
+    if (!req.user.isAdmin) return res.status(403).json({ message: 'Admin access required' });
+    const { orderId, paymentStatus } = req.body;
+    const order = await Order.findById(orderId).populate('user');
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.paymentStatus = paymentStatus;
+    await order.save();
+
+    // Emit WebSocket event for status update
+    req.app.get('io').to('adminRoom').emit('orderStatusUpdate', order);
+    req.app.get('io').to(`user_${order.user._id}`).emit('orderStatusUpdate', order);
+
+    if (paymentStatus === 'completed') {
+      await createNotification(
+        order.user._id,
+        `Your payment for order #${order.orderNumber} has been verified!`,
+        'order'
+      );
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Error verifying payment proof:', error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
 exports.getSalesMetrics = async (req, res) => {
   try {
     if (!req.user.isAdmin) return res.status(403).json({ message: 'Admin access required' });
@@ -198,6 +233,8 @@ exports.exportOrders = async (req, res) => {
       { label: 'Customer Email', value: 'user.email' },
       { label: 'Total', value: 'total' },
       { label: 'Status', value: 'status' },
+      { label: 'Payment Status', value: 'paymentStatus' },
+      { label: 'Payment Proof', value: 'paymentProof' },
       { label: 'Date', value: 'createdAt' },
     ];
     const json2csv = new Parser({ fields });
