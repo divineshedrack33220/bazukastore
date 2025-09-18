@@ -1,23 +1,72 @@
-// controllers/orderController.js
 const Order = require('../models/Order');
 const User = require('../models/User');
 const { Parser } = require('json2csv');
 const { createNotification } = require('./notificationController');
+const cloudinary = require('../utils/cloudinary');
+
+exports.uploadPaymentProof = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload_stream(
+      {
+        folder: 'payment-proofs',
+        resource_type: 'auto', // Supports images and PDFs
+      },
+      (error, result) => {
+        if (error) {
+          throw new Error(`Cloudinary upload failed: ${error.message}`);
+        }
+        return result;
+      }
+    ).end(req.file.buffer);
+
+    res.status(200).json({ url: result.secure_url });
+  } catch (error) {
+    console.error('Error uploading payment proof:', error);
+    res.status(400).json({ message: error.message });
+  }
+};
 
 exports.createOrder = async (req, res) => {
   try {
-    const { items, deliveryAddress, paymentMethod, orderNotes } = req.body;
+    const { addressId, paymentMethod, orderNotes, paymentProof } = req.body;
     const user = req.user;
 
-    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Fetch cart items
+    const cartResponse = await fetch(`${process.env.API_BASE_URL}/cart`, {
+      headers: { 'Authorization': `Bearer ${req.headers.authorization.split(' ')[1]}` },
+    });
+    if (!cartResponse.ok) {
+      throw new Error('Failed to fetch cart');
+    }
+    const cart = await cartResponse.json();
+
+    const items = cart.map(item => ({
+      product: item.product._id,
+      quantity: item.quantity,
+      price: item.product.price,
+    }));
+
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const deliveryFee = 5000;
+    const total = subtotal + deliveryFee;
+
     const order = new Order({
       user: user._id,
+      addressId,
       items,
+      subtotal,
+      deliveryFee,
       total,
-      deliveryAddress: deliveryAddress || user.address,
       paymentMethod,
+      paymentProof,
       orderNotes,
       tracking: [{ status: 'Placed' }],
+      paymentStatus: paymentMethod === 'Bank Transfer' ? 'pending' : 'completed',
     });
 
     await order.save();
@@ -31,6 +80,7 @@ exports.createOrder = async (req, res) => {
       user: { name: user.name },
       total: order.total,
       status: order.status,
+      paymentProof: order.paymentProof,
       createdAt: order.createdAt,
     });
     req.app.get('io').to(`user_${user._id}`).emit('orderStatusUpdate', order);
