@@ -186,25 +186,6 @@
             document.getElementById('loading-modal').style.display = 'none';
         }
 
-        // Request notification permission
-        async function requestNotificationPermission() {
-            if ('Notification' in window) {
-                const permission = await Notification.requestPermission();
-                return permission === 'granted';
-            }
-            return false;
-        }
-
-        // Show browser notification
-        function showBrowserNotification(message) {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Bazuka Store', {
-                    body: message,
-                    icon: '/images/logo.png',
-                });
-            }
-        }
-
         // Handle Google Sign-In
         async function handleCredentialResponse(response) {
             showLoadingModal();
@@ -229,10 +210,6 @@
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('newSignup', 'true');
                 await mergeGuestCart(data.token);
-                const permissionGranted = await requestNotificationPermission();
-                if (permissionGranted) {
-                    showBrowserNotification(`Welcome to Bazuka Store, ${data.user.name}! You have successfully signed in.`);
-                }
                 const redirect = new URLSearchParams(window.location.search).get('redirect');
                 window.location.href = redirect && ['profile', 'cart', 'orders'].includes(redirect) ? `/${redirect}.html` : '/index.html';
             } catch (error) {
@@ -267,10 +244,6 @@
                 const data = await response.json();
                 localStorage.setItem('token', data.token);
                 await mergeGuestCart(data.token);
-                const permissionGranted = await requestNotificationPermission();
-                if (permissionGranted) {
-                    showBrowserNotification(`Welcome back, ${data.user.name}! You have successfully logged in.`);
-                }
                 const redirect = new URLSearchParams(window.location.search).get('redirect');
                 window.location.href = redirect && ['profile', 'cart', 'orders'].includes(redirect) ? `/${redirect}.html` : '/index.html';
             } catch (error) {
