@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Referrer-Policy" content="no-referrer-when-downgrade">
+    <title>Chats | Bazuka Store</title>
+    <meta name="description" content="View your chat conversations on Bazuka Store.">
+    <meta name="keywords" content="chats, messaging, Bazuka Store, Nigeria e-commerce">
+    <meta name="author" content="Bazuka Store">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://bazukastore.com/chat-list.html">
+    <meta property="og:title" content="Chats - Bazuka Store">
+    <meta property="og:description" content="View your chat conversations on Bazuka Store.">
+    <meta property="og:image" content="https://bazukastore.com/images/fallback-preview-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://bazukastore.com/chat-list.html">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Chats - Bazuka Store">
+    <meta name="twitter:description" content="View your chat conversations on Bazuka Store.">
+    <meta name="twitter:image" content="https://bazukastore.com/images/fallback-preview-image.jpg">
+
+    <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" as="script">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.0/dist/socket.io.min.js" as="script">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.0/dist/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --secondary: #FBBF24;
+            --background: #F8FAFC;
+            --surface: #FFFFFF;
+            --text: #1F2937;
+            --text-secondary: #6B7280;
+            --error: #EF4444;
+            --success: #10B981;
+            --border: #E5E7EB;
+            --hover: #F1F5F9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.5;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        body.loading {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        header {
+            background-color: var(--surface);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .container {
+            max-width: 935px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple:after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10, 10);
+            opacity: 0;
+            transition: transform 0.5s, opacity 1s;
+        }
+
+        .ripple:active:after {
+            transform: scale(0, 0);
+            opacity: 0.3;
+            transition: 0s;
+        }
+
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: var(--success);
+            color: var(--surface);
+        }
+
+        .toast.error {
+            background-color: var(--error);
+            color: var(--surface);
+        }
+
+        .chat-card {
+            transition: all 0.3s ease;
+            border-radius: 0.75rem;
+            background-color: var(--surface);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            max-width: 640px;
+            margin: 0 auto 1rem;
+        }
+
+        .avatar {
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+        }
+
+        .truncate-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+            background-color: var(--border);
+            border-radius: 8px;
+        }
+
+        .shimmer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .chat-card {
+                margin: 0 0.5rem 1rem;
+            }
+
+            .chat-card .p-3 {
+                padding: 0.75rem;
+            }
+
+            .avatar-placeholder {
+                width: 2rem;
+                height: 2rem;
+                font-size: 1rem;
+            }
+
+            .nav-title {
+                font-size: 1rem;
+            }
+        }
+
+        @media (min-width: 641px) and (max-width: 768px) {
+            .chat-card {
+                max-width: 560px;
+            }
+
+            .nav-title {
+                font-size: 1.25rem;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .chat-card {
+                max-width: 640px;
+            }
+
+            .nav-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen loading">
+    <header class="bg-[var(--surface)] shadow-sm sticky top-0 z-20">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between sm:px-6">
+            <button id="back-button" class="p-2 rounded-full hover:bg-[var(--hover)] ripple" aria-label="Go back">
+                <i data-feather="arrow-left" class="text-[var(--text)] w-6 h-6 sm:w-7 sm:h-7"></i>
+            </button>
+            <h1 class="text-xl font-semibold text-[var(--text)] nav-title">Chats</h1>
+            <div class="w-6 sm:w-7"></div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 sm:px-6">
+        <section id="chat-list" class="chat-list">
+            <div class="shimmer chat-card h-[80px]"></div>
+        </section>
+    </main>
+
+    <script>
+        feather.replace();
+
+        const API_BASE_URL = 'https://bazukastore.com/api';
+        const socket = io('https://bazukastore.com', {
+            withCredentials: true,
+            auth: { token: `Bearer ${localStorage.getItem('token') || ''}` }
+        });
+        const FALLBACK_AVATAR = 'https://placehold.co/40x40?text=Avatar';
+
+        const backgroundColors = [
+            '#EF4444', '#F97316', '#F59E0B', '#10B981', '#3B82F6',
+            '#8B5CF6', '#D946EF', '#EC4899', '#14B8A6', '#6366F1'
+        ];
+
+        function getRandomColor() {
+            return backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
+        }
+
+        function getFirstLetter(name) {
+            return name ? name.charAt(0).toUpperCase() : 'A';
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type} shadow-lg`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 100);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => { toast.remove(); }, 300); }, 2000);
+        }
+
+        async function refreshToken() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to refresh token');
+                }
+                const { token } = await response.json();
+                localStorage.setItem('token', token);
+                socket.auth = { token: `Bearer ${token}` };
+                socket.connect();
+                console.log('Token refreshed successfully');
+                return true;
+            } catch (error) {
+                console.error('Token refresh failed:', error.message);
+                return false;
+            }
+        }
+
+        async function checkAuth(retryCount = 0, maxRetries = 2) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.warn('No token found in localStorage');
+                return false;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    console.error(`Profile fetch failed: ${response.status} ${response.statusText}`);
+                    if (response.status === 401 && retryCount < maxRetries) {
+                        console.log(`Attempting token refresh (retry ${retryCount + 1}/${maxRetries})`);
+                        const refreshed = await refreshToken();
+                        if (refreshed) {
+                            return await checkAuth(retryCount + 1, maxRetries);
+                        }
+                    }
+                    let errorMessage = 'Session expired. Please sign in again.';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                        console.error('Profile error response:', errorData);
+                    } catch (jsonError) {
+                        console.error('Error parsing profile response:', jsonError);
+                    }
+                    throw new Error(errorMessage);
+                }
+                const data = await response.json();
+                console.log('Authentication successful');
+                return true;
+            } catch (error) {
+                console.error('Authentication check failed:', error.message);
+                if (error.message.includes('NetworkError') && retryCount < maxRetries) {
+                    console.log(`Retrying authentication (attempt ${retryCount + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return await checkAuth(retryCount + 1, maxRetries);
+                }
+                localStorage.removeItem('token');
+                return false;
+            }
+        }
+
+        async function fetchChats(retryCount = 0, maxRetries = 2) {
+            if (!(await checkAuth())) {
+                showToast('Please sign in to view chats.', 'error');
+                const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                setTimeout(() => { window.location.href = `/login.html?redirect=${redirectUrl}`; }, 2000);
+                document.body.classList.remove('loading');
+                return;
+            }
+
+            const container = document.getElementById('chat-list');
+            const token = localStorage.getItem('token');
+
+            container.innerHTML = '<div class="shimmer chat-card h-[80px]"></div>';
+
+            try {
+                const headers = { 'Authorization': `Bearer ${token}` };
+                const response = await fetch(`${API_BASE_URL}/chats`, { headers });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    throw new Error('Invalid response from server');
+                }
+
+                if (!response.ok) {
+                    if (response.status === 401 && retryCount < maxRetries) {
+                        console.log(`Retrying fetch after token refresh (attempt ${retryCount + 1}/${maxRetries})`);
+                        const refreshed = await refreshToken();
+                        if (refreshed) {
+                            return await fetchChats(retryCount + 1, maxRetries);
+                        }
+                    }
+                    throw new Error(data.message || `Failed to fetch chats (Status: ${response.status})`);
+                }
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p class="text-center text-[var(--text-secondary)] text-sm sm:text-base">No chats found. Start a new conversation!</p>';
+                    document.body.classList.remove('loading');
+                    return;
+                }
+
+                container.innerHTML = data.map(chat => {
+                    const recipientName = chat.recipient?.name || 'Unknown';
+                    const isNoAvatar = !chat.recipient?.avatar;
+                    const firstLetter = getFirstLetter(recipientName);
+                    const randomColor = isNoAvatar ? getRandomColor() : '';
+                    const lastMessage = chat.lastMessage || 'No messages';
+                    const timestamp = new Date(chat.updatedAt).toLocaleString();
+
+                    return `
+                        <div class="chat-card ripple" onclick="window.location.href='/chat.html?chatId=${chat._id}'">
+                            <div class="flex items-center p-3">
+                                ${isNoAvatar ? `
+                                    <div class="avatar-placeholder mr-3" style="background-color: ${randomColor}">${firstLetter}</div>
+                                ` : `
+                                    <img src="${chat.recipient.avatar}" alt="${recipientName} avatar" class="w-10 h-10 avatar mr-3 sm:w-12 sm:h-12" onerror="this.src='${FALLBACK_AVATAR}'">
+                                `}
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-semibold truncate">${recipientName}</h3>
+                                    <p class="text-xs text-[var(--text-secondary)] truncate-1">${lastMessage}</p>
+                                </div>
+                                <p class="text-xs text-[var(--text-secondary)]">${timestamp}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                if (typeof anime === 'function') {
+                    anime({
+                        targets: container.querySelectorAll('.chat-card'),
+                        opacity: [0, 1],
+                        translateY: [20, 0],
+                        duration: 500,
+                        easing: 'easeOutQuad',
+                        delay: anime.stagger(100),
+                    });
+                } else {
+                    console.warn('Anime.js not loaded, skipping animation');
+                    container.style.opacity = 1;
+                }
+            } catch (error) {
+                console.error('Error fetching chats:', error.message);
+                showToast(`Failed to load chats: ${error.message}`, 'error');
+                if (error.message.includes('token') || error.message.includes('auth')) {
+                    localStorage.removeItem('token');
+                    const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                    setTimeout(() => { window.location.href = `/login.html?redirect=${redirectUrl}`; }, 2000);
+                }
+                container.innerHTML = '<p class="text-center text-[var(--text-secondary)] text-sm sm:text-base">Failed to load chats. Please try again later.</p>';
+            } finally {
+                document.body.classList.remove('loading');
+            }
+        }
+
+        socket.on('connect', () => {
+            console.log('Connected to Socket.IO server');
+            const token = localStorage.getItem('token');
+            if (token) {
+                socket.emit('joinUser', { token: `Bearer ${token}` }, async (response) => {
+                    if (response && response.error) {
+                        console.error('Socket.IO authentication failed:', response.error);
+                        showToast('Session expired. Please sign in again.', 'error');
+                        localStorage.removeItem('token');
+                        const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                        setTimeout(() => { window.location.href = `/login.html?redirect=${redirectUrl}`; }, 2000);
+                    } else {
+                        console.log('Successfully joined Socket.IO with user token');
+                    }
+                });
+            }
+        });
+
+        socket.on('connect_error', async (error) => {
+            console.error('Socket.IO connection error:', error.message);
+            showToast('Failed to connect to real-time updates.', 'error');
+            setTimeout(async () => {
+                if (await checkAuth()) {
+                    socket.connect();
+                }
+            }, 5000);
+        });
+
+        socket.on('chatUpdate', async () => {
+            if (await checkAuth()) {
+                fetchChats();
+            }
+        });
+
+        function setupBackButton() {
+            document.getElementById('back-button').addEventListener('click', () => {
+                window.location.href = '/request.html';
+            });
+        }
+
+        function setupRippleEffect() {
+            document.querySelectorAll('.ripple').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    this.style.setProperty('--x', x + 'px');
+                    this.style.setProperty('--y', y + 'px');
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.body.classList.add('loading');
+            setTimeout(async () => {
+                await fetchChats();
+                setupBackButton();
+                setupRippleEffect();
+                document.body.classList.remove('loading');
+            }, 100);
+        });
+    </script>
+</body>
+</html>
