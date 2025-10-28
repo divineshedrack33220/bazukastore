@@ -58,7 +58,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'http://localhost:5000',
+        origin: ['http://localhost:5000', 'https://bazukastore.com'],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
         credentials: true,
     },
@@ -69,11 +69,9 @@ app.set('io', io);
 
 // Global Middleware
 app.use(cors({
-    origin: 'http://localhost:5000',
+    origin: ['http://localhost:5000', 'https://bazukastore.com'],
     credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
@@ -98,6 +96,40 @@ app.use('/api/requests', (req, res, next) => {
     console.log(`[${new Date().toISOString()}] Requests route hit: ${req.method} ${req.originalUrl}`);
     next();
 });
+
+// API Routes (Mount /api/requests before body-parsing middleware)
+if (requestRoutes) {
+    app.use('/api/requests', requestRoutes);
+    console.log('✅ Mounted /api/requests route');
+} else {
+    console.error('❌ /api/requests route not mounted due to import error');
+}
+
+// Body-parsing middleware (after /api/requests)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Other API Routes
+console.log('✅ Registering API routes');
+app.use('/api/users', auth, userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/product-submissions', auth, productSubmissionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/orders', auth, orderRoutes);
+app.use('/api/chats', auth, chatRoutes);
+app.use('/api/public', publicRoutes);
+app.use('/api/carts', auth, cartRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/addresses', auth, addressRoutes);
+app.use('/api/payments', auth, paymentRoutes);
+app.use('/api/checkout', auth, checkoutRoutes);
+app.use('/api/wishlist', auth, wishlistRoutes);
+app.use('/api/visitors', auth, visitorRoutes);
+app.use('/api/ads', adRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/customers', auth, customerRoutes);
+app.use('/api/messages', auth, messageRoutes);
+app.use('/api/upload', auth, uploadRoutes);
 
 // Connect to MongoDB
 connectDB();
@@ -274,34 +306,6 @@ app.use(async (req, res, next) => {
         console.error(`[${new Date().toISOString()}] Error fetching visitor location: ${error.message}`);
     }
 });
-
-// API Routes
-console.log('✅ Registering API routes');
-app.use('/api/users', auth, userRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/product-submissions', auth, productSubmissionRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/orders', auth, orderRoutes);
-app.use('/api/chats', auth, chatRoutes);
-app.use('/api/public', publicRoutes);
-app.use('/api/carts', auth, cartRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/addresses', auth, addressRoutes);
-app.use('/api/payments', auth, paymentRoutes);
-app.use('/api/checkout', auth, checkoutRoutes);
-app.use('/api/wishlist', auth, wishlistRoutes);
-app.use('/api/visitors', auth, visitorRoutes);
-app.use('/api/ads', adRoutes);
-app.use('/api/locations', locationRoutes);
-app.use('/api/customers', auth, customerRoutes);
-app.use('/api/messages', auth, messageRoutes);
-app.use('/api/upload', auth, uploadRoutes);
-if (requestRoutes) {
-    app.use('/api/requests', requestRoutes);
-    console.log('✅ Mounted /api/requests route');
-} else {
-    console.error('❌ /api/requests route not mounted due to import error');
-}
 
 // Fallback for missing images
 app.get('/images/:filename', (req, res) => {
