@@ -4,20 +4,18 @@ const cors = require('cors');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
+const VisitorLocation = require('./models/VisitorLocation');
 const fs = require('fs').promises;
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
-const VisitorLocation = require('./models/VisitorLocation');
 
-// DB & Middleware
+// DB & Models
 const connectDB = require('./config/db');
+let User, Chat, Message, Call; // Call is optional
+
 const errorHandler = require('./middleware/errorHandler');
 const auth = require('./middleware/auth');
 
-// Models (lazy load)
-let User, Chat, Message, Call;
-
-// Routes
+// Routes (unchanged)
 const userRoutes = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
 const productSubmissionRoutes = require('./routes/productSubmissionRoutes');
@@ -35,60 +33,48 @@ const visitorRoutes = require('./routes/visitorRoutes');
 const adRoutes = require('./routes/adRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const customerRoutes = require('./routes/customerRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
-const callRoutes = require('./routes/callRoutes');
-
 let requestRoutes;
-try {
-  requestRoutes = require('./routes/requestRoutes');
-} catch (err) {
-  console.warn('requestRoutes not found:', err.message);
-}
+try { requestRoutes = require('./routes/requestRoutes'); } catch (e) { console.error(e); }
 
-let messageRoutes;
-try {
-  messageRoutes = require('./routes/messageRoutes');
-} catch (err) {
-  console.warn('messageRoutes not found:', err.message);
-}
-
-// Call handler setup
+// ---------- CALL HANDLER ----------
 const { setupCallHandlers } = require('./callHandler');
-const { setIo } = require('./utils/socket');
 
-// Ensure Upload folders exist
+// Ensure dirs
 const uploadDir = path.join(__dirname, 'Uploads');
 const imagesDir = path.join(__dirname, 'public', 'images');
-Promise.all([
-  fs.mkdir(uploadDir, { recursive: true }).catch(() => {}),
-  fs.mkdir(imagesDir, { recursive: true }).catch(() => {}),
-]);
+Promise.all([fs.mkdir(uploadDir, { recursive: true }).catch(() => {}),
+             fs.mkdir(imagesDir, { recursive: true }).catch(() => {})]);
 
-// EXPRESS + SOCKET.IO
+// ---------- EXPRESS ----------
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: ['http://localhost:5000', 'https://bazukastore.com'], credentials: true },
 });
 app.set('io', io);
-setIo(io);
 
-// Middleware
+// ---------- MIDDLEWARE ----------
 app.use(cors({ origin: ['http://localhost:5000', 'https://bazukastore.com'], credentials: true }));
+app.use((req, _, next) => { console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`); next(); });
+
+// Static
+app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
+app.use('/static', express.static(path.join(__dirname, 'public')));
+app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
+app.use('/admin/static', express.static(path.join(__dirname, 'admin/static')));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Early request routes
+if (requestRoutes) app.use('/api/requests', requestRoutes);
+
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files
-app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
-app.use('/Uploads', express.static(uploadDir));
-app.use('/admin', express.static(path.join(__dirname, 'admin')));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Optional routes that may not exist
-if (requestRoutes) app.use('/api/requests', requestRoutes);
-
-// API Routes
-app.use('/api/auth', authRoutes);
+// ---------- API ROUTES ----------
 app.use('/api/users', auth, userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/product-submissions', auth, productSubmissionRoutes);
@@ -97,68 +83,61 @@ app.use('/api/orders', auth, orderRoutes);
 app.use('/api/chats', auth, chatRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/carts', auth, cartRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/addresses', auth, addressRoutes);
-app.use('/api/payments', paymentRoutes);
+app.use('/api/payments', auth, paymentRoutes);
 app.use('/api/checkout', auth, checkoutRoutes);
 app.use('/api/wishlist', auth, wishlistRoutes);
 app.use('/api/visitors', auth, visitorRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/customers', auth, customerRoutes);
+app.use('/api/messages', auth, messageRoutes);
 app.use('/api/upload', auth, uploadRoutes);
-app.use('/api/calls', callRoutes);
 
+// ---------- DB + SOCKET ----------
+const onlineUsers = new Map(); // userId → socket.id
 
-// Messages route only if available and exported properly
-if (typeof messageRoutes === 'function') {
-  app.use('/api/messages', auth, messageRoutes(io));
-} else {
-  console.warn('⚠ messageRoutes is missing or not a function');
-}
-
-// ONLINE USERS
-const onlineUsers = new Map();
-app.set('onlineUsers', onlineUsers);
-
-// DB + SOCKET
 connectDB()
-  .then(async () => {
-    // Load models
+  .then(() => {
     const chatModels = require('./models/Chat');
     Chat = chatModels.Chat;
     Message = chatModels.Message;
     User = require('./models/User');
+    // Call is optional - try to load, but don't crash
     try {
       Call = require('./models/Call');
-      console.log('✅ Call model loaded');
-      app.set('Call', Call);
+      console.log('Call model loaded');
     } catch (e) {
-      console.warn('Call model load failed:', e.message);
+      console.log('Call model not found - running in-memory mode');
+      Call = null; // use in-memory only
     }
+    console.log('DB + Models Ready');
 
-    console.log('✅ Database connected and models loaded');
-
-    // SOCKET AUTH
+    // ---------- SOCKET AUTH ----------
     io.use((socket, next) => {
       const token = socket.handshake.auth.token?.replace('Bearer ', '');
       if (!token) return next(new Error('No token'));
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        socket.user = { id: decoded.id, name: decoded.name || 'User' };
+        socket.user = { 
+          id: decoded.id, 
+          name: decoded.name || 'User' 
+        };
         next();
-      } catch {
-        next(new Error('Invalid token'));
-      }
+      } catch (e) { next(new Error('Invalid token')); }
     });
 
-    // SOCKET CONNECTION
+    // ---------- SOCKET CONNECTION ----------
     io.on('connection', (socket) => {
       console.log(`[SOCKET] Connected ${socket.id} | User ${socket.user.id}`);
+      // Set online on connect (global presence)
       onlineUsers.set(socket.user.id, socket.id);
 
-      // Setup call handlers
-      setupCallHandlers(io, socket, onlineUsers, app);
+      // ---- CALL SYSTEM ----
+      setupCallHandlers(io, socket, onlineUsers);
 
+      // ---- EXISTING CHAT / ADMIN LOGIC (unchanged) ----
       const rooms = new Set();
 
       socket.on('joinChat', async ({ chatId }, cb) => {
@@ -166,69 +145,82 @@ connectDB()
           const chat = await Chat.findById(chatId).populate('participants', '_id');
           if (!chat || !chat.participants.some(p => p._id.toString() === socket.user.id))
             throw new Error('Unauthorized');
-          const room = `chat_${chatId}`;
-          socket.join(room);
-          rooms.add(room);
-          cb?.();
-        } catch (err) {
-          cb?.({ error: err.message });
-        }
+          const r = `chat_${chatId}`;
+          socket.join(r); rooms.add(r);
+          if (cb) cb();
+        } catch (e) { if (cb) cb({ error: e.message }); }
       });
 
       socket.on('leaveChat', ({ chatId }) => {
-        const room = `chat_${chatId}`;
-        socket.leave(room);
-        rooms.delete(room);
+        const r = `chat_${chatId}`;
+        socket.leave(r); rooms.delete(r);
       });
 
       socket.on('typing', async ({ chatId, senderName }) => {
         const chat = await Chat.findById(chatId);
-        if (chat?.participants.some(p => p.toString() === socket.user.id)) {
+        if (chat?.participants.some(p => p.toString() === socket.user.id))
           socket.to(`chat_${chatId}`).emit('typing', { chatId, senderName });
-        }
       });
 
+      socket.on('message', async ({ chatId, message }) => {
+        const chat = await Chat.findById(chatId);
+        if (chat?.participants.some(p => p.toString() === message.sender._id))
+          io.to(`chat_${chatId}`).emit('message', { chatId, message });
+      });
+
+      // ---- ADMIN ----
+      socket.on('joinAdmin', async (token) => {
+        try {
+          const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
+          const u = await User.findById(decoded.id);
+          if (u?.isAdmin) { socket.join('adminRoom'); rooms.add('adminRoom'); }
+        } catch { socket.disconnect(); }
+      });
+
+      ['categoryUpdate', 'productUpdate', 'submissionUpdate'].forEach(ev => {
+        socket.on(ev, () => io.to('adminRoom').emit(ev));
+      });
+
+      socket.on('orderStatusUpdate', (order) => {
+        io.to('adminRoom').emit('orderStatusUpdate', order);
+        if (order.user) io.to(`user_${order.user}`).emit('orderStatusUpdate', order);
+      });
+
+      socket.on('requestUpdate', d => io.to('adminRoom').emit('requestUpdate', d));
+      socket.on('requestVoteUpdate', d => io.to('adminRoom').emit('requestVoteUpdate', d));
+  
+      // ---- DISCONNECT ----
       socket.on('disconnect', () => {
-        rooms.forEach((r) => socket.leave(r));
-        for (let [userId, sid] of onlineUsers.entries()) {
-          if (sid === socket.id) onlineUsers.delete(userId);
-        }
+        rooms.forEach(r => socket.leave(r));
+        onlineUsers.delete(socket.user.id);
         console.log(`[SOCKET] Disconnected ${socket.id}`);
       });
     });
   })
-  .catch((err) => {
-    console.error('DB connection failed:', err);
-    process.exit(1);
-  });
+  .catch(err => { console.error('DB failed:', err); process.exit(1); });
 
-// VISITOR TRACKING
+// ---------- VISITOR NOTIFY ----------
 app.use(async (req, res, next) => {
+  if (req.originalUrl.startsWith('/api/locations')) return next();
   next();
   try {
     const v = await VisitorLocation.findOne().sort({ timestamp: -1 }).lean();
     if (v) io.to('adminRoom').emit('newVisitor', v);
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
 });
 
-// FALLBACK ROUTES
+// ---------- FALLBACKS ----------
 app.get('/service-worker.js', (_, res) => res.status(404).send('Not found'));
 app.get('/images/:filename', async (req, res) => {
-  const filePath = path.join(__dirname, 'public', 'images', req.params.filename);
-  try {
-    await fs.access(filePath);
-    res.sendFile(filePath);
-  } catch {
-    res.redirect('https://placehold.co/600x400?text=No+Image');
-  }
+  const p = path.join(__dirname, 'public', 'images', req.params.filename);
+  try { await fs.access(p); res.sendFile(p); }
+  catch { res.redirect('https://placehold.co/600x400?text=No+Image'); }
 });
 
 app.use((_, res) => res.status(404).json({ message: 'Route not found' }));
 
-// FRONTEND ROUTES
-const serve = (file) => (_, res) => res.sendFile(path.join(__dirname, 'public', file));
+// ---------- FRONTEND ----------
+const serve = file => (_, res) => res.sendFile(path.join(__dirname, 'public', file));
 app.get('/', serve('index.html'));
 app.get('/categories.html', serve('categories.html'));
 app.get('/track-order.html', auth, serve('track-order.html'));
@@ -244,15 +236,14 @@ app.get('/admin', auth, (req, res) => {
   if (!req.user?.isAdmin) return res.status(403).json({ message: 'Admin only' });
   res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
-['sales-orders.html', 'products.html', 'customers.html'].forEach((f) =>
+['sales-orders.html', 'products.html', 'customers.html'].forEach(f =>
   app.get(`/admin/${f}`, auth, (req, res) => {
     if (!req.user?.isAdmin) return res.status(403).json({ message: 'Admin only' });
     res.sendFile(path.join(__dirname, 'admin', f));
   })
 );
 
-// ERROR HANDLER + START
+// ---------- ERROR & START ----------
 app.use(errorHandler);
-
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on :${PORT}`));
