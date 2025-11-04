@@ -9,7 +9,7 @@
   <meta name="keywords" content="chats, messaging, Bazuka Store, Nigeria e-commerce" />
   <meta name="author" content="Bazuka Store" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="bazukastore.com/chat-list.html" />
+  <link rel="canonical" href="http://localhost:5000/chat-list.html" />
 
   <!-- Tailwind CDN (JIT mode) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -145,13 +145,13 @@
 
   <!-- Sound -->
   <audio id="new-message-sound" preload="auto">
-    <source src="bazukastore.com/sounds/new-notification-010-352755.mp3" type="audio/mpeg" />
+    <source src="http://localhost:5000/sound/new-notification-010-352755.mp3" type="audio/mpeg" />
   </audio>
 
   <!-- FULL SCRIPT (only renderCard updated) -->
   <script>
     let socket;
-    const API_BASE_URL = 'bazukastore.com/api';
+    const API_BASE_URL = 'http://localhost:5000/api';
     const FALLBACK_AVATAR = 'https://placehold.co/56x56?text=A';
     const NOTIFICATION_SOUND = document.getElementById('new-message-sound');
 
@@ -316,7 +316,7 @@
       feather.replace();
 
       if (typeof io !== 'undefined') {
-        socket = io('bazukastore.com', {
+        socket = io('http://localhost:5000', {
           withCredentials: true,
           auth: { token: `Bearer ${localStorage.getItem('token') || ''}` }
         });
