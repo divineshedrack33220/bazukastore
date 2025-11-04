@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat | Bazuka Store</title>
+    <meta name="description" content="Chat with other users on Bazuka Store.">
+    <meta name="keywords" content="chat, messaging, Bazuka Store, Nigeria e-commerce">
+    <meta name="author" content="Bazuka Store">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="bazukastore.com/chat.html">
+    <meta property="og:title" content="Chat - Bazuka Store">
+    <meta property="og:description" content="Chat with other users on Bazuka Store.">
+    <meta property="og:image" content="bazukastore.com/images/fallback-preview-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="bazukastore.com/chat.html">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Chat - Bazuka Store">
+    <meta name="twitter:description" content="Chat with other users on Bazuka Store.">
+    <meta name="twitter:image" content="bazukastore.com/images/fallback-preview-image.jpg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.0/dist/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1.21.0/index.js" type="module"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="chat.css">
+</head>
+<body class="min-h-screen">
+
+    <header class="bg-[var(--white)] shadow-sm sticky top-0 z-20">
+        <div class="container mx-auto px-3 py-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <button id="back-button" class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="Back to chat list">
+                    <i data-feather="arrow-left" class="w-5 h-5 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">Left Arrow</i>
+                </button>
+                <div class="flex items-center space-x-2">
+                    <div id="nav-avatar" class="nav-avatar">U</div>
+                    <div>
+                        <h1 id="chat-title" class="text-base font-semibold text-[var(--neutral-gray)]">Chat</h1>
+                        <p id="connection-status" class="text-[10px] status-online"><span class="status-dot"></span>Online</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1">
+                <button id="call-button" class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="Start audio call">
+                    <i data-feather="phone" class="w-5 h-5 text-[var(--primary-purple)] icon-fallback" aria-hidden="true">Phone</i>
+                </button>
+                <button class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="More options">
+                    <i data-feather="more-horizontal" class="w-4 h-4 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">More</i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-3 py-2">
+        <section aria-label="Chat">
+            <div class="bg-[var(--white)] rounded-lg flex flex-col">
+                <div class="chat-container" id="chat-container" role="log" aria-live="polite"></div>
+            </div>
+        </section>
+        <div class="input-container">
+            <div id="reply-preview" class="reply-preview hidden">
+                <p id="reply-sender" class="font-semibold"></p>
+                <div id="reply-content-wrapper" class="truncate flex items-center space-x-1">
+                    <p id="reply-content" class="truncate"></p>
+                    <img id="reply-preview-img" class="quoted-preview-img hidden" alt="Quoted preview">
+                </div>
+                <span class="close-reply" aria-label="Cancel reply">×</span>
+            </div>
+            <div class="flex items-center bg-[var(--light-gray)] rounded-full p-1">
+                <label class="p-1 rounded-full hover:bg-[var(--white)] ripple cursor-pointer" aria-label="Upload images">
+                    <i data-feather="paperclip" class="w-5 h-5 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">Clip</i>
+                    <input id="image-input" type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" multiple class="hidden">
+                </label>
+                <button id="emoji-button" class="p-1 rounded-full hover:bg-[var(--white)] ripple" aria-label="Open emoji picker">
+                    <i data-feather="smile" class="w-5 h-5 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">Smile</i>
+                </button>
+                <input id="chat-input" type="text" placeholder="Message..." 
+                       class="flex-1 bg-transparent py-1 px-2 focus:outline-none text-[13px]"
+                       aria-label="Type your message">
+                <button id="send-message" class="p-1 rounded-full hover:bg-[var(--white)] ripple" aria-label="Send message">
+                    <i data-feather="send" class="w-5 h-5 text-[var(--primary-purple)] icon-fallback" aria-hidden="true">Send</i>
+                </button>
+            </div>
+            <p id="error-message" class="error-message hidden">Please upload valid images (PNG, JPEG, JPG, GIF, WEBP).</p>
+            <div id="image-preview" class="image-preview">
+                <div id="preview-images" class="flex flex-wrap gap-1"></div>
+                <div class="flex mt-1 space-x-1">
+                    <button id="send-image" class="bg-[var(--primary-purple)] text-[var(--white)] px-2 py-0.5 rounded-full text-xs ripple hover:bg-[var(--secondary-yellow)] hover:text-[var(--neutral-gray)]" aria-label="Send all images">Send All</button>
+                    <button id="cancel-image" class="bg-[var(--light-gray)] text-[var(--neutral-gray)] px-2 py-0.5 rounded-full text-xs ripple" aria-label="Cancel images">Cancel</button>
+                </div>
+            </div>
+            <emoji-picker id="emoji-picker"></emoji-picker>
+        </div>
+    </main>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="image-modal">
+        <div class="modal-actions">
+            <button id="download-image" aria-label="Download image">
+                <i data-feather="download" class="w-5 h-5"></i>
+            </button>
+            <button id="close-modal" aria-label="Close modal">
+                <i data-feather="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <button class="carousel-nav left" id="prev-image" aria-label="Previous image">Left Arrow</button>
+        <img id="modal-image" src="" alt="Full-size chat image" loading="lazy">
+        <button class="carousel-nav right" id="next-image" aria-label="Next image">Right Arrow</button>
+        <div class="carousel-dots" id="carousel-dots"></div>
+    </div>
+
+<script>
+    feather.replace();
+
+    const API_BASE_URL = 'bazukastore.com/api';
+    const isLocal = window.location.host.includes('localhost');
+    const SOCKET_URL = isLocal ? `ws://${window.location.host.replace(/:\d+$/, ':5000')}` : 'bazukastore.com';
+    const socket = io(SOCKET_URL, {
+        withCredentials: true,
+        auth: { token: `Bearer ${localStorage.getItem('token') || ''}` },
+        reconnection: true,
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000
+    });
+
+    // DOM
+    const chatContainer   = document.getElementById('chat-container');
+    const chatInput       = document.getElementById('chat-input');
+    const sendButton      = document.getElementById('send-message');
+    const imageUpload     = document.getElementById('image-input');
+    const errorMessage    = document.getElementById('error-message');
+    const imagePreview    = document.getElementById('image-preview');
+    const previewImages   = document.getElementById('preview-images');
+    const sendImageBtn    = document.getElementById('send-image');
+    const cancelImageBtn  = document.getElementById('cancel-image');
+    const imageModal      = document.getElementById('image-modal');
+    const modalImage      = document.getElementById('modal-image');
+    const closeModalBtn   = document.getElementById('close-modal');
+    const downloadBtn     = document.getElementById('download-image');
+    const navAvatar       = document.getElementById('nav-avatar');
+    const emojiBtn        = document.getElementById('emoji-button');
+    const emojiPicker     = document.getElementById('emoji-picker');
+    const replyPreview    = document.getElementById('reply-preview');
+    const replySender     = document.getElementById('reply-sender');
+    const replyContent    = document.getElementById('reply-content');
+    const replyPreviewImg = document.getElementById('reply-preview-img');
+    const closeReplyBtn   = replyPreview.querySelector('.close-reply');
+    const connectionStatus = document.getElementById('connection-status');
+    const inputContainer  = document.querySelector('.input-container');
+    const prevImageBtn    = document.getElementById('prev-image');
+    const nextImageBtn    = document.getElementById('next-image');
+    const carouselDots    = document.getElementById('carousel-dots');
+    const callButton = document.getElementById('call-button');
+
+    // State
+    let selectedImages   = [];
+    let cachedUserId     = null;
+    let cachedUserName   = null;
+    let pendingMessages  = new Map();
+    let replyToMessage   = null;
+    let currentChatId    = null;
+    let isSending        = false;
+    let retryQueue       = [];
+    let typingTimeout    = null;
+    let loadMoreTrigger  = null;
+    let authRetries      = 0;
+    const MAX_AUTH_RETRIES = 2;
+    let hasShimmers      = false;
+    let currentImageIndex = 0;
+    let currentGroupUrls = [];
+    let isZoomed = false;
+    let scrollDebounce   = null;
+    const MAX_IMAGES = 30;
+    let isCalling = false;
+    let hasMoreMessages = true;
+
+    // Helpers
+    function uuid() { return `temp-${Date.now()}-${Math.random().toString(36).substr(2,9)}`; }
+    function simpleHash(str) { let h=0; for(let i=0;i<str.length;i++) h=((h<<5)-h)+str.charCodeAt(i); return h.toString(); }
+    function getChatId() { const id = new URLSearchParams(location.search).get('chatId'); if(!id) { showToast('No chat selected.', 'error'); setTimeout(()=>location.href='/chat-list.html',1500); } return id; }
+    function sanitizeHtml(str) { return DOMPurify.sanitize(str); }
+    function showToast(msg,type='success'){ const el=document.createElement('div'); el.className=`toast ${type} shadow-lg`; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.classList.add('show'),50); setTimeout(()=>{el.classList.remove('show'); setTimeout(()=>el.remove(),350);},2200); }
+    function updateConnectionStatus(online){ connectionStatus.innerHTML=`<span class="status-dot"></span>${online?'Online':'Offline'}`; connectionStatus.className=`text-[10px] ${online?'status-online':'status-offline'}`; }
+    async function refreshToken(){ try{ const r=await fetch(`${API_BASE_URL}/auth/refresh`,{method:'POST',credentials:'include'}); if(!r.ok) throw 0; const {token}=await r.json(); localStorage.setItem('token',token); socket.auth={token:`Bearer ${token}`}; return true; }catch{return false;} }
+    async function checkAuth(retry=0){ const token=localStorage.getItem('token'); if(!token) return false; try{ const r=await fetch(`${API_BASE_URL}/users/profile`,{headers:{Authorization:`Bearer ${token}`}}); if(!r.ok){ if(r.status===401 && retry<MAX_AUTH_RETRIES){ if(await refreshToken()) return checkAuth(retry+1); throw 0; } throw 0; } const d=await r.json(); cachedUserId=d._id; cachedUserName=d.name; authRetries=0; return true; }catch{ if(retry<MAX_AUTH_RETRIES){ await new Promise(rs=>setTimeout(rs,1000)); return checkAuth(retry+1); } localStorage.removeItem('token'); authRetries=0; return false; } }
+    function formatDate(d){ try{ const x=new Date(d); if(isNaN(x)) return 'Just now'; const now=new Date(); const diffMs=now-x; if(diffMs<60000) return 'Just now'; return x.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'}); }catch{return 'Just now';} }
+    function getDateLabel(d){ const today=new Date(); const msgDate=new Date(d); const todayStart=new Date(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate()); const msgStart=new Date(msgDate.getUTCFullYear(),msgDate.getUTCMonth(),msgDate.getUTCDate()); const diffDays=Math.floor((todayStart-msgStart)/86400000); if(diffDays===0) return 'Today'; if(diffDays===1) return 'Yesterday'; return msgDate.toLocaleDateString('en-NG',{month:'short',day:'numeric',year:'numeric'}); }
+    function getFirstLetter(n){ return n?.trim()?.[0]?.toUpperCase()||'U'; }
+    function scrollToBottom(smooth=true){ requestAnimationFrame(()=>{ chatContainer.scrollTo({top:chatContainer.scrollHeight,behavior:smooth?'smooth':'auto'}); }); }
+    function truncateText(t,len=50){ return t.length<=len?t:t.slice(0,len-3)+'...'; }
+    function ensureSeparator(label){ const last=chatContainer.lastElementChild; if(last&&last.classList.contains('date-separator')&&last.textContent.trim()===label) return last; const sep=document.createElement('div'); sep.className='date-separator'; sep.textContent=label; chatContainer.appendChild(sep); return sep; }
+    function cleanDuplicateSeparators(){ const seps=chatContainer.querySelectorAll('.date-separator'); for(let i=0;i<seps.length-1;i++){ if(seps[i].textContent.trim()===seps[i+1].textContent.trim()) seps[i].remove(); } }
+    function createShimmers(count=10){ if(hasShimmers) return; chatContainer.innerHTML=''; for(let i=0;i<count;i++){ const s=document.createElement('div'); s.className='shimmer h-[60px]'; chatContainer.appendChild(s); } hasShimmers=true; }
+    function getDisplayContent(msgContent,isImage){ if(!isImage||Array.isArray(msgContent)) return msgContent; if(typeof msgContent==='string'){ try{ const p=JSON.parse(msgContent); return Array.isArray(p)?p:[msgContent]; }catch{ return [msgContent]; } } return msgContent; }
+
+    // Call
+    async function initiateCall(){ if(isCalling){ showToast('Already calling...','info'); return; } try{ isCalling=true; callButton.disabled=true; callButton.innerHTML='<i data-feather="loader" class="w-5 h-5 animate-spin"></i>'; feather.replace(); const chatId=new URLSearchParams(location.search).get('chatId'); if(!chatId) return showToast('Missing chat ID','error'); const token=localStorage.getItem('token'); if(!token||!token.includes('.')){ showToast('Please log in again.','error'); return setTimeout(()=>location.href='/login.html',1500); } let me; try{ me=JSON.parse(atob(token.split('.')[1]))._id; }catch(err){ console.error('JWT decode failed:',err); showToast('Invalid token.','error'); return setTimeout(()=>location.href='/login.html',1500); } const chatRes=await fetch(`${API_BASE_URL}/chats/${chatId}`,{headers:{Authorization:`Bearer ${token}`}}); if(!chatRes.ok){ const err=await chatRes.json(); return showToast(err.message||'Failed to load chat','error'); } const chat=await chatRes.json(); let participants=[]; if(Array.isArray(chat.participants)){ participants=chat.participants; } else if(chat.recipient && chat.recipient._id && chat.recipient._id!==me){ participants=[{_id:me,name:cachedUserName||'You'},chat.recipient]; } else{ return showToast('Could not determine call recipient','error'); } if(!Array.isArray(participants)||participants.length<2){ return showToast('Invalid chat participants','error'); } const recipient=participants.find(p=>p&&p._id&&p._id!==me); if(!recipient){ return showToast('Could not find call recipient','error'); } const res=await fetch(`${API_BASE_URL}/calls/initiate`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({recipientId:recipient._id,chatId})}); if(!res.ok){ const err=await res.json(); const msg=err.message||err.msg||'Call failed'; if(msg.includes('already exists')||msg.includes('active')){ showToast('Call already in progress','info'); }else{ showToast(msg,'error'); } throw new Error(msg); } const {callId}=await res.json(); location.href=`/call.html?callId=${callId}&type=outgoing&chatId=${chatId}`; }catch(err){ console.error('Call error:',err); showToast(err.message||'Failed to start call','error'); }finally{ isCalling=false; callButton.disabled=false; callButton.innerHTML='<i data-feather="phone" class="w-5 h-5"></i>'; feather.replace(); } }
+    callButton?.addEventListener('click',initiateCall);
+
+    // Image Grid
+    function renderImageGrid(urls){ const grid=document.createElement('div'); grid.className='image-grid'; const visible=urls.slice(0,4); const extra=urls.length>4?urls.length-4:0; visible.forEach((url,i)=>{ const item=document.createElement('div'); item.className='grid-item'; const img=document.createElement('img'); img.src=url; img.dataset.src=url; img.alt='Chat image'; img.loading='lazy'; img.onerror=()=>img.style.display='none'; img.addEventListener('click',(e)=>{ e.stopPropagation(); openGroupModal(urls,i); }); item.appendChild(img); if(i===3&&extra){ const badge=document.createElement('div'); badge.className='badge'; badge.textContent=`+${extra}`; item.appendChild(badge); } grid.appendChild(item); }); return grid.outerHTML; }
+
+    // Modal
+    function openGroupModal(groupUrls,startIdx=0){ currentGroupUrls=groupUrls; currentImageIndex=startIdx; renderModalImage(); buildDots(); imageModal.classList.add('active'); isZoomed=false; feather.replace(); }
+    function renderModalImage(){ const url=currentGroupUrls[currentImageIndex]; modalImage.src=url+'?t='+Date.now(); updateDots(); prevImageBtn.style.opacity=currentImageIndex===0?'0.3':'1'; nextImageBtn.style.opacity=currentImageIndex===currentGroupUrls.length-1?'0.3':'1'; }
+    function buildDots(){ carouselDots.innerHTML=''; currentGroupUrls.forEach((_,i)=>{ const dot=document.createElement('div'); dot.className='carousel-dot'; if(i===currentImageIndex) dot.classList.add('active'); dot.addEventListener('click',()=>{ currentImageIndex=i; renderModalImage(); }); carouselDots.appendChild(dot); }); }
+    function updateDots(){ const dots=carouselDots.querySelectorAll('.carousel-dot'); dots.forEach((d,i)=>d.classList.toggle('active',i===currentImageIndex)); }
+    prevImageBtn.onclick=()=>{ if(currentImageIndex>0){ currentImageIndex--; renderModalImage(); } };
+    nextImageBtn.onclick=()=>{ if(currentImageIndex<currentGroupUrls.length-1){ currentImageIndex++; renderModalImage(); } };
+    function closeModal(){ imageModal.classList.remove('active'); modalImage.src=''; currentGroupUrls=[]; currentImageIndex=0; isZoomed=false; }
+    closeModalBtn.onclick=closeModal;
+    imageModal.onclick=e=>{ if(e.target===imageModal) closeModal(); };
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&imageModal.classList.contains('active')) closeModal(); });
+    let startX=0; imageModal.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true}); imageModal.addEventListener('touchend',e=>{ if(isZoomed) return; const delta=e.changedTouches[0].clientX-startX; if(Math.abs(delta)>50){ if(delta>0&&currentImageIndex>0) prevImageBtn.click(); else if(delta<0&&currentImageIndex<currentGroupUrls.length-1) nextImageBtn.click(); } },{passive:true});
+    let tapCount=0,tapTimer; modalImage.onclick=()=>{ tapCount++; if(tapCount===1) tapTimer=setTimeout(()=>{tapCount=0;},300); else{ clearTimeout(tapTimer); tapCount=0; isZoomed=!isZoomed; imageModal.classList.toggle('zoomed',isZoomed); } };
+    downloadBtn.onclick=()=>{ const url=currentGroupUrls[currentImageIndex]; const a=document.createElement('a'); a.href=url; a.download=url.split('/').pop().split('?')[0]||'image.jpg'; a.click(); };
+    function attachGridImageHandlers(messageEl){ const imgs=messageEl.querySelectorAll('.image-grid img'); imgs.forEach((img,idx)=>{ const urls=Array.from(messageEl.querySelectorAll('.image-grid img')).map(i=>i.dataset.src); img.onclick=(e)=>{ e.stopPropagation(); openGroupModal(urls,idx); }; }); }
+
+    // Load Older
+    async function loadOlderMessages(){ if(!hasMoreMessages||loadMoreTrigger?.classList.contains('loading')) return; loadMoreTrigger?.classList.add('loading'); loadMoreTrigger&&(loadMoreTrigger.textContent='Loading older messages...'); try{ const messageEls=chatContainer.querySelectorAll('.chat-message'); if(messageEls.length===0) return; const oldestEl=messageEls[0]; const beforeId=oldestEl.dataset.messageId; const token=localStorage.getItem('token'); const url=`${API_BASE_URL}/chats/${currentChatId}/older?before=${beforeId}`; const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}}); if(r.status===404){ showToast('Older messages endpoint not found','error'); hasMoreMessages=false; loadMoreTrigger.style.display='none'; return; } const data=await r.json(); if(!r.ok){ throw new Error(data.message||'Failed to load older messages'); } if(!data.messages||data.messages.length===0){ hasMoreMessages=false; loadMoreTrigger.textContent='No more messages'; loadMoreTrigger.style.pointerEvents='none'; setTimeout(()=>loadMoreTrigger.style.display='none',2000); return; } const byDate={}; data.messages.forEach(m=>{ const lbl=getDateLabel(m.createdAt); (byDate[lbl]||(byDate[lbl]=[])).push(m); }); const sortedDates=Object.keys(byDate).sort((a,b)=>{ const da=a==='Today'?new Date():new Date(a); const db=b==='Today'?new Date():new Date(b); return da-db; }); const insertPoint=loadMoreTrigger.nextSibling; sortedDates.forEach(date=>{ const sep=document.createElement('div'); sep.className='date-separator'; sep.textContent=date; chatContainer.insertBefore(sep,insertPoint); byDate[date].sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).forEach(m=>{ const isOwn=m.sender?._id===cachedUserId; const cls=isOwn?'user':'other'; let quoted=''; if(m.replyTo){ const replyDisplay=getDisplayContent(m.replyTo.content,m.replyTo.isImage); const rcHtml=m.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(m.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(m.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(m.content,m.isImage); if(m.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(m.content)}</p>`; } const seen=m.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=m.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); const el=document.createElement('div'); el.className=`chat-message ${cls}`; el.dataset.messageId=m._id; el.innerHTML=`${fullHtml}<p class="text-[10px] ${isOwn?'text-[var(--white)]':'text-[var(--neutral-gray)]'} mt-0.5 text-right">${formatDate(m.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.insertBefore(el,insertPoint); if(m.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(el); } }); }); cleanDuplicateSeparators(); const prevHeight=chatContainer.scrollHeight; requestAnimationFrame(()=>{ const heightDiff=chatContainer.scrollHeight-prevHeight; chatContainer.scrollTop+=heightDiff; }); }catch(e){ console.error('Load older failed:',e); showToast('Failed to load older messages','error'); }finally{ loadMoreTrigger?.classList.remove('loading'); loadMoreTrigger&&(loadMoreTrigger.textContent='Loading older messages...'); } }
+
+    // Pending Message
+    function appendPendingMessage(content,isImage=false,tempId,replyTo=null){ if(!chatContainer.querySelector('.date-separator')) ensureSeparator('Today'); const div=document.createElement('div'); div.className='chat-message user pending'; div.dataset.tempId=tempId; let quoted=''; if(replyTo){ const replyDisplay=getDisplayContent(replyTo.content,replyTo.isImage); const rcHtml=replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(replyTo.senderName)}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(content,isImage); if(isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(content)}</p>`; } const fullHtml=sanitizeHtml(`${quoted}${body}`); div.innerHTML=`${fullHtml}<p class="text-[10px] text-[var(--white)] mt-0.5 text-right">Just now <span class="text-gray-500">Sent</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(div); if(isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(div); } const hashContent=Array.isArray(content)?content.join(','):content; const hash=simpleHash(hashContent); pendingMessages.set(tempId,{content,isImage,el:div,replyTo,hash}); scrollToBottom(); feather.replace(); setTimeout(()=>{ if(div.classList.contains('pending')){ div.classList.remove('pending'); if(typeof anime==='function') anime({targets:div,opacity:[0.7,1],duration:300}); } },1500); }
+
+    // Reply Preview
+    function updateReplyPreview(replyTo){ if(!replyTo) return; replySender.textContent=replyTo.senderName; const replyDisplay=getDisplayContent(replyTo.content,replyTo.isImage); if(replyTo.isImage){ const count=Array.isArray(replyDisplay)?replyDisplay.length:1; replyContent.textContent=`${count} Photo${count>1?'s':''}`; replyPreviewImg.src=Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay; replyPreviewImg.classList.remove('hidden'); }else{ replyContent.textContent=truncateText(replyTo.content,40); replyPreviewImg.classList.add('hidden'); } replyPreview.classList.remove('hidden'); chatInput.focus(); }
+    function setupReplyEvents(){ chatContainer.addEventListener('click',e=>{ const btn=e.target.closest('.reply-button'); if(!btn) return; const msg=btn.closest('.chat-message'); const isImg=!!msg.querySelector('.chat-image')||!!msg.querySelector('.image-grid'); let content=isImg?(msg.querySelectorAll('.image-grid img').length?Array.from(msg.querySelectorAll('.image-grid img')).map(img=>img.dataset.src):msg.querySelector('.chat-image').dataset.src):msg.querySelector('.text-xs')?.textContent||''; const sender=msg.classList.contains('user')?cachedUserName||'You':document.getElementById('chat-title').textContent; replyToMessage={id:msg.dataset.messageId,content,isImage:isImg,senderName:sender}; updateReplyPreview(replyToMessage); }); closeReplyBtn.addEventListener('click',()=>{ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); }); }
+
+    // Infinite Scroll
+    function setupInfiniteScroll(hasMessages=false){ if(!hasMessages||loadMoreTrigger) return; loadMoreTrigger=document.createElement('div'); loadMoreTrigger.className='loading-more'; loadMoreTrigger.textContent='Loading older messages...'; loadMoreTrigger.id='load-more-trigger'; chatContainer.prepend(loadMoreTrigger); loadMoreTrigger.style.display='none'; chatContainer.addEventListener('scroll',()=>{ clearTimeout(scrollDebounce); scrollDebounce=setTimeout(()=>{ if(chatContainer.scrollTop<150&&hasMoreMessages&&!loadMoreTrigger.classList.contains('loading')){ loadMoreTrigger.style.display='block'; loadOlderMessages(); } },100); }); }
+
+    // Socket
+    function joinChatIfReady(){ if(!currentChatId||!cachedUserId) return; socket.emit('joinChat',{chatId:currentChatId}); }
+    socket.on('connect',()=>{ updateConnectionStatus(true); retryQueue.forEach(({fn})=>fn()); retryQueue=[]; joinChatIfReady(); });
+    socket.on('reconnect',()=>{ updateConnectionStatus(true); joinChatIfReady(); setTimeout(fetchChat,500); });
+    socket.on('disconnect',()=>updateConnectionStatus(false));
+    socket.on('connect_error',err=>{ updateConnectionStatus(false); if(err.message.includes('Authentication')) refreshToken(); });
+    socket.on('incoming-call',data=>{ if(data.chatId!==currentChatId) return; location.href=`/call.html?callId=${data.callId}&type=incoming&chatId=${data.chatId}&callerName=${encodeURIComponent(data.callerName||'')}`; });
+
+    // Real-time Message
+    socket.on('message',data=>{ if(data.chatId!==getChatId()) return; const msg=data.message; const isOwn=msg.sender?._id===cachedUserId; let pendingEntry=pendingMessages.get(msg.tempId); if(!pendingEntry){ for(let [tempId,entry]of pendingMessages){ const entryHashContent=Array.isArray(entry.content)?entry.content.join(','):entry.content; const msgDisplay=getDisplayContent(msg.content,msg.isImage); const msgHashContent=Array.isArray(msgDisplay)?msgDisplay.join(','):msgDisplay; if(simpleHash(entryHashContent)===simpleHash(msgHashContent)&&entry.isImage===msg.isImage){ pendingEntry=entry; break; } } } if(pendingEntry){ const tempId=msg.tempId||Array.from(pendingMessages.keys()).find(k=>pendingMessages.get(k)===pendingEntry); const el=pendingEntry.el; el.className=`chat-message ${isOwn?'user':'other'}`; el.dataset.messageId=msg._id; el.removeAttribute('data-temp-id'); const timeEl=el.querySelector('p:last-of-type'); if(timeEl){ timeEl.innerHTML=`${formatDate(msg.createdAt)} <span class="${msg.readBy?.length>1?'text-blue-600':'text-gray-500'}">${msg.readBy?.includes(cachedUserId)?'Seen':'Sent'}</span>`; } if(msg.isImage){ const displayContent=getDisplayContent(msg.content,msg.isImage); const grid=el.querySelector('.image-grid'); if(grid&&Array.isArray(displayContent)){ grid.outerHTML=renderImageGrid(displayContent); attachGridImageHandlers(el); }else if(!Array.isArray(displayContent)){ const img=el.querySelector('.chat-image'); if(img){ img.src=displayContent; img.dataset.src=displayContent; } } } if(msg.replyTo&&pendingEntry.replyTo){ const replyDisplay=getDisplayContent(msg.replyTo.content,msg.replyTo.isImage); const rcHtml=msg.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(msg.replyTo.content,30)}</p>`; const quoted=el.querySelector('.quoted-message'); if(quoted){ quoted.innerHTML=`<p class="font-semibold">${sanitizeHtml(msg.replyTo.sender?.name||pendingEntry.replyTo.senderName)}</p>${sanitizeHtml(rcHtml)}`; } } pendingMessages.delete(tempId); if(replyToMessage?.id===msg._id){ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); } feather.replace(); scrollToBottom(); cleanDuplicateSeparators(); return; } if(isOwn) return; const label=getDateLabel(msg.createdAt); ensureSeparator(label); const div=document.createElement('div'); div.className='chat-message other'; div.dataset.messageId=msg._id; let quoted=''; if(msg.replyTo){ const replyDisplay=getDisplayContent(msg.replyTo.content,msg.replyTo.isImage); const rcHtml=msg.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(msg.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(msg.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(msg.content,msg.isImage); if(msg.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(msg.content)}</p>`; } const seen=msg.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=msg.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); div.innerHTML=`${fullHtml}<p class="text-[10px] text-[var(--neutral-gray)] mt-0.5 text-right">${formatDate(msg.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(div); if(msg.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(div); } feather.replace(); scrollToBottom(); cleanDuplicateSeparators(); });
+
+    socket.on('typing',d=>{ if(d.chatId===getChatId()){ const indicator=document.getElementById('typing-indicator')||document.createElement('div'); indicator.className='typing-indicator'; indicator.id='typing-indicator'; indicator.textContent=`${d.senderName} is typing...`; indicator.classList.add('active'); if(!document.getElementById('typing-indicator')) chatContainer.prepend(indicator); clearTimeout(indicator._timer); indicator._timer=setTimeout(()=>indicator.classList.remove('active'),3000); } });
+
+    // Fetch Chat
+    async function fetchChat(){ if(!(await checkAuth())){ showToast('Please sign in.','error'); setTimeout(()=>location.href='/login.html',2000); return; } const chatId=getChatId(); if(!chatId) return; currentChatId=chatId; const token=localStorage.getItem('token'); createShimmers(); hasMoreMessages=true; try{ const r=await fetch(`${API_BASE_URL}/chats/${chatId}`,{headers:{Authorization:`Bearer ${token}`}}); const d=await r.json(); if(!r.ok) throw new Error(d.message||'Load failed'); document.getElementById('chat-title').textContent=d.recipient?.name||'Unknown'; navAvatar.textContent=getFirstLetter(d.recipient?.name); hasShimmers=false; if(!d.messages?.length){ chatContainer.innerHTML='<p class="text-center text-xs">No messages yet. Say hi!</p>'; return; } const byDate={}; d.messages.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).forEach(m=>{ const lbl=getDateLabel(m.createdAt); (byDate[lbl]||(byDate[lbl]=[])).push(m); }); chatContainer.innerHTML=''; Object.keys(byDate).sort((a,b)=>{ const da=a==='Today'?new Date():new Date(a); const db=b==='Today'?new Date():new Date(b); return da-db; }).forEach(date=>{ ensureSeparator(date); byDate[date].forEach(m=>{ const isOwn=m.sender?._id===cachedUserId; const cls=isOwn?'user':'other'; let quoted=''; if(m.replyTo){ const replyDisplay=getDisplayContent(m.replyTo.content,m.replyTo.isImage); const rcHtml=m.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(m.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(m.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(m.content,m.isImage); if(m.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(m.content)}</p>`; } const seen=m.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=m.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); const el=document.createElement('div'); el.className=`chat-message ${cls}`; el.dataset.messageId=m._id; el.innerHTML=`${fullHtml}<p class="text-[10px] ${isOwn?'text-[var(--white)]':'text-[var(--neutral-gray)]'} mt-0.5 text-right">${formatDate(m.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(el); if(m.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(el); } }); }); setupInfiniteScroll(true); feather.replace(); scrollToBottom(false); cleanDuplicateSeparators(); joinChatIfReady(); }catch(e){ hasShimmers=false; showToast(`Error: ${e.message}`,'error'); chatContainer.innerHTML='<p class="text-center text-xs">Failed to load chat. <button onclick="fetchChat()" class="text-[var(--primary-purple)] underline">Retry</button></p>'; } }
+
+    // Send Text
+    async function sendMessage(text){ if(isSending||!text||!(await checkAuth())) return; const chatId=getChatId(); if(!chatId) return; const token=localStorage.getItem('token'); const tempId=uuid(); const originalValue=chatInput.value; chatInput.value=''; sendButton.disabled=true; appendPendingMessage(text,false,tempId,replyToMessage); const sendFn=async()=>{ isSending=true; const originalIcon=sendButton.innerHTML; sendButton.innerHTML='<i data-feather="loader" class="w-5 h-5 animate-spin" aria-hidden="true"></i>'; try{ const payload={chatId,content:text,tempId}; if(replyToMessage) payload.replyTo=replyToMessage.id; const r=await fetch(`${API_BASE_URL}/messages`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)}); const data=await r.json(); if(!r.ok) throw new Error(data.message||'Send failed'); if(replyToMessage){ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); } pendingMessages.delete(tempId); }catch(e){ chatInput.value=originalValue; const entry=pendingMessages.get(tempId); if(entry?.el) entry.el.remove(); pendingMessages.delete(tempId); showToast(`Send failed: ${e.message}`,'error'); throw e; }finally{ isSending=false; sendButton.disabled=!chatInput.value.trim(); sendButton.innerHTML=originalIcon; feather.replace(); chatInput.focus(); } }; if(socket.connected) await sendFn(); else{ retryQueue.push({fn:sendFn,type:'text',tempId}); showToast('Queued for send when online','info'); } }
+
+    // Send Images
+    sendImageBtn.addEventListener('click',async()=>{ if(!(await checkAuth())||!selectedImages.length) return; const token=localStorage.getItem('token'); const chatId=getChatId(); if(!chatId) return; const dataUrls=selectedImages.map(({dataUrl})=>dataUrl); const tempId=uuid(); appendPendingMessage(dataUrls,true,tempId,replyToMessage); imagePreview.classList.remove('active'); const sendFn=async()=>{ try{ const urls=[]; for(let i=0;i<selectedImages.length;i++){ const {file}=selectedImages[i]; if(file.size>5*1024*1024){ showToast(`Image ${i+1} too large (max 5MB)`,'error'); continue; } const fd=new FormData(); fd.append('image',file); const up=await fetch(`${API_BASE_URL}/upload`,{method:'POST',headers:{Authorization:`Bearer ${token}`},body:fd}); if(!up.ok) throw new Error(`Upload failed for image ${i+1}`); const {url}=await up.json(); urls.push(url); await new Promise(rs=>setTimeout(rs,200)); } if(!urls.length) throw new Error('No valid images to send'); const payload={chatId,content:urls,tempId,isImage:true}; if(replyToMessage) payload.replyTo=replyToMessage.id; const msgRes=await fetch(`${API_BASE_URL}/messages`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)}); if(!msgRes.ok){ const err=await msgRes.json(); throw new Error(err.message||'Send failed'); } if(replyToMessage){ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); } pendingMessages.delete(tempId); }catch(e){ const entry=pendingMessages.get(tempId); if(entry?.el) entry.el.remove(); pendingMessages.delete(tempId); showToast(`Send failed: ${e.message}`,'error'); throw e; } }; if(socket.connected) await sendFn(); else{ retryQueue.push({fn:sendFn,type:'image',tempId}); showToast('Queued for send when online','info'); } selectedImages=[]; previewImages.innerHTML=''; });
+
+    // UI Bindings
+    function triggerSend(){ const txt=chatInput.value.trim(); if(txt&&!isSending) sendMessage(txt); }
+    sendButton.addEventListener('click',triggerSend);
+    chatInput.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); triggerSend(); } });
+    chatInput.addEventListener('input',()=>{ sendButton.disabled=!chatInput.value.trim()||isSending; clearTimeout(typingTimeout); typingTimeout=setTimeout(()=>{ if(chatInput.value.trim()){ socket.emit('typing',{chatId:getChatId(),senderName:cachedUserName||'You'}); } },500); });
+
+    // Image Upload
+    imageUpload.addEventListener('change',e=>{ const files=Array.from(e.target.files).filter((f,index)=>{ const validTypes=['image/png','image/jpeg','image/jpg','image/gif','image/webp']; const isValid=validTypes.includes(f.type)&&f.size<=5*1024*1024&&selectedImages.length+index<MAX_IMAGES; if(!isValid){ if(selectedImages.length+index>=MAX_IMAGES) showToast('Max 30 images allowed','error'); else showToast(`Invalid file: ${f.name}`,'error'); } return isValid; }); if(!files.length&&selectedImages.length>=MAX_IMAGES){ errorMessage.textContent=`Max ${MAX_IMAGES} images allowed.`; errorMessage.classList.remove('hidden'); return; } errorMessage.classList.add('hidden'); imagePreview.classList.remove('active'); let loaded=0; const total=files.length; files.forEach((f,i)=>{ const r=new FileReader(); r.onload=ev=>{ const url=ev.target.result; const previewIndex=selectedImages.push({file:f,dataUrl:url})-1; const previewWrapper=document.createElement('div'); previewWrapper.className='relative'; const img=document.createElement('img'); img.src=url; img.className='preview-image'; img.alt=`Preview ${previewIndex+1}`; const removeBtn=document.createElement('button'); removeBtn.className='absolute top-0 right-0 bg-[var(--alert-red)] text-[var(--white)] w-4 h-4 rounded-full text-xs flex items-center justify-center ml-1 -mr-1 -mt-1 ripple'; removeBtn.innerHTML='×'; removeBtn.ariaLabel='Remove image'; removeBtn.addEventListener('click',()=>{ selectedImages.splice(previewIndex,1); previewWrapper.remove(); if(selectedImages.length===0){ imagePreview.classList.remove('active'); previewImages.innerHTML=''; } showToast('Image removed','success'); }); previewWrapper.appendChild(img); previewWrapper.appendChild(removeBtn); previewImages.appendChild(previewWrapper); if(++loaded===total&&selectedImages.length>0){ imagePreview.classList.add('active'); } }; r.onerror=()=>{ if(++loaded===total){ imagePreview.classList.remove('active'); errorMessage.classList.remove('hidden'); } }; r.readAsDataURL(f); }); e.target.value=''; });
+
+    cancelImageBtn.addEventListener('click',()=>{ imagePreview.classList.remove('active'); selectedImages=[]; previewImages.innerHTML=''; errorMessage.classList.add('hidden'); });
+
+    // Emoji
+    emojiBtn.addEventListener('click',()=>emojiPicker.classList.toggle('active'));
+    emojiPicker.addEventListener('emoji-click',e=>{ chatInput.value+=e.detail.unicode; chatInput.focus(); sendButton.disabled=!chatInput.value.trim()||isSending; });
+    document.addEventListener('click',e=>{ if(emojiPicker.classList.contains('active')&&!emojiBtn.contains(e.target)&&!emojiPicker.contains(e.target)){ emojiPicker.classList.remove('active'); } });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&emojiPicker.classList.contains('active')){ emojiPicker.classList.remove('active'); } });
+
+    // Keyboard
+    if('visualViewport' in window){ window.visualViewport.addEventListener('resize',()=>{ const keyboardHeight=window.innerHeight-window.visualViewport.height; inputContainer.style.paddingBottom=`${Math.max(0,keyboardHeight)}px`; }); chatInput.addEventListener('focus',()=>document.body.style.overflow='hidden'); chatInput.addEventListener('blur',()=>{ document.body.style.overflow='auto'; inputContainer.style.paddingBottom='0'; }); }else{ window.addEventListener('resize',()=>{ const vh=window.innerHeight*0.01; document.documentElement.style.setProperty('--vh',`${vh}px`); }); }
+
+    // Navigation
+    document.getElementById('back-button').addEventListener('click',()=>{ socket.emit('leaveChat',{chatId:currentChatId}); location.href='/chat-list.html'; });
+    window.addEventListener('beforeunload',()=>{ socket.emit('leaveChat',{chatId:currentChatId}); });
+
+    // Init
+    document.addEventListener('DOMContentLoaded',async()=>{ const chatId=getChatId(); if(chatId&&await checkAuth()){ await fetchChat(); setupReplyEvents(); } });
+</script>
+</body>
+</html>

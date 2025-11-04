@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat | Bazuka Store</title>
+    <meta name="description" content="Chat with other users on Bazuka Store.">
+    <meta name="keywords" content="chat, messaging, Bazuka Store, Nigeria e-commerce">
+    <meta name="author" content="Bazuka Store">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="http://localhost:5000/chat.html">
+    <meta property="og:title" content="Chat - Bazuka Store">
+    <meta property="og:description" content="Chat with other users on Bazuka Store.">
+    <meta property="og:image" content="http://localhost:5000/images/fallback-preview-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="http://localhost:5000/chat.html">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Chat - Bazuka Store">
+    <meta name="twitter:description" content="Chat with other users on Bazuka Store.">
+    <meta name="twitter:image" content="http://localhost:5000/images/fallback-preview-image.jpg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.0/dist/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1.21.0/index.js" type="module"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-purple: #6C5CE7;
+            --secondary-yellow: #FDCB6E;
+            --accent-light: #F3F0FF;
+            --neutral-gray: #4B4B4B;
+            --light-gray: #F5F5F5;
+            --alert-red: #FF7675;
+            --white: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--accent-light);
+            color: var(--neutral-gray);
+            margin: 0;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple:after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10, 10);
+            opacity: 0;
+            transition: transform 0.3s, opacity 0.5s;
+        }
+
+        .ripple:active:after {
+            transform: scale(0, 0);
+            opacity: 0.3;
+            transition: 0s;
+        }
+
+        .toast {
+            position: fixed;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: var(--secondary-yellow);
+            color: var(--neutral-gray);
+        }
+
+        .toast.error {
+            background-color: var(--alert-red);
+            color: var(--white);
+        }
+
+        .chat-container {
+            min-height: calc(100vh - 160px);
+            max-height: calc(100vh - 160px);
+            overflow-y: auto;
+            padding: 8px;
+            scroll-behavior: smooth;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-message {
+            max-width: 65%;
+            padding: 8px 12px;
+            border-radius: 16px;
+            word-wrap: break-word;
+            position: relative;
+            animation: slideIn 0.2s ease;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-message.user {
+            margin-left: auto;
+            margin-right: 8px;
+            background-color: var(--primary-purple);
+            color: var(--white);
+            border-bottom-right-radius: 3px;
+            border: 1px solid var(--primary-purple);
+        }
+
+        .chat-message.other {
+            margin-right: auto;
+            margin-left: 8px;
+            background-color: var(--light-gray);
+            color: var(--neutral-gray);
+            border: 1px solid var(--light-gray);
+            border-bottom-left-radius: 3px;
+        }
+
+        .chat-message.user::after,
+        .chat-message.other::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 8px;
+            height: 8px;
+            background: inherit;
+            border: inherit;
+        }
+
+        .chat-message.user::after {
+            right: -4px;
+            border-bottom-left-radius: 8px;
+            transform: rotate(45deg);
+        }
+
+        .chat-message.other::after {
+            left: -4px;
+            border-bottom-right-radius: 8px;
+            transform: rotate(-45deg);
+        }
+
+        .chat-message.pending {
+            opacity: 0.7;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-message.pending::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        .nav-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--secondary-yellow);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .date-separator {
+            text-align: center;
+            font-size: 10px;
+            color: var(--neutral-gray);
+            margin: 8px 0;
+            background-color: var(--white);
+            padding: 4px 8px;
+            border-radius: 12px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--white);
+            padding: 6px 8px;
+            border-top: 1px solid var(--light-gray);
+            z-index: 10;
+        }
+
+        .typing-indicator {
+            display: none;
+            font-size: 10px;
+            color: var(--neutral-gray);
+            margin: 4px 8px;
+        }
+
+        .typing-indicator.active {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+
+        .chat-image {
+            max-width: 150px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .chat-image:hover {
+            transform: scale(1.05);
+        }
+
+        .error-message {
+            color: var(--alert-red);
+            font-size: 10px;
+            margin: 2px 8px;
+            display: none;
+        }
+
+        .image-preview {
+            display: none;
+            margin: 4px 8px;
+            padding: 6px;
+            background-color: var(--light-gray);
+            border-radius: 10px;
+        }
+
+        .image-preview.active {
+            display: block;
+        }
+
+        .preview-image {
+            max-width: 60px;
+            border-radius: 6px;
+            margin: 2px;
+            object-fit: cover;
+        }
+
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .image-modal.active {
+            display: flex;
+        }
+
+        .image-modal img {
+            max-width: 90%;
+            max-height: 80%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-modal .close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: var(--white);
+            color: var(--neutral-gray);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s;
+        }
+
+        .image-modal .close-button:hover {
+            background-color: var(--secondary-yellow);
+        }
+
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+            background-color: var(--light-gray);
+            border-radius: 4px;
+        }
+
+        .shimmer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        .reply-button {
+            display: none;
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            padding: 4px;
+            border-radius: 50%;
+            background-color: var(--light-gray);
+            cursor: pointer;
+        }
+
+        .chat-message:hover .reply-button {
+            display: block;
+        }
+
+        .chat-message.user .reply-button {
+            right: 4px;
+            background-color: var(--primary-purple);
+            color: var(--white);
+        }
+
+        .reply-preview {
+            display: none;
+            background-color: var(--light-gray);
+            padding: 6px 8px;
+            border-radius: 8px;
+            margin: 4px 8px;
+            border-left: 3px solid var(--primary-purple);
+            font-size: 10px;
+            max-width: 100%;
+        }
+
+        .reply-preview.active {
+            display: block;
+        }
+
+        .reply-preview .close-reply {
+            cursor: pointer;
+            color: var(--primary-purple);
+            font-weight: 600;
+        }
+
+        .quoted-message {
+            background-color: var(--light-gray);
+            padding: 4px 8px;
+            border-left: 3px solid var(--primary-purple);
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 10px;
+            font-style: italic;
+            color: var(--neutral-gray);
+            max-width: 100%;
+        }
+
+        .quoted-message img {
+            max-width: 60px;
+            border-radius: 6px;
+        }
+
+        emoji-picker {
+            --background: var(--light-gray);
+            --border-color: var(--primary-purple);
+            --button-active-background: var(--primary-purple);
+            --button-hover-background: var(--secondary-yellow);
+            --input-border-color: var(--primary-purple);
+            --category-emoji-padding: 8px;
+            --emoji-size: 20px;
+            position: absolute;
+            bottom: 60px;
+            left: 8px;
+            z-index: 20;
+            display: none;
+            max-width: 300px;
+        }
+
+        emoji-picker.active {
+            display: block;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (min-width: 768px) {
+            .chat-container {
+                min-height: calc(100vh - 150px);
+                max-height: calc(100vh - 150px);
+                padding: 12px;
+            }
+
+            .input-container {
+                padding: 8px 12px;
+            }
+
+            emoji-picker {
+                bottom: 70px;
+                left: 12px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 700px;
+            }
+
+            .chat-container {
+                min-height: calc(100vh - 140px);
+                max-height: calc(100vh - 140px);
+                padding: 16px;
+            }
+
+            .input-container {
+                max-width: 700px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .image-modal img {
+                max-width: 80%;
+                max-height: 85%;
+            }
+
+            emoji-picker {
+                bottom: 80px;
+                left: calc(50% - 350px);
+                max-width: 350px;
+            }
+        }
+
+        .icon-fallback {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+            color: var(--neutral-gray);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="bg-[var(--white)] shadow-sm sticky top-0 z-20">
+        <div class="container mx-auto px-3 py-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <button id="back-button" class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="Back to chat list">
+                    <i data-feather="arrow-left" class="w-5 h-5 text-[var(--neutral-gray)] icon-fallback">Left Arrow</i>
+                </button>
+                <div class="flex items-center space-x-2">
+                    <div id="nav-avatar" class="nav-avatar">U</div>
+                    <div>
+                        <h1 id="chat-title" class="text-base font-semibold text-[var(--neutral-gray)]">Chat</h1>
+                        <p class="text-[10px] text-[var(--neutral-gray)]">Online</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1">
+                <button class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="More options">
+                    <i data-feather="more-horizontal" class="w-4 h-4 text-[var(--neutral-gray)] icon-fallback">Horizontal Dots</i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-3 py-2">
+        <section aria-label="Chat">
+            <div class="bg-[var(--white)] rounded-lg flex flex-col">
+                <div class="chat-container" id="chat-container">
+                    <div class="shimmer h-[60px]"></div>
+                </div>
+            </div>
+        </section>
+        <div class="input-container">
+            <div id="reply-preview" class="reply-preview">
+                <p id="reply-sender" class="font-semibold"></p>
+                <p id="reply-content" class="truncate"></p>
+                <span class="close-reply">Cross</span>
+            </div>
+            <div class="flex items-center bg-[var(--light-gray)] rounded-full p-1">
+                <!-- FIXED: Input inside label for 100% click trigger -->
+                <label class="p-1 rounded-full hover:bg-[var(--white)] ripple cursor-pointer" aria-label="Upload images">
+                    <i data-feather="paperclip" class="w-4 h-4 text-[var(--neutral-gray)] icon-fallback">Paperclip</i>
+                    <input id="image-upload" type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" multiple class="hidden">
+                </label>
+
+                <button id="emoji-button" class="p-1 rounded-full hover:bg-[var(--white)] ripple" aria-label="Open emoji picker">
+                    <i data-feather="smile" class="w-4 h-4 text-[var(--neutral-gray)] icon-fallback">Smile</i>
+                </button>
+                <input id="chat-input" type="text" placeholder="Message..." 
+                       class="flex-1 bg-transparent py-1 px-2 focus:outline-none text-[13px]"
+                       aria-label="Type your message">
+                <button id="send-message" class="p-1 rounded-full hover:bg-[var(--white)] ripple" aria-label="Send message">
+                    <i data-feather="send" class="w-4 h-4 text-[var(--primary-purple)] icon-fallback">Send</i>
+                </button>
+            </div>
+            <p id="error-message" class="error-message">Please upload valid images (PNG, JPEG, JPG, GIF, WEBP).</p>
+            <div id="image-preview" class="image-preview">
+                <div id="preview-images" class="flex flex-wrap gap-1"></div>
+                <div class="flex mt-1 space-x-1">
+                    <button id="send-image" class="bg-[var(--primary-purple)] text-[var(--white)] px-2 py-0.5 rounded-full text-xs ripple hover:bg-[var(--secondary-yellow)] hover:text-[var(--neutral-gray)]" aria-label="Send all images">Send All</button>
+                    <button id="cancel-image" class="bg-[var(--light-gray)] text-[var(--neutral-gray)] px-2 py-0.5 rounded-full text-xs ripple" aria-label="Cancel images">Cancel</button>
+                </div>
+            </div>
+            <emoji-picker id="emoji-picker"></emoji-picker>
+        </div>
+    </main>
+
+    <div id="image-modal" class="image-modal">
+        <span class="close-button">Times</span>
+        <img id="modal-image" src="" alt="Full-size chat image">
+    </div>
+
+    <script>
+        feather.replace();
+
+        const API_BASE_URL = 'http://localhost:5000/api';
+        const socket = io('https://bazukastore.com', {
+            withCredentials: true,
+            auth: { token: `Bearer ${localStorage.getItem('token') || ''}` }
+        });
+
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-message');
+        const imageUpload = document.getElementById('image-upload');
+        const errorMessage = document.getElementById('error-message');
+        const imagePreview = document.getElementById('image-preview');
+        const previewImages = document.getElementById('preview-images');
+        const sendImageButton = document.getElementById('send-image');
+        const cancelImageButton = document.getElementById('cancel-image');
+        const imageModal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        const closeModalButton = document.querySelector('.image-modal .close-button');
+        const navAvatar = document.getElementById('nav-avatar');
+        const emojiButton = document.getElementById('emoji-button');
+        const emojiPicker = document.getElementById('emoji-picker');
+        const replyPreview = document.getElementById('reply-preview');
+        const replySender = document.getElementById('reply-sender');
+        const replyContent = document.getElementById('reply-content');
+        const closeReplyButton = replyPreview.querySelector('.close-reply');
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator';
+        typingIndicator.id = 'typing-indicator';
+        chatContainer.prepend(typingIndicator);
+
+        let selectedImages = [];
+        let cachedUserId = null;
+        let cachedUserName = null;
+        let pendingMessages = new Map();
+        let replyToMessage = null;
+
+        function getChatId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('chatId');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type} shadow-lg`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 2000);
+        }
+
+        async function refreshToken() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
+                if (!response.ok) throw new Error('Token refresh failed');
+                const { token } = await response.json();
+                localStorage.setItem('token', token);
+                socket.auth = { token: `Bearer ${token}` };
+                socket.connect();
+                return true;
+            } catch { return false; }
+        }
+
+        async function checkAuth(retryCount = 0, maxRetries = 2) {
+            const token = localStorage.getItem('token');
+            if (!token) return false;
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) {
+                    if (response.status === 401 && retryCount < maxRetries) {
+                        if (await refreshToken()) return await checkAuth(retryCount + 1, maxRetries);
+                    }
+                    throw new Error('Session expired');
+                }
+                const data = await response.json();
+                cachedUserId = data._id;
+                cachedUserName = data.name;
+                return true;
+            } catch {
+                if (retryCount < maxRetries) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    return await checkAuth(retryCount + 1, maxRetries);
+                }
+                localStorage.removeItem('token');
+                return false;
+            }
+        }
+
+        function formatDate(date) {
+            try {
+                const d = new Date(date);
+                return isNaN(d.getTime()) ? 'Just now' : d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            } catch { return 'Just now'; }
+        }
+
+        function getDateLabel(date) {
+            const today = new Date();
+            const messageDate = new Date(date);
+            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const messageDay = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+            const diffDays = Math.floor((todayDate - messageDay) / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            return messageDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function getFirstLetter(name) {
+            return name?.trim()?.[0]?.toUpperCase() || 'U';
+        }
+
+        function showImageModal(src) {
+            modalImage.src = src;
+            imageModal.classList.add('active');
+            if (typeof anime === 'function') anime({ targets: imageModal, opacity: [0, 1], duration: 300, easing: 'easeOutQuad' });
+        }
+
+        function hideImageModal() {
+            if (typeof anime === 'function') {
+                anime({ targets: imageModal, opacity: [1, 0], duration: 300, easing: 'easeOutQuad', complete: () => {
+                    imageModal.classList.remove('active'); modalImage.src = '';
+                }});
+            } else {
+                imageModal.classList.remove('active'); modalImage.src = '';
+            }
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }), 0);
+        }
+
+        function truncateText(text, maxLength = 50) {
+            return text.length <= maxLength ? text : text.substring(0, maxLength - 3) + '...';
+        }
+
+        function appendPendingMessage(content, isImage = false, tempId, replyTo = null) {
+            const todaySeparator = Array.from(chatContainer.querySelectorAll('.date-separator')).find(sep => sep.textContent === 'Today');
+            if (!todaySeparator) {
+                const separator = document.createElement('div');
+                separator.className = 'date-separator';
+                separator.textContent = 'Today';
+                chatContainer.appendChild(separator);
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message user pending';
+            messageDiv.dataset.tempId = tempId;
+
+            let quotedHtml = '';
+            if (replyTo) {
+                const replyContent = replyTo.isImage ? `<img src="${replyTo.content}" alt="Quoted" class="quoted-message-image">` : 
+                    `<p class="truncate">${truncateText(replyTo.content)}</p>`;
+                quotedHtml = `<div class="quoted-message"><p class="font-semibold">${replyTo.senderName}</p>${replyContent}</div>`;
+            }
+
+            const contentHtml = isImage ? `<img src="${content}" alt="Chat image" class="chat-image" data-src="${content}">` :
+                `<p class="text-xs">${content}</p>`;
+
+            messageDiv.innerHTML = `${quotedHtml}${contentHtml}<p class="text-[10px] text-[var(--white)] mt-0.5 text-right">Just now</p>
+                <button class="reply-button ripple"><i data-feather="corner-up-left" class="w-3 h-3 icon-fallback">Reply</i></button>`;
+            chatContainer.appendChild(messageDiv);
+
+            if (isImage) messageDiv.querySelector('.chat-image').addEventListener('click', () => showImageModal(content));
+            scrollToBottom();
+            setTimeout(() => {
+                if (messageDiv.classList.contains('pending')) {
+                    messageDiv.classList.remove('pending');
+                    if (typeof anime === 'function') anime({ targets: messageDiv, opacity: [0.7, 1], duration: 300 });
+                }
+            }, 1500);
+        }
+
+        function cleanUpSeparators() {
+            const separators = chatContainer.querySelectorAll('.date-separator');
+            for (let i = 0; i < separators.length - 1; i++) {
+                if (separators[i].textContent === 'Today' && separators[i + 1].textContent === 'Today') {
+                    separators[i].remove();
+                }
+            }
+        }
+
+        function setupReplyEvents() {
+            chatContainer.addEventListener('click', (e) => {
+                const replyBtn = e.target.closest('.reply-button');
+                if (!replyBtn) return;
+                const msgDiv = replyBtn.closest('.chat-message');
+                const isImage = !!msgDiv.querySelector('.chat-image');
+                const content = isImage ? msgDiv.querySelector('.chat-image').getAttribute('data-src') : 
+                    msgDiv.querySelector('.text-xs')?.textContent || '';
+                const senderName = msgDiv.classList.contains('user') ? cachedUserName || 'You' : 
+                    document.getElementById('chat-title').textContent;
+
+                replyToMessage = { id: msgDiv.dataset.messageId, content, isImage, senderName };
+                replySender.textContent = senderName;
+                replyContent.textContent = isImage ? 'Image' : truncateText(content);
+                replyPreview.classList.add('active');
+                chatInput.focus();
+            });
+
+            closeReplyButton.addEventListener('click', () => {
+                replyToMessage = null;
+                replyPreview.classList.remove('active');
+            });
+        }
+
+        // UPDATED fetchChat – messages sorted by time, grouped by date, newest at bottom
+        async function fetchChat() {
+            if (!(await checkAuth())) {
+                showToast('Please sign in.', 'error');
+                setTimeout(() => window.location.href = `/login.html?redirect=${encodeURIComponent(location.pathname + location.search)}`, 2000);
+                return;
+            }
+
+            const chatId = getChatId();
+            const token = localStorage.getItem('token');
+            if (!chatId) {
+                chatContainer.innerHTML = '<p class="text-center text-xs">No chat ID.</p>';
+                return;
+            }
+
+            chatContainer.innerHTML = '<div class="shimmer h-[60px]"></div>';
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Failed to load chat');
+
+                const recipientName = data.recipient?.name || 'Unknown';
+                document.getElementById('chat-title').textContent = recipientName;
+                navAvatar.textContent = getFirstLetter(recipientName);
+
+                if (!data.messages?.length) {
+                    chatContainer.innerHTML = '<p class="text-center text-xs">No messages yet.</p>';
+                    return;
+                }
+
+                // Sort messages chronologically (oldest first)
+                const sortedMessages = data.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+                const messagesByDate = {};
+                sortedMessages.forEach(m => {
+                    const label = getDateLabel(m.createdAt);
+                    if (!messagesByDate[label]) messagesByDate[label] = [];
+                    messagesByDate[label].push(m);
+                });
+
+                chatContainer.innerHTML = ''; // Clear loading shimmer
+
+                // Sort date labels from oldest to newest
+                const dateOrder = Object.keys(messagesByDate).sort((a, b) => {
+                    const dateA = a === 'Today' ? new Date() : new Date(a);
+                    const dateB = b === 'Today' ? new Date() : new Date(b);
+                    return dateA - dateB;
+                });
+
+                dateOrder.forEach(date => {
+                    const separator = document.createElement('div');
+                    separator.className = 'date-separator';
+                    separator.textContent = date;
+                    chatContainer.appendChild(separator);
+
+                    messagesByDate[date].forEach(m => {
+                        const isUser = m.sender?._id === cachedUserId;
+                        const senderClass = isUser ? 'user' : 'other';
+                        let quoted = '';
+                        if (m.replyTo) {
+                            const rc = m.replyTo.isImage ? `<img src="${m.replyTo.content}" alt="Quoted" class="quoted-message-image">` :
+                                `<p class="truncate">${truncateText(m.replyTo.content)}</p>`;
+                            quoted = `<div class="quoted-message"><p class="font-semibold">${m.replyTo.sender?.name || 'Unknown'}</p>${rc}</div>`;
+                        }
+                        const content = m.isImage ? `<img src="${m.content}" alt="Chat image" class="chat-image" data-src="${m.content}">` :
+                            `<p class="text-xs">${m.content}</p>`;
+
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = `chat-message ${senderClass}`;
+                        msgDiv.dataset.messageId = m._id;
+                        msgDiv.innerHTML = `${quoted}${content}<p class="text-[10px] ${isUser ? 'text-[var(--white)]' : 'text-[var(--neutral-gray)]'} mt-0.5 text-right">${formatDate(m.createdAt)}</p>
+                            <button class="reply-button ripple"><i data-feather="corner-up-left" class="w-3 h-3 icon-fallback">Reply</i></button>`;
+                        chatContainer.appendChild(msgDiv);
+
+                        if (m.isImage) {
+                            msgDiv.querySelector('.chat-image').addEventListener('click', () => showImageModal(m.content));
+                        }
+                    });
+                });
+
+                feather.replace();
+                scrollToBottom();
+            } catch (error) {
+                showToast(`Error: ${error.message}`, 'error');
+                chatContainer.innerHTML = '<p class="text-center text-xs">Failed to load chat.</p>';
+            }
+        }
+
+        async function sendMessage(content, isImage = false) {
+            if (!(await checkAuth())) return;
+            const chatId = getChatId();
+            const token = localStorage.getItem('token');
+            if (!chatId || !content) return;
+
+            const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            appendPendingMessage(content, isImage, tempId, replyToMessage);
+            pendingMessages.set(tempId, { content, isImage });
+
+            try {
+                const payload = { chatId, content, isImage };
+                if (replyToMessage) payload.replyTo = replyToMessage.id;
+
+                const res = await fetch(`${API_BASE_URL}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Send failed');
+
+                socket.emit('message', { chatId, message: data });
+                chatInput.value = '';
+                if (replyToMessage) {
+                    replyToMessage = null;
+                    replyPreview.classList.remove('active');
+                }
+            } catch (error) {
+                const pending = chatContainer.querySelector(`[data-temp-id="${tempId}"]`);
+                if (pending) pending.remove();
+                pendingMessages.delete(tempId);
+                showToast(`Send failed: ${error.message}`, 'error');
+            }
+        }
+
+        function leaveRooms() {
+            const token = localStorage.getItem('token');
+            const chatId = getChatId();
+            if (token) socket.emit('leaveUser', { token: `Bearer ${token}` });
+            if (chatId) socket.emit('leaveChat', { chatId });
+        }
+
+        socket.on('connect', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                socket.emit('joinUser', { token: `Bearer ${token}` }, () => {
+                    const chatId = getChatId();
+                    if (chatId) socket.emit('joinChat', { chatId });
+                });
+            }
+        });
+
+        socket.on('message', (data) => {
+            if (data.chatId !== getChatId()) return;
+            const msg = data.message;
+            const isUser = msg.sender?._id === cachedUserId;
+            const senderClass = isUser ? 'user' : 'other';
+
+            const pendingEntry = Array.from(pendingMessages.entries()).find(([_, v]) => 
+                v.content === msg.content && v.isImage === msg.isImage
+            );
+            if (pendingEntry) {
+                const [tempId] = pendingEntry;
+                const pendingMsg = chatContainer.querySelector(`[data-temp-id="${tempId}"]`);
+                if (pendingMsg) {
+                    pendingMsg.className = `chat-message ${senderClass}`;
+                    pendingMsg.dataset.messageId = msg._id;
+                    pendingMsg.removeAttribute('data-temp-id');
+                    pendingMsg.querySelector('p:last-of-type').textContent = formatDate(msg.createdAt);
+                    pendingMessages.delete(tempId);
+                    cleanUpSeparators();
+                    return;
+                }
+            }
+
+            const dateLabel = getDateLabel(msg.createdAt);
+            const todaySep = chatContainer.querySelector('.date-separator:last-of-type');
+            if (!todaySep || todaySep.textContent !== dateLabel) {
+                const sep = document.createElement('div');
+                sep.className = 'date-separator';
+                sep.textContent = dateLabel;
+                chatContainer.appendChild(sep);
+            }
+
+            const div = document.createElement('div');
+            div.className = `chat-message ${senderClass}`;
+            div.dataset.messageId = msg._id;
+
+            let quoted = '';
+            if (msg.replyTo) {
+                const rc = msg.replyTo.isImage ? `<img src="${msg.replyTo.content}" alt="Quoted" class="quoted-message-image">` :
+                    `<p class="truncate">${truncateText(msg.replyTo.content)}</p>`;
+                quoted = `<div class="quoted-message"><p class="font-semibold">${msg.replyTo.sender?.name || 'Unknown'}</p>${rc}</div>`;
+            }
+
+            const content = msg.isImage ? `<img src="${msg.content}" alt="Chat image" class="chat-image" data-src="${msg.content}">` :
+                `<p class="text-xs">${msg.content}</p>`;
+
+            div.innerHTML = `${quoted}${content}<p class="text-[10px] ${isUser ? 'text-[var(--white)]' : 'text-[var(--neutral-gray)]'} mt-0.5 text-right">${formatDate(msg.createdAt)}</p>
+                <button class="reply-button ripple"><i data-feather="corner-up-left" class="w-3 h-3 icon-fallback">Reply</i></button>`;
+            chatContainer.appendChild(div);
+
+            if (msg.isImage) {
+                div.querySelector('.chat-image').addEventListener('click', () => showImageModal(msg.content));
+            }
+
+            feather.replace();
+            scrollToBottom();
+        });
+
+        socket.on('typing', (data) => {
+            if (data.chatId === getChatId()) {
+                typingIndicator.textContent = `${data.senderName} is typing...`;
+                typingIndicator.classList.add('active');
+                setTimeout(() => typingIndicator.classList.remove('active'), 3000);
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            const msg = chatInput.value.trim();
+            if (msg) sendMessage(msg);
+        });
+
+        // FIXED: Image Picker – Wait for ALL images to load before showing preview
+        imageUpload.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files).filter(f => 
+                ['image/png','image/jpeg','image/jpg','image/gif','image/webp'].includes(f.type)
+            );
+
+            selectedImages = [];
+            previewImages.innerHTML = '';
+            errorMessage.style.display = 'none';
+
+            if (!files.length) {
+                errorMessage.style.display = 'block';
+                imagePreview.classList.remove('active');
+                return;
+            }
+
+            let loadedCount = 0;
+            const total = files.length;
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const dataUrl = ev.target.result;
+                    selectedImages.push({ file, dataUrl });
+
+                    const img = document.createElement('img');
+                    img.src = dataUrl;
+                    img.className = 'preview-image';
+                    img.alt = `Preview ${index + 1}`;
+                    previewImages.appendChild(img);
+
+                    loadedCount++;
+                    if (loadedCount === total) {
+                        imagePreview.classList.add('active');
+                    }
+                };
+                reader.onerror = () => {
+                    loadedCount++;
+                    if (loadedCount === total) {
+                        imagePreview.classList.add('active');
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+
+            e.target.value = '';
+        });
+
+        sendImageButton.addEventListener('click', async () => {
+            if (!(await checkAuth()) || !selectedImages.length) return;
+            const token = localStorage.getItem('token');
+            const chatId = getChatId();
+
+            for (const { file, dataUrl } of selectedImages) {
+                const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                appendPendingMessage(dataUrl, true, tempId, replyToMessage);
+                pendingMessages.set(tempId, { content: dataUrl, isImage: true });
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const uploadRes = await fetch(`${API_BASE_URL}/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                    });
+                    const { url } = await uploadRes.json();
+                    if (!uploadRes.ok) throw new Error('Upload failed');
+
+                    const payload = { chatId, content: url, isImage: true };
+                    if (replyToMessage) payload.replyTo = replyToMessage.id;
+
+                    const msgRes = await fetch(`${API_BASE_URL}/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(payload)
+                    });
+                    const msgData = await msgRes.json();
+                    if (!msgRes.ok) throw new Error(msgData.message);
+
+                    socket.emit('message', { chatId, message: msgData });
+                } catch (error) {
+                    const pending = chatContainer.querySelector(`[data-temp-id="${tempId}"]`);
+                    if (pending) pending.remove();
+                    pendingMessages.delete(tempId);
+                    showToast(`Image failed: ${error.message}`, 'error');
+                }
+            }
+
+            imagePreview.classList.remove('active');
+            selectedImages = [];
+            previewImages.innerHTML = '';
+            if (replyToMessage) {
+                replyToMessage = null;
+                replyPreview.classList.remove('active');
+            }
+        });
+
+        cancelImageButton.addEventListener('click', () => {
+            imagePreview.classList.remove('active');
+            selectedImages = [];
+            previewImages.innerHTML = '';
+        });
+
+        emojiButton.addEventListener('click', () => emojiPicker.classList.toggle('active'));
+        emojiPicker.addEventListener('emoji-click', (e) => {
+            chatInput.value += e.detail.unicode;
+            chatInput.focus();
+            socket.emit('typing', { chatId: getChatId(), senderName: cachedUserName || 'You' });
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendButton.click();
+            }
+            socket.emit('typing', { chatId: getChatId(), senderName: cachedUserName || 'You' });
+        });
+
+        document.getElementById('back-button').addEventListener('click', () => {
+            leaveRooms();
+            window.location.href = '/chat-list.html';
+        });
+
+        closeModalButton.addEventListener('click', hideImageModal);
+        imageModal.addEventListener('click', (e) => e.target === imageModal && hideImageModal());
+
+        window.addEventListener('beforeunload', leaveRooms);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await checkAuth()) {
+                fetchChat();
+                setupReplyEvents();
+            }
+        });
+    </script>
+</body>
+</html>

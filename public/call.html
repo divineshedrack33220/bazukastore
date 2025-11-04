@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Call | Bazuka Store</title>
+  <!-- CSP: Fixed all errors -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
+    connect-src 'self' ws: wss: bazukastore.com https://cdn.jsdelivr.net;
+    media-src 'self' https://assets.mixkit.co;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    img-src 'self' data: https:;
+    object-src 'none';
+    base-uri 'self';
+    frame-src 'none';
+  ">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.0/dist/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="chat.css" />
+  <style>
+    :root {
+      --white: #ffffff; --light-gray: #f3f4f6; --neutral-gray: #6b7280;
+      --primary-purple: #7c3aed; --secondary-yellow: #f59e0b;
+      --alert-red: #ef4444; --success-green: #10b981;
+    }
+    body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; color: white; }
+    body.call-active { color: white; }
+    #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+    .call-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem 8rem 1rem; position: relative; z-index: 1; }
+    .call-status { 
+      font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; 
+      position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; 
+      transition: all 0.3s ease;
+    }
+    .call-status.connected { color: var(--success-green); font-weight: 600; }
+    .call-status.network-weak { color: var(--neutral-gray); }
+    .call-avatar { 
+      width: 160px; height: 160px; 
+      border-radius: 50%; 
+      background: var(--secondary-yellow); 
+      color: white; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: 4rem; 
+      font-weight: bold; 
+      margin-bottom: 1rem; 
+      box-shadow: 0 10px 20px rgba(0,0,0,.3); 
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .call-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+    /* Custom Gradient Ring using your colors */
+    .call-avatar::before {
+      content: '';
+      position: absolute;
+      top: -8px; left: -8px; right: -8px; bottom: -8px;
+      background: conic-gradient(
+        var(--primary-purple), var(--secondary-yellow), var(--alert-red), 
+        var(--primary-purple)
+      );
+      border-radius: 50%;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      animation: rotate-gradient 6s linear infinite;
+      animation-play-state: paused;
+    }
+    .call-avatar.ringing::before,
+    .call-avatar.connecting::before {
+      opacity: 1;
+      animation-play-state: running;
+    }
+    @keyframes rotate-gradient {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Pulse ring animation */
+    .call-avatar .pulse-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 100%; height: 100%;
+      border: 3px solid rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0;
+      pointer-events: none;
+      animation: ig-pulse-ring 2s ease-out infinite;
+    }
+    .call-avatar.ringing .pulse-ring,
+    .call-avatar.connecting .pulse-ring {
+      animation-play-state: running;
+    }
+    .call-avatar.ringing .pulse-ring:nth-child(2),
+    .call-avatar.connecting .pulse-ring:nth-child(2) { animation-delay: 0.7s; }
+    .call-avatar.ringing .pulse-ring:nth-child(3),
+    .call-avatar.connecting .pulse-ring:nth-child(3) { animation-delay: 1.4s; }
+    @keyframes ig-pulse-ring {
+      0% {
+        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.6);
+        opacity: 0;
+      }
+    }
+    /* Sound-reactive wave behind avatar (ChatGPT-style) */
+    .call-avatar .sound-wave-bg {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 120%; height: 120%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .call-avatar.speaking .sound-wave-bg {
+      opacity: 1;
+    }
+    .call-avatar .sound-wave-bg canvas {
+      width: 100%; height: 100%; display: block;
+    }
+    .call-title { font-size: 2rem; font-weight: 600; margin-bottom: .5rem; color: white; }
+    .call-timer { font-size: 1.5rem; font-weight: 500; margin: 1.5rem 0; color: white; }
+    .call-controls { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1.5rem; z-index: 10; }
+    .call-btn { 
+      width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+      transition: all .3s ease; border: none; cursor: pointer; font-size: 1.75rem; 
+      box-shadow: 0 6px 12px rgba(0,0,0,.3); position: relative; color: white; 
+      backdrop-filter: blur(10px);
+    }
+    .call-btn::before {
+      content: ''; position: absolute; inset: 0; border-radius: 50%; 
+      background: rgba(255,255,255,0.1); opacity: 0; transition: opacity 0.3s;
+    }
+    .call-btn:active::before { opacity: 1; }
+    .call-btn.accept { background: var(--success-green); }
+    .call-btn.decline, .call-btn.end { background: var(--alert-red); }
+    .call-btn.mute { background: var(--neutral-gray); }
+    .call-btn.speaker { background: #6366f1; }
+    .call-btn.retry { background: var(--primary-purple); }
+    .call-btn:hover { transform: scale(1.15); }
+    .call-btn.muted { background: var(--alert-red); }
+    .call-btn.speaker-on { background: var(--success-green); }
+    .call-btn.speaking { 
+      background: var(--success-green); 
+      animation: ig-btn-pulse 1.5s ease-in-out infinite;
+    }
+    .call-btn.listening { 
+      background: var(--success-green); 
+      animation: ig-btn-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes ig-btn-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    .back-btn { 
+      position: fixed; top: 1rem; left: 1rem; z-index: 50; 
+      background: rgba(255,255,255,.2); color: white; width: 44px; height: 44px; 
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+      backdrop-filter: blur(8px); transition: all 0.3s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,.3); }
+    .loading-spinner { 
+      border: 4px solid var(--light-gray); border-top: 4px solid var(--primary-purple); 
+      border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; 
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .network-indicator { 
+      position: fixed; top: 1rem; right: 1rem; z-index: 50; 
+      padding: 0.5rem 1rem; background: rgba(255,255,255,.2); border-radius: 20px; 
+      font-size: 0.8rem; color: white; backdrop-filter: blur(8px); 
+    }
+    .network-indicator.connected { background: rgba(16,185,129,.3); }
+    .network-indicator.disconnected { background: rgba(239,68,68,.3); }
+    .sound-wave { position: absolute; top: -20px; right: -20px; width: 110px; height: 110px; pointer-events: none; }
+    @media (max-width: 640px) { 
+      .call-container { padding: 2rem 1rem 6rem 1rem; }
+      .call-btn { width: 60px; height: 60px; font-size: 1.5rem; } 
+      .call-controls { gap: 1rem; } 
+      .call-avatar { width: 120px; height: 120px; font-size: 3rem; } 
+      .sound-wave { width: 90px; height: 90px; } 
+      .call-title { font-size: 1.75rem; }
+      .call-status { font-size: 1rem; top: -40px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <button id="back-to-chat" class="back-btn" style="display: none;">
+    <i data-feather="arrow-left"></i>
+  </button>
+  <div id="network-indicator" class="network-indicator" style="display: none;">Connecting...</div>
+  <div class="call-container">
+    <p id="call-status" class="call-status">Please wait while we connect securely...</p>
+    <div id="call-avatar" class="call-avatar">
+      <!-- Gradient ring -->
+      <!-- Pulse rings -->
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <!-- Sound-reactive wave background (ChatGPT-style) -->
+      <div class="sound-wave-bg">
+        <canvas id="avatar-sound-canvas"></canvas>
+      </div>
+      <img id="avatar-img" style="display: none;" />
+      <span id="avatar-letter">U</span>
+    </div>
+    <h1 id="call-title" class="call-title">Initializing...</h1>
+    <div id="call-timer" class="call-timer" style="display: none;">00:00</div>
+    <div id="loading-spinner" class="loading-spinner"></div>
+    <div id="call-controls" class="call-controls">
+      <button id="accept-call" class="call-btn accept" style="display: none;">
+        <i data-feather="phone"></i>
+      </button>
+      <button id="decline-call" class="call-btn decline" style="display: none;">
+        <i data-feather="phone-off"></i>
+      </button>
+      <button id="mute-btn" class="call-btn mute" style="display: none;">
+        <i data-feather="mic"></i>
+        <canvas id="local-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas>
+      </button>
+      <button id="speaker-btn" class="call-btn speaker" style="display: none;">
+        <i data-feather="volume-2"></i>
+        <canvas id="remote-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas>
+      </button>
+      <button id="end-call" class="call-btn end" style="display: none;">
+        <i data-feather="phone-off"></i>
+      </button>
+      <button id="retry-mic" class="call-btn retry" style="display: none;">
+        <i data-feather="refresh-cw"></i>
+      </button>
+    </div>
+  </div>
+  <audio id="remote-audio" autoplay playsinline></audio>
+  <!-- Online Ringtone -->
+  <audio id="ringtone" loop preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-classic-phone-ring-1466.mp3" type="audio/mpeg">
+  </audio>
+  <script>
+    // === CONFIG ===
+    const API_BASE_URL = 'bazukastore.com/api';
+    const SOCKET_URL = 'bazukastore.com';
+    const MAX_RETRIES = 5;
+    const CALL_TIMEOUT = 45000;
+    const OFFER_WAIT_TIMEOUT = 8000;
+    // === ELEMENTS ===
+    const elements = {
+      avatar: document.getElementById('call-avatar'),
+      avatarImg: document.getElementById('avatar-img'),
+      avatarLetter: document.getElementById('avatar-letter'),
+      title: document.getElementById('call-title'),
+      status: document.getElementById('call-status'),
+      timer: document.getElementById('call-timer'),
+      spinner: document.getElementById('loading-spinner'),
+      accept: document.getElementById('accept-call'),
+      decline: document.getElementById('decline-call'),
+      mute: document.getElementById('mute-btn'),
+      speaker: document.getElementById('speaker-btn'),
+      end: document.getElementById('end-call'),
+      retry: document.getElementById('retry-mic'),
+      back: document.getElementById('back-to-chat'),
+      canvas: document.getElementById('bg-canvas'),
+      localSoundWaveCanvas: document.getElementById('local-sound-wave-canvas'),
+      remoteSoundWaveCanvas: document.getElementById('remote-sound-wave-canvas'),
+      avatarSoundCanvas: document.getElementById('avatar-sound-canvas'),
+      remoteAudio: document.getElementById('remote-audio'),
+      ringtone: document.getElementById('ringtone'),
+      network: document.getElementById('network-indicator')
+    };
+    // === STATE ===
+    let callId = null, type = null, chatId = null, callerName = null, recipientName = null;
+    let callState = 'init';
+    let localStream = null, peer = null, timerId = null, retryCount = 0;
+    let isMuted = false, isSpeaker = false, pendingOffer = null;
+    let socket = null;
+    let ctx = null, localCtx = null, remoteCtx = null, avatarCtx = null;
+    let localAnalyser = null, remoteAnalyser = null, avatarAnalyser = null;
+    let localDataArray = null, remoteDataArray = null, avatarDataArray = null;
+    let localAnimationId = null, remoteAnimationId = null, avatarAnimationId = null;
+    let recipientId = null;
+    let callerAvatar = null, recipientAvatar = null;
+    let connectionCheckInterval = null;
+    let endReason = '';
+    let isNetworkConnected = false;
+    // === INIT ===
+    feather.replace();
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    function resizeCanvas() {
+      elements.canvas.width = innerWidth;
+      elements.canvas.height = innerHeight;
+      if (ctx) drawStaticBackground();
+      if (localCtx) {
+        localCtx.canvas.width = elements.localSoundWaveCanvas.offsetWidth;
+        localCtx.canvas.height = elements.localSoundWaveCanvas.offsetHeight;
+      }
+      if (remoteCtx) {
+        remoteCtx.canvas.width = elements.remoteSoundWaveCanvas.offsetWidth;
+        remoteCtx.canvas.height = elements.remoteSoundWaveCanvas.offsetHeight;
+      }
+      if (avatarCtx) {
+        const size = elements.avatar.offsetWidth * 1.2;
+        avatarCtx.canvas.width = size;
+        avatarCtx.canvas.height = size;
+      }
+    }
+    function drawStaticBackground() {
+      if (!ctx) return;
+      const gradient = ctx.createLinearGradient(0, 0, 0, elements.canvas.height);
+      gradient.addColorStop(0, '#7c3aed');
+      gradient.addColorStop(0.5, '#f59e0b');
+      gradient.addColorStop(1, '#ef4444');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+    }
+    // === SOCKET ===
+    function initSocket() {
+      socket = io(SOCKET_URL, {
+        auth: { token: `Bearer ${localStorage.getItem('token') || ''}` },
+        transports: ['websocket'],
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+        forceNew: false
+      });
+      socket.on('connect', () => {
+        isNetworkConnected = true;
+        elements.network.textContent = 'Connected';
+        elements.network.className = 'network-indicator connected';
+        elements.network.style.display = 'block';
+        updateNetworkStatus();
+        if (type === 'outgoing' && callState === 'init') startCall();
+        if (pendingOffer && callState === 'accepting') answerCall();
+      });
+      socket.on('disconnect', () => {
+        isNetworkConnected = false;
+        elements.network.textContent = 'Reconnecting...';
+        elements.network.className = 'network-indicator disconnected';
+        updateNetworkStatus();
+      });
+      socket.on('connect_error', () => {
+        isNetworkConnected = false;
+        elements.network.textContent = 'Connection error';
+        elements.network.className = 'network-indicator disconnected';
+        updateNetworkStatus();
+      });
+      socket.on('reconnect', () => {
+        isNetworkConnected = true;
+        updateNetworkStatus();
+      });
+      socket.on('incoming-call', (data) => {
+        if (data.callId === callId && type === 'incoming') {
+          callState = 'ringing';
+          elements.spinner.style.display = 'none';
+          updateUI();
+          playRingtone();
+        }
+      });
+      socket.on('call-accepted', async ({ callId: id, answer }) => {
+        if (id !== callId || callState !== 'connecting') return;
+        try {
+          await peer.setRemoteDescription(answer);
+          callState = 'active';
+          document.body.classList.add('call-active');
+          stopRingtone();
+          startTimer();
+          startAnimations();
+          updateUI();
+        } catch (e) {
+          endCall('Connection setup failed');
+        }
+      });
+      socket.on('call-offer', async ({ callId: id, offer }) => {
+        if (id !== callId || !['ringing', 'accepting'].includes(callState)) return;
+        if (pendingOffer) return;
+        pendingOffer = offer;
+        if (callState === 'accepting') await answerCall();
+      });
+      socket.on('ice-candidate', async ({ callId: id, candidate }) => {
+        if (id !== callId || !peer) return;
+        try { await peer.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
+      });
+      socket.on('call-declined', () => endCall('Call declined by peer'));
+      socket.on('call-ended', () => endCall('Call ended by peer'));
+      socket.on('call-update', ({ callId: id, status }) => {
+        if (id !== callId || ['ended', 'missed', 'rejected'].includes(status)) {
+          endCall(`${status.charAt(0).toUpperCase() + status.slice(1)} by peer`);
+        }
+      });
+      connectionCheckInterval = setInterval(() => {
+        if (socket && callState === 'active') {
+          socket.emit('ping', { callId }, (response) => {
+            isNetworkConnected = response?.status === 'pong';
+            updateNetworkStatus();
+          });
+        }
+      }, 5000);
+    }
+    function updateNetworkStatus() {
+      if (callState === 'active') {
+        if (isNetworkConnected) {
+          elements.status.classList.add('connected');
+          elements.status.classList.remove('network-weak');
+          elements.status.textContent = 'Connected! Speak freely - your call is secure.';
+        } else {
+          elements.status.classList.add('network-weak');
+          elements.status.classList.remove('connected');
+          elements.status.textContent = 'Network weak - speak carefully.';
+        }
+      }
+    }
+    // === WEBRTC ===
+    function createPeer() {
+      peer = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+        ]
+      });
+      peer.ontrack = e => {
+        elements.remoteAudio.srcObject = e.streams[0];
+        elements.remoteAudio.play().then(() => {
+          initRemoteVisualizer();
+          initAvatarVisualizer(); // Start avatar dance
+        }).catch(() => {});
+      };
+      peer.onconnectionstatechange = () => {
+        if (['failed', 'closed'].includes(peer.connectionState)) endCall('Connection lost');
+      };
+      peer.onicecandidate = e => {
+        if (e.candidate) socket.emit('ice-candidate', { callId, candidate: e.candidate.toJSON() });
+      };
+      return peer;
+    }
+    // === AVATAR SOUND DANCE (ChatGPT-style) ===
+    function initAvatarVisualizer() {
+      if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume();
+      avatarAnalyser = audioCtx.createAnalyser();
+      avatarAnalyser.fftSize = 256;
+      avatarAnalyser.smoothingTimeConstant = 0.85;
+      const source = audioCtx.createMediaStreamSource(elements.remoteAudio.srcObject);
+      source.connect(avatarAnalyser);
+      avatarDataArray = new Uint8Array(avatarAnalyser.frequencyBinCount);
+      avatarCtx = elements.avatarSoundCanvas.getContext('2d');
+      resizeCanvas();
+      startAvatarSoundDance();
+    }
+    function startAvatarSoundDance() {
+      if (avatarAnimationId) return;
+      const draw = () => {
+        avatarAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !avatarAnalyser || !avatarCtx) {
+          elements.avatar.classList.remove('speaking');
+          return;
+        }
+        avatarAnalyser.getByteFrequencyData(avatarDataArray);
+        const vol = avatarDataArray.reduce((a,b) => a+b, 0) / avatarDataArray.length / 255;
+        if (vol > 0.03) {
+          elements.avatar.classList.add('speaking');
+          drawAvatarWave(vol);
+        } else {
+          elements.avatar.classList.remove('speaking');
+          avatarCtx.clearRect(0, 0, avatarCtx.canvas.width, avatarCtx.canvas.height);
+        }
+      };
+      draw();
+    }
+    function drawAvatarWave(vol) {
+      const canvas = avatarCtx.canvas;
+      avatarCtx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const barCount = 32;
+      const baseRadius = canvas.width * 0.38;
+      const maxHeight = canvas.width * 0.15;
+      avatarCtx.lineWidth = 3;
+      avatarCtx.strokeStyle = `hsla(280, 80%, 65%, ${vol * 0.8})`;
+      avatarCtx.beginPath();
+      for (let i = 0; i < barCount; i++) {
+        const angle = (i / barCount) * Math.PI * 2;
+        const freqIndex = Math.floor((i / barCount) * avatarDataArray.length);
+        const amplitude = (avatarDataArray[freqIndex] / 255) * vol;
+        const height = amplitude * maxHeight;
+        const x1 = centerX + Math.cos(angle) * baseRadius;
+        const y1 = centerY + Math.sin(angle) * baseRadius;
+        const x2 = centerX + Math.cos(angle) * (baseRadius + height);
+        const y2 = centerY + Math.sin(angle) * (baseRadius + height);
+        avatarCtx.moveTo(x1, y1);
+        avatarCtx.lineTo(x2, y2);
+      }
+      avatarCtx.stroke();
+      // Inner glow
+      avatarCtx.shadowBlur = 15;
+      avatarCtx.shadowColor = `hsla(280, 80%, 65%, ${vol * 0.6})`;
+      avatarCtx.stroke();
+      avatarCtx.shadowBlur = 0;
+    }
+    // === LOCAL & REMOTE VISUALIZERS (Buttons) ===
+    function initLocalVisualizer() {
+      if (!localStream || localAnalyser) return;
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume();
+      localAnalyser = audioCtx.createAnalyser();
+      localAnalyser.fftSize = 256;
+      localAnalyser.smoothingTimeConstant = 0.8;
+      audioCtx.createMediaStreamSource(localStream).connect(localAnalyser);
+      localDataArray = new Uint8Array(localAnalyser.frequencyBinCount);
+      localCtx = elements.localSoundWaveCanvas.getContext('2d');
+      elements.localSoundWaveCanvas.style.display = 'block';
+      resizeCanvas();
+      startLocalSoundWaveAnimation();
+    }
+    function startLocalSoundWaveAnimation() {
+      if (localAnimationId) return;
+      const draw = () => {
+        localAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !localAnalyser) {
+          elements.mute.classList.remove('listening');
+          return;
+        }
+        localAnalyser.getByteFrequencyData(localDataArray);
+        const vol = localDataArray.reduce((a,b) => a+b, 0) / localDataArray.length / 255;
+        if (vol > 0.02 && !isMuted) {
+          elements.mute.classList.add('listening');
+        } else {
+          elements.mute.classList.remove('listening');
+        }
+      };
+      draw();
+    }
+    function initRemoteVisualizer() {
+      if (!elements.remoteAudio.srcObject || remoteAnalyser) return;
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume();
+      remoteAnalyser = audioCtx.createAnalyser();
+      remoteAnalyser.fftSize = 256;
+      remoteAnalyser.smoothingTimeConstant = 0.8;
+      audioCtx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(remoteAnalyser);
+      remoteDataArray = new Uint8Array(remoteAnalyser.frequencyBinCount);
+      remoteCtx = elements.remoteSoundWaveCanvas.getContext('2d');
+      elements.remoteSoundWaveCanvas.style.display = 'block';
+      resizeCanvas();
+      startRemoteSoundWaveAnimation();
+    }
+    function startRemoteSoundWaveAnimation() {
+      if (remoteAnimationId) return;
+      const draw = () => {
+        remoteAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !remoteAnalyser) {
+          elements.speaker.classList.remove('speaking');
+          return;
+        }
+        remoteAnalyser.getByteFrequencyData(remoteDataArray);
+        const vol = remoteDataArray.reduce((a,b) => a+b, 0) / remoteDataArray.length / 255;
+        if (vol > 0.02) {
+          elements.speaker.classList.add('speaking');
+        } else {
+          elements.speaker.classList.remove('speaking');
+        }
+      };
+      draw();
+    }
+    // === MEDIA ===
+    async function getMic() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }
+        });
+        retryCount = 0;
+        return localStream;
+      } catch (err) {
+        handleMicError(err);
+        return null;
+      }
+    }
+    function handleMicError(err) {
+      if (retryCount++ < MAX_RETRIES) {
+        setTimeout(() => requestMic(type === 'outgoing'), 3000);
+      } else {
+        endCall('Mic access failed');
+      }
+    }
+    async function requestMic(isOutgoing) {
+      elements.retry.style.display = 'flex';
+      elements.status.textContent = 'Requesting microphone...';
+      const stream = await getMic();
+      if (!stream) return;
+      elements.retry.style.display = 'none';
+      elements.status.textContent = 'Preparing call...';
+      peer = createPeer();
+      stream.getTracks().forEach(t => peer.addTrack(t, stream));
+      initLocalVisualizer();
+      if (isOutgoing) {
+        callState = 'connecting';
+        const offer = await peer.createOffer({ offerToReceiveAudio: true });
+        await peer.setLocalDescription(offer);
+        if (socket?.connected) socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
+        updateUI();
+        setTimeout(() => { if (callState === 'connecting') endCall('No answer'); }, CALL_TIMEOUT);
+      }
+    }
+    // === CALL FLOW ===
+    async function startCall() {
+      if (!recipientId || !socket?.connected) {
+        setTimeout(startCall, 2000);
+        return;
+      }
+      await requestMic(true);
+    }
+    async function answerCall() {
+      if (!pendingOffer || !peer) return;
+      try {
+        await peer.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+        const answer = await peer.createAnswer({ offerToReceiveAudio: true });
+        await peer.setLocalDescription(answer);
+        if (socket?.connected) socket.emit('accept-call', { callId, answer });
+        callState = 'active';
+        document.body.classList.add('call-active');
+        startTimer();
+        startAnimations();
+        updateUI();
+        pendingOffer = null;
+      } catch (err) {
+        endCall('Answer failed');
+      }
+    }
+    function playRingtone() {
+      elements.ringtone.volume = 0.5;
+      elements.ringtone.play().catch(() => {});
+    }
+    function stopRingtone() {
+      elements.ringtone.pause();
+      elements.ringtone.currentTime = 0;
+    }
+    // === UI ===
+    function updateUI() {
+      const name = type === 'outgoing' ? recipientName : callerName;
+      const avatarUrl = type === 'outgoing' ? recipientAvatar : callerAvatar;
+      if (avatarUrl) {
+        elements.avatarImg.src = avatarUrl;
+        elements.avatarImg.style.display = 'block';
+        elements.avatarLetter.style.display = 'none';
+      } else {
+        elements.avatarLetter.textContent = name?.[0]?.toUpperCase() || 'U';
+      }
+      elements.avatar.classList.toggle('ringing', callState === 'ringing');
+      elements.avatar.classList.toggle('connecting', callState === 'connecting');
+      elements.back.style.display = ['connecting', 'ringing', 'active'].includes(callState) ? 'flex' : 'none';
+      elements.accept.style.display = callState === 'ringing' ? 'flex' : 'none';
+      elements.decline.style.display = callState === 'ringing' ? 'flex' : 'none';
+      elements.mute.style.display = callState === 'active' ? 'flex' : 'none';
+      elements.speaker.style.display = callState === 'active' ? 'flex' : 'none';
+      elements.end.style.display = ['connecting', 'active'].includes(callState) ? 'flex' : 'none';
+      elements.retry.style.display = retryCount > 0 && callState !== 'active' ? 'flex' : 'none';
+      elements.mute.classList.toggle('muted', isMuted);
+      elements.speaker.classList.toggle('speaker-on', isSpeaker);
+      elements.status.classList.remove('connected', 'network-weak');
+      let titleText, statusText;
+      switch (callState) {
+        case 'init': titleText = 'Starting secure call...'; statusText = 'Initializing...'; elements.spinner.style.display = 'block'; break;
+        case 'connecting': titleText = `Calling ${recipientName || 'contact'}...`; statusText = 'Ringing...'; elements.spinner.style.display = 'block'; break;
+        case 'accepting': titleText = 'On call...'; statusText = 'Setting up audio...'; elements.spinner.style.display = 'block'; break;
+        case 'ringing': titleText = `${callerName || 'Someone'} is calling`; statusText = 'Tap to accept'; elements.spinner.style.display = 'none'; break;
+        case 'active': titleText = name || 'Contact'; elements.spinner.style.display = 'none'; updateNetworkStatus(); return;
+        case 'ended': titleText = 'Call Ended'; statusText = 'Returning to chat...'; elements.spinner.style.display = 'none'; break;
+      }
+      elements.title.textContent = titleText;
+      elements.status.textContent = statusText;
+      feather.replace();
+    }
+    function startTimer() {
+      let sec = 0;
+      elements.timer.style.display = 'block';
+      timerId = setInterval(() => {
+        sec++;
+        const mins = Math.floor(sec / 60).toString().padStart(2, '0');
+        const secs = (sec % 60).toString().padStart(2, '0');
+        elements.timer.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+    function startAnimations() {
+      if (callState === 'active') {
+        startLocalSoundWaveAnimation();
+        startRemoteSoundWaveAnimation();
+        startAvatarSoundDance();
+      }
+    }
+    function endCall(reason = 'Ended') {
+      endReason = reason;
+      callState = 'ended';
+      clearInterval(timerId);
+      clearInterval(connectionCheckInterval);
+      stopRingtone();
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (peer) peer.close();
+      document.body.classList.remove('call-active');
+      if (callId && socket?.connected) socket.emit('end-call', { callId, reason });
+      updateUI();
+      setTimeout(() => {
+        location.href = chatId ? `/chat.html?chatId=${chatId}` : '/chat-list.html';
+      }, 2000);
+    }
+    // === EVENTS ===
+    elements.accept.onclick = async () => {
+      if (callState !== 'ringing') return;
+      elements.accept.disabled = true;
+      callState = 'accepting';
+      stopRingtone();
+      updateUI();
+      await requestMic(false);
+      const wait = new Promise(r => {
+        const check = () => pendingOffer ? r() : setTimeout(check, 200);
+        check();
+      });
+      try {
+        await Promise.race([wait, new Promise((_, rej) => setTimeout(() => rej(), OFFER_WAIT_TIMEOUT))]);
+        await answerCall();
+      } catch { endCall('Signal timeout'); }
+      elements.accept.disabled = false;
+    };
+    elements.decline.onclick = () => { socket.emit('decline-call', { callId }); endCall('Declined'); };
+    elements.mute.onclick = () => {
+      isMuted = !isMuted;
+      localStream.getAudioTracks()[0].enabled = !isMuted;
+      elements.mute.innerHTML = isMuted ? '<i data-feather="mic-off"></i>' : '<i data-feather="mic"></i>';
+      feather.replace();
+    };
+    elements.speaker.onclick = () => { /* Speaker logic */ };
+    elements.end.onclick = () => endCall('Ended by user');
+    elements.back.onclick = () => confirm('End call?') && endCall('Back to chat');
+    elements.retry.onclick = () => { retryCount = 0; requestMic(type === 'outgoing'); };
+    // === STARTUP ===
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(location.search);
+      callId = params.get('callId'); type = params.get('type'); chatId = params.get('chatId');
+      callerName = decodeURIComponent(params.get('callerName') || '').trim();
+      callerAvatar = params.get('callerAvatar') || null;
+      if (!callId || !type || !chatId) return setTimeout(() => location.href = '/chat-list.html', 2000);
+      const token = localStorage.getItem('token');
+      if (!token) return setTimeout(() => location.href = '/login.html', 2000);
+      elements.network.style.display = 'block';
+      try {
+        const [callRes, profileRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/calls/${callId}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/users/profile`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        if (!callRes.ok || !profileRes.ok) throw new Error('Validation failed');
+        if (type === 'outgoing') {
+          const chatRes = await fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } });
+          const chat = await chatRes.json();
+          recipientId = chat.recipient?._id;
+          recipientName = chat.recipient?.name?.trim();
+          recipientAvatar = chat.recipient?.avatar || null;
+        }
+        callState = type === 'incoming' ? 'ringing' : 'init';
+        if (callState === 'ringing') { elements.spinner.style.display = 'none'; playRingtone(); }
+        updateUI();
+        initSocket();
+      } catch { setTimeout(() => location.href = '/chat-list.html', 3000); }
+    });
+    window.addEventListener('beforeunload', () => {
+      if (['connecting', 'ringing', 'active'].includes(callState) && socket?.connected) {
+        socket.emit('end-call', { callId });
+      }
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (peer) peer.close();
+    });
+    ctx = elements.canvas.getContext('2d');
+    drawStaticBackground();
+  </script>
+</body>
+</html>
