@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Audio Call | Bazuka Store</title>
-  <!-- CSP: Fixed all errors -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
@@ -31,116 +30,27 @@
     body.call-active { color: white; }
     #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
     .call-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem 8rem 1rem; position: relative; z-index: 1; }
-    .call-status { 
-      font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; 
-      position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; 
-      transition: all 0.3s ease;
-    }
+    .call-status { font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; transition: all 0.3s ease; }
     .call-status.connected { color: var(--success-green); font-weight: 600; }
     .call-status.network-weak { color: var(--neutral-gray); }
-    .call-avatar { 
-      width: 160px; height: 160px; 
-      border-radius: 50%; 
-      background: var(--secondary-yellow); 
-      color: white; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      font-size: 4rem; 
-      font-weight: bold; 
-      margin-bottom: 1rem; 
-      box-shadow: 0 10px 20px rgba(0,0,0,.3); 
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s ease;
-    }
+    .call-avatar { width: 160px; height: 160px; border-radius: 50%; background: var(--secondary-yellow); color: white; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: bold; margin-bottom: 1rem; box-shadow: 0 10px 20px rgba(0,0,0,.3); position: relative; overflow: hidden; transition: all 0.3s ease; }
     .call-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-    /* Custom Gradient Ring using your colors */
-    .call-avatar::before {
-      content: '';
-      position: absolute;
-      top: -8px; left: -8px; right: -8px; bottom: -8px;
-      background: conic-gradient(
-        var(--primary-purple), var(--secondary-yellow), var(--alert-red), 
-        var(--primary-purple)
-      );
-      border-radius: 50%;
-      z-index: -1;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      animation: rotate-gradient 6s linear infinite;
-      animation-play-state: paused;
-    }
-    .call-avatar.ringing::before,
-    .call-avatar.connecting::before {
-      opacity: 1;
-      animation-play-state: running;
-    }
-    @keyframes rotate-gradient {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    /* Pulse ring animation */
-    .call-avatar .pulse-ring {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 100%; height: 100%;
-      border: 3px solid rgba(255, 255, 255, 0.6);
-      border-radius: 50%;
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 0;
-      pointer-events: none;
-      animation: ig-pulse-ring 2s ease-out infinite;
-    }
-    .call-avatar.ringing .pulse-ring,
-    .call-avatar.connecting .pulse-ring {
-      animation-play-state: running;
-    }
-    .call-avatar.ringing .pulse-ring:nth-child(2),
-    .call-avatar.connecting .pulse-ring:nth-child(2) { animation-delay: 0.7s; }
-    .call-avatar.ringing .pulse-ring:nth-child(3),
-    .call-avatar.connecting .pulse-ring:nth-child(3) { animation-delay: 1.4s; }
-    @keyframes ig-pulse-ring {
-      0% {
-        transform: translate(-50%, -50%) scale(0.9);
-        opacity: 0.8;
-      }
-      100% {
-        transform: translate(-50%, -50%) scale(1.6);
-        opacity: 0;
-      }
-    }
-    /* Sound-reactive wave behind avatar (ChatGPT-style) */
-    .call-avatar .sound-wave-bg {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 120%; height: 120%;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: -1;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    .call-avatar.speaking .sound-wave-bg {
-      opacity: 1;
-    }
-    .call-avatar .sound-wave-bg canvas {
-      width: 100%; height: 100%; display: block;
-    }
+    .call-avatar::before { content: ''; position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px; background: conic-gradient(var(--primary-purple), var(--secondary-yellow), var(--alert-red), var(--primary-purple)); border-radius: 50%; z-index: -1; opacity: 0; transition: opacity 0.4s ease; animation: rotate-gradient 6s linear infinite; animation-play-state: paused; }
+    .call-avatar.ringing::before, .call-avatar.connecting::before { opacity: 1; animation-play-state: running; }
+    @keyframes rotate-gradient { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .call-avatar .pulse-ring { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 3px solid rgba(255,255,255,0.6); border-radius: 50%; transform: translate(-50%,-50%) scale(1); opacity: 0; pointer-events: none; animation: ig-pulse-ring 2s ease-out infinite; }
+    .call-avatar.ringing .pulse-ring, .call-avatar.connecting .pulse-ring { animation-play-state: running; }
+    .call-avatar.ringing .pulse-ring:nth-child(2), .call-avatar.connecting .pulse-ring:nth-child(2) { animation-delay: 0.7s; }
+    .call-avatar.ringing .pulse-ring:nth-child(3), .call-avatar.connecting .pulse-ring:nth-child(3) { animation-delay: 1.4s; }
+    @keyframes ig-pulse-ring { 0% { transform: translate(-50%,-50%) scale(0.9); opacity: 0.8; } 100% { transform: translate(-50%,-50%) scale(1.6); opacity: 0; } }
+    .call-avatar .sound-wave-bg { position: absolute; top: 50%; left: 50%; width: 120%; height: 120%; transform: translate(-50%,-50%); border-radius: 50%; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 0.3s ease; }
+    .call-avatar.speaking .sound-wave-bg { opacity: 1; }
+    .call-avatar .sound-wave-bg canvas { width: 100%; height: 100%; display: block; }
     .call-title { font-size: 2rem; font-weight: 600; margin-bottom: .5rem; color: white; }
     .call-timer { font-size: 1.5rem; font-weight: 500; margin: 1.5rem 0; color: white; }
     .call-controls { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1.5rem; z-index: 10; }
-    .call-btn { 
-      width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-      transition: all .3s ease; border: none; cursor: pointer; font-size: 1.75rem; 
-      box-shadow: 0 6px 12px rgba(0,0,0,.3); position: relative; color: white; 
-      backdrop-filter: blur(10px);
-    }
-    .call-btn::before {
-      content: ''; position: absolute; inset: 0; border-radius: 50%; 
-      background: rgba(255,255,255,0.1); opacity: 0; transition: opacity 0.3s;
-    }
+    .call-btn { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .3s ease; border: none; cursor: pointer; font-size: 1.75rem; box-shadow: 0 6px 12px rgba(0,0,0,.3); position: relative; color: white; backdrop-filter: blur(10px); }
+    .call-btn::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: rgba(255,255,255,0.1); opacity: 0; transition: opacity 0.3s; }
     .call-btn:active::before { opacity: 1; }
     .call-btn.accept { background: var(--success-green); }
     .call-btn.decline, .call-btn.end { background: var(--alert-red); }
@@ -150,38 +60,18 @@
     .call-btn:hover { transform: scale(1.15); }
     .call-btn.muted { background: var(--alert-red); }
     .call-btn.speaker-on { background: var(--success-green); }
-    .call-btn.speaking { 
-      background: var(--success-green); 
-      animation: ig-btn-pulse 1.5s ease-in-out infinite;
-    }
-    .call-btn.listening { 
-      background: var(--success-green); 
-      animation: ig-btn-pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes ig-btn-pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-    }
-    .back-btn { 
-      position: fixed; top: 1rem; left: 1rem; z-index: 50; 
-      background: rgba(255,255,255,.2); color: white; width: 44px; height: 44px; 
-      border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-      backdrop-filter: blur(8px); transition: all 0.3s;
-    }
+    .call-btn.speaking { background: var(--success-green); animation: ig-btn-pulse 1.5s ease-in-out infinite; }
+    .call-btn.listening { background: var(--success-green); animation: ig-btn-pulse 1.5s ease-in-out infinite; }
+    @keyframes ig-btn-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    .back-btn { position: fixed; top: 1rem; left: 1rem; z-index: 50; background: rgba(255,255,255,.2); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); transition: all 0.3s; }
     .back-btn:hover { background: rgba(255,255,255,.3); }
-    .loading-spinner { 
-      border: 4px solid var(--light-gray); border-top: 4px solid var(--primary-purple); 
-      border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; 
-    }
+    .loading-spinner { border: 4px solid var(--light-gray); border-top: 4px solid var(--primary-purple); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .network-indicator { 
-      position: fixed; top: 1rem; right: 1rem; z-index: 50; 
-      padding: 0.5rem 1rem; background: rgba(255,255,255,.2); border-radius: 20px; 
-      font-size: 0.8rem; color: white; backdrop-filter: blur(8px); 
-    }
+    .network-indicator { position: fixed; top: 1rem; right: 1rem; z-index: 50; padding: 0.5rem 1rem; background: rgba(255,255,255,.2); border-radius: 20px; font-size: 0.8rem; color: white; backdrop-filter: blur(8px); }
     .network-indicator.connected { background: rgba(16,185,129,.3); }
     .network-indicator.disconnected { background: rgba(239,68,68,.3); }
     .sound-wave { position: absolute; top: -20px; right: -20px; width: 110px; height: 110px; pointer-events: none; }
+    .debug-info { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #0f0; padding: 8px 16px; border-radius: 8px; font-family: monospace; font-size: 0.9rem; z-index: 100; display: none; }
     @media (max-width: 640px) { 
       .call-container { padding: 2rem 1rem 6rem 1rem; }
       .call-btn { width: 60px; height: 60px; font-size: 1.5rem; } 
@@ -199,18 +89,14 @@
     <i data-feather="arrow-left"></i>
   </button>
   <div id="network-indicator" class="network-indicator" style="display: none;">Connecting...</div>
+  <div id="debug-info" class="debug-info"></div>
   <div class="call-container">
     <p id="call-status" class="call-status">Please wait while we connect securely...</p>
     <div id="call-avatar" class="call-avatar">
-      <!-- Gradient ring -->
-      <!-- Pulse rings -->
       <div class="pulse-ring"></div>
       <div class="pulse-ring"></div>
       <div class="pulse-ring"></div>
-      <!-- Sound-reactive wave background (ChatGPT-style) -->
-      <div class="sound-wave-bg">
-        <canvas id="avatar-sound-canvas"></canvas>
-      </div>
+      <div class="sound-wave-bg"><canvas id="avatar-sound-canvas"></canvas></div>
       <img id="avatar-img" style="display: none;" />
       <span id="avatar-letter">U</span>
     </div>
@@ -218,33 +104,19 @@
     <div id="call-timer" class="call-timer" style="display: none;">00:00</div>
     <div id="loading-spinner" class="loading-spinner"></div>
     <div id="call-controls" class="call-controls">
-      <button id="accept-call" class="call-btn accept" style="display: none;">
-        <i data-feather="phone"></i>
-      </button>
-      <button id="decline-call" class="call-btn decline" style="display: none;">
-        <i data-feather="phone-off"></i>
-      </button>
-      <button id="mute-btn" class="call-btn mute" style="display: none;">
-        <i data-feather="mic"></i>
-        <canvas id="local-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas>
-      </button>
-      <button id="speaker-btn" class="call-btn speaker" style="display: none;">
-        <i data-feather="volume-2"></i>
-        <canvas id="remote-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas>
-      </button>
-      <button id="end-call" class="call-btn end" style="display: none;">
-        <i data-feather="phone-off"></i>
-      </button>
-      <button id="retry-mic" class="call-btn retry" style="display: none;">
-        <i data-feather="refresh-cw"></i>
-      </button>
+      <button id="accept-call" class="call-btn accept" style="display: none;"><i data-feather="phone"></i></button>
+      <button id="decline-call" class="call-btn decline" style="display: none;"><i data-feather="phone-off"></i></button>
+      <button id="mute-btn" class="call-btn mute" style="display: none;"><i data-feather="mic"></i><canvas id="local-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas></button>
+      <button id="speaker-btn" class="call-btn speaker" style="display: none;"><i data-feather="volume-2"></i><canvas id="remote-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas></button>
+      <button id="end-call" class="call-btn end" style="display: none;"><i data-feather="phone-off"></i></button>
+      <button id="retry-mic" class="call-btn retry" style="display: none;"><i data-feather="refresh-cw"></i></button>
     </div>
   </div>
   <audio id="remote-audio" autoplay playsinline></audio>
-  <!-- Online Ringtone -->
   <audio id="ringtone" loop preload="auto">
     <source src="https://assets.mixkit.co/sfx/preview/mixkit-classic-phone-ring-1466.mp3" type="audio/mpeg">
   </audio>
+
   <script>
     // === CONFIG ===
     const API_BASE_URL = 'https://bazukastore.com/api';
@@ -252,6 +124,7 @@
     const MAX_RETRIES = 5;
     const CALL_TIMEOUT = 45000;
     const OFFER_WAIT_TIMEOUT = 8000;
+
     // === ELEMENTS ===
     const elements = {
       avatar: document.getElementById('call-avatar'),
@@ -274,15 +147,17 @@
       avatarSoundCanvas: document.getElementById('avatar-sound-canvas'),
       remoteAudio: document.getElementById('remote-audio'),
       ringtone: document.getElementById('ringtone'),
-      network: document.getElementById('network-indicator')
+      network: document.getElementById('network-indicator'),
+      debug: document.getElementById('debug-info')
     };
+
     // === STATE ===
     let callId = null, type = null, chatId = null, callerName = null, recipientName = null;
     let callState = 'init';
     let localStream = null, peer = null, timerId = null, retryCount = 0;
-    let isMuted = false, isSpeaker = false, pendingOffer = null;
+    let isMuted = false, pendingOffer = null;
     let socket = null;
-    let ctx = null, localCtx = null, remoteCtx = null, avatarCtx = null;
+    let localCtx = null, remoteCtx = null, avatarCtx = null;
     let localAnalyser = null, remoteAnalyser = null, avatarAnalyser = null;
     let localDataArray = null, remoteDataArray = null, avatarDataArray = null;
     let localAnimationId = null, remoteAnimationId = null, avatarAnimationId = null;
@@ -291,10 +166,26 @@
     let connectionCheckInterval = null;
     let endReason = '';
     let isNetworkConnected = false;
+
+    // === CANVAS CONTEXT (DECLARED FIRST) ===
+    let ctx = null;
+    if (elements.canvas) {
+      ctx = elements.canvas.getContext('2d');
+    }
+
+    // === DEBUG ===
+    function log(msg) {
+      console.log('[CALL]', msg);
+      elements.debug.textContent = msg;
+      elements.debug.style.display = 'block';
+      setTimeout(() => elements.debug.style.display = 'none', 5000);
+    }
+
     // === INIT ===
     feather.replace();
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+
     function resizeCanvas() {
       elements.canvas.width = innerWidth;
       elements.canvas.height = innerHeight;
@@ -308,20 +199,22 @@
         remoteCtx.canvas.height = elements.remoteSoundWaveCanvas.offsetHeight;
       }
       if (avatarCtx) {
-        const size = elements.avatar.offsetWidth * 1.2;
-        avatarCtx.canvas.width = size;
-        avatarCtx.canvas.height = size;
+        const s = elements.avatar.offsetWidth * 1.2;
+        avatarCtx.canvas.width = s;
+        avatarCtx.canvas.height = s;
       }
     }
+
     function drawStaticBackground() {
       if (!ctx) return;
-      const gradient = ctx.createLinearGradient(0, 0, 0, elements.canvas.height);
-      gradient.addColorStop(0, '#7c3aed');
-      gradient.addColorStop(0.5, '#f59e0b');
-      gradient.addColorStop(1, '#ef4444');
-      ctx.fillStyle = gradient;
+      const g = ctx.createLinearGradient(0, 0, 0, elements.canvas.height);
+      g.addColorStop(0, '#7c3aed');
+      g.addColorStop(0.5, '#f59e0b');
+      g.addColorStop(1, '#ef4444');
+      ctx.fillStyle = g;
       ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
     }
+
     // === SOCKET ===
     function initSocket() {
       socket = io(SOCKET_URL, {
@@ -366,59 +259,79 @@
           playRingtone();
         }
       });
+
+      socket.on('call-offer', async ({ callId: id, offer }) => {
+        if (id !== callId || !['ringing', 'accepting'].includes(callState)) return;
+        pendingOffer = offer;
+        if (callState === 'accepting') await answerCall();
+      });
+
       socket.on('call-accepted', async ({ callId: id, answer }) => {
         if (id !== callId || callState !== 'connecting') return;
         try {
+          log('Remote SDP received – setting...');
           await peer.setRemoteDescription(answer);
+          log('Remote SDP set – ICE can now proceed');
           callState = 'active';
           document.body.classList.add('call-active');
           stopRingtone();
           startTimer();
           startAnimations();
           updateUI();
+          log('CALL ACTIVE – remote should speak now');
         } catch (e) {
-          endCall('Connection setup failed');
+          log('Answer failed: ' + e.message);
+          endCall('Setup failed');
         }
       });
-      socket.on('call-offer', async ({ callId: id, offer }) => {
-        if (id !== callId || !['ringing', 'accepting'].includes(callState)) return;
-        if (pendingOffer) return;
-        pendingOffer = offer;
-        if (callState === 'accepting') await answerCall();
-      });
+
       socket.on('ice-candidate', async ({ callId: id, candidate }) => {
         if (id !== callId || !peer) return;
-        try { await peer.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
-      });
-      socket.on('call-declined', () => endCall('Call declined by peer'));
-      socket.on('call-ended', () => endCall('Call ended by peer'));
-      socket.on('call-update', ({ callId: id, status }) => {
-        if (id !== callId || ['ended', 'missed', 'rejected'].includes(status)) {
-          endCall(`${status.charAt(0).toUpperCase() + status.slice(1)} by peer`);
+        try {
+          if (peer.remoteDescription) {
+            await peer.addIceCandidate(candidate);
+          } else {
+            log('ICE delayed – waiting for remote SDP');
+            const check = setInterval(async () => {
+              if (peer.remoteDescription) {
+                clearInterval(check);
+                try { await peer.addIceCandidate(candidate); } catch (e) {}
+              }
+            }, 100);
+            setTimeout(() => clearInterval(check), 10000);
+          }
+        } catch (e) {
+          log('ICE error (ignored): ' + e.message);
         }
       });
+
+      socket.on('call-declined', () => endCall('Declined'));
+      socket.on('call-ended', () => endCall('Ended by peer'));
+
       connectionCheckInterval = setInterval(() => {
         if (socket && callState === 'active') {
-          socket.emit('ping', { callId }, (response) => {
-            isNetworkConnected = response?.status === 'pong';
+          socket.emit('ping', { callId }, (r) => {
+            isNetworkConnected = r?.status === 'pong';
             updateNetworkStatus();
           });
         }
       }, 5000);
     }
+
     function updateNetworkStatus() {
       if (callState === 'active') {
         if (isNetworkConnected) {
           elements.status.classList.add('connected');
           elements.status.classList.remove('network-weak');
-          elements.status.textContent = 'Connected! Speak freely - your call is secure.';
+          elements.status.textContent = 'Connected – speak now!';
         } else {
           elements.status.classList.add('network-weak');
           elements.status.classList.remove('connected');
-          elements.status.textContent = 'Network weak - speak carefully.';
+          elements.status.textContent = 'Network weak';
         }
       }
     }
+
     // === WEBRTC ===
     function createPeer() {
       peer = new RTCPeerConnection({
@@ -426,34 +339,45 @@
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
         ]
       });
-      peer.ontrack = e => {
-        elements.remoteAudio.srcObject = e.streams[0];
-        elements.remoteAudio.play().then(() => {
-          initRemoteVisualizer();
-          initAvatarVisualizer(); // Start avatar dance
-        }).catch(() => {});
+
+      peer.ontrack = (e) => {
+        log(`REMOTE TRACK ADDED: ${e.track.kind}`);
+        const stream = e.streams[0];
+        elements.remoteAudio.srcObject = stream;
+        elements.remoteAudio.muted = false;
+        elements.remoteAudio.volume = 1.0;
+        elements.remoteAudio.play().catch(err => log('Play blocked: ' + err.message));
+        initRemoteVisualizer();
+        initAvatarVisualizer();
       };
+
       peer.onconnectionstatechange = () => {
-        if (['failed', 'closed'].includes(peer.connectionState)) endCall('Connection lost');
+        log('ICE: ' + peer.connectionState);
+        if (peer.connectionState === 'failed') endCall('Connection failed');
       };
-      peer.onicecandidate = e => {
-        if (e.candidate) socket.emit('ice-candidate', { callId, candidate: e.candidate.toJSON() });
+
+      peer.onicecandidate = (e) => {
+        if (e.candidate) {
+          socket.emit('ice-candidate', { callId, candidate: e.candidate.toJSON() });
+        }
       };
+
       return peer;
     }
-    // === AVATAR SOUND DANCE (ChatGPT-style) ===
+
+    // === VISUALIZERS ===
     function initAvatarVisualizer() {
       if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      audioCtx.resume();
-      avatarAnalyser = audioCtx.createAnalyser();
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      actx.resume();
+      avatarAnalyser = actx.createAnalyser();
       avatarAnalyser.fftSize = 256;
       avatarAnalyser.smoothingTimeConstant = 0.85;
-      const source = audioCtx.createMediaStreamSource(elements.remoteAudio.srcObject);
-      source.connect(avatarAnalyser);
+      actx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(avatarAnalyser);
       avatarDataArray = new Uint8Array(avatarAnalyser.frequencyBinCount);
       avatarCtx = elements.avatarSoundCanvas.getContext('2d');
       resizeCanvas();
@@ -463,12 +387,12 @@
       if (avatarAnimationId) return;
       const draw = () => {
         avatarAnimationId = requestAnimationFrame(draw);
-        if (callState !== 'active' || !avatarAnalyser || !avatarCtx) {
+        if (callState !== 'active' || !avatarAnalyser) {
           elements.avatar.classList.remove('speaking');
           return;
         }
         avatarAnalyser.getByteFrequencyData(avatarDataArray);
-        const vol = avatarDataArray.reduce((a,b) => a+b, 0) / avatarDataArray.length / 255;
+        const vol = avatarDataArray.reduce((a, b) => a + b, 0) / avatarDataArray.length / 255;
         if (vol > 0.03) {
           elements.avatar.classList.add('speaking');
           drawAvatarWave(vol);
@@ -480,44 +404,36 @@
       draw();
     }
     function drawAvatarWave(vol) {
-      const canvas = avatarCtx.canvas;
-      avatarCtx.clearRect(0, 0, canvas.width, canvas.height);
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const barCount = 32;
-      const baseRadius = canvas.width * 0.38;
-      const maxHeight = canvas.width * 0.15;
+      const c = avatarCtx.canvas;
+      avatarCtx.clearRect(0, 0, c.width, c.height);
+      const cx = c.width / 2, cy = c.height / 2, bars = 32, base = c.width * 0.38, maxH = c.width * 0.15;
       avatarCtx.lineWidth = 3;
-      avatarCtx.strokeStyle = `hsla(280, 80%, 65%, ${vol * 0.8})`;
+      avatarCtx.strokeStyle = `hsla(280,80%,65%,${vol * 0.8})`;
       avatarCtx.beginPath();
-      for (let i = 0; i < barCount; i++) {
-        const angle = (i / barCount) * Math.PI * 2;
-        const freqIndex = Math.floor((i / barCount) * avatarDataArray.length);
-        const amplitude = (avatarDataArray[freqIndex] / 255) * vol;
-        const height = amplitude * maxHeight;
-        const x1 = centerX + Math.cos(angle) * baseRadius;
-        const y1 = centerY + Math.sin(angle) * baseRadius;
-        const x2 = centerX + Math.cos(angle) * (baseRadius + height);
-        const y2 = centerY + Math.sin(angle) * (baseRadius + height);
+      for (let i = 0; i < bars; i++) {
+        const a = (i / bars) * Math.PI * 2;
+        const idx = Math.floor((i / bars) * avatarDataArray.length);
+        const h = (avatarDataArray[idx] / 255) * vol * maxH;
+        const x1 = cx + Math.cos(a) * base, y1 = cy + Math.sin(a) * base;
+        const x2 = cx + Math.cos(a) * (base + h), y2 = cy + Math.sin(a) * (base + h);
         avatarCtx.moveTo(x1, y1);
         avatarCtx.lineTo(x2, y2);
       }
       avatarCtx.stroke();
-      // Inner glow
       avatarCtx.shadowBlur = 15;
-      avatarCtx.shadowColor = `hsla(280, 80%, 65%, ${vol * 0.6})`;
+      avatarCtx.shadowColor = `hsla(280,80%,65%,${vol * 0.6})`;
       avatarCtx.stroke();
       avatarCtx.shadowBlur = 0;
     }
-    // === LOCAL & REMOTE VISUALIZERS (Buttons) ===
+
     function initLocalVisualizer() {
       if (!localStream || localAnalyser) return;
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      audioCtx.resume();
-      localAnalyser = audioCtx.createAnalyser();
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      actx.resume();
+      localAnalyser = actx.createAnalyser();
       localAnalyser.fftSize = 256;
       localAnalyser.smoothingTimeConstant = 0.8;
-      audioCtx.createMediaStreamSource(localStream).connect(localAnalyser);
+      actx.createMediaStreamSource(localStream).connect(localAnalyser);
       localDataArray = new Uint8Array(localAnalyser.frequencyBinCount);
       localCtx = elements.localSoundWaveCanvas.getContext('2d');
       elements.localSoundWaveCanvas.style.display = 'block';
@@ -533,23 +449,21 @@
           return;
         }
         localAnalyser.getByteFrequencyData(localDataArray);
-        const vol = localDataArray.reduce((a,b) => a+b, 0) / localDataArray.length / 255;
-        if (vol > 0.02 && !isMuted) {
-          elements.mute.classList.add('listening');
-        } else {
-          elements.mute.classList.remove('listening');
-        }
+        const vol = localDataArray.reduce((a, b) => a + b, 0) / localDataArray.length / 255;
+        if (vol > 0.02 && !isMuted) elements.mute.classList.add('listening');
+        else elements.mute.classList.remove('listening');
       };
       draw();
     }
+
     function initRemoteVisualizer() {
       if (!elements.remoteAudio.srcObject || remoteAnalyser) return;
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      audioCtx.resume();
-      remoteAnalyser = audioCtx.createAnalyser();
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      actx.resume();
+      remoteAnalyser = actx.createAnalyser();
       remoteAnalyser.fftSize = 256;
       remoteAnalyser.smoothingTimeConstant = 0.8;
-      audioCtx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(remoteAnalyser);
+      actx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(remoteAnalyser);
       remoteDataArray = new Uint8Array(remoteAnalyser.frequencyBinCount);
       remoteCtx = elements.remoteSoundWaveCanvas.getContext('2d');
       elements.remoteSoundWaveCanvas.style.display = 'block';
@@ -565,15 +479,13 @@
           return;
         }
         remoteAnalyser.getByteFrequencyData(remoteDataArray);
-        const vol = remoteDataArray.reduce((a,b) => a+b, 0) / remoteDataArray.length / 255;
-        if (vol > 0.02) {
-          elements.speaker.classList.add('speaking');
-        } else {
-          elements.speaker.classList.remove('speaking');
-        }
+        const vol = remoteDataArray.reduce((a, b) => a + b, 0) / remoteDataArray.length / 255;
+        if (vol > 0.02) elements.speaker.classList.add('speaking');
+        else elements.speaker.classList.remove('speaking');
       };
       draw();
     }
+
     // === MEDIA ===
     async function getMic() {
       try {
@@ -581,19 +493,20 @@
           audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }
         });
         retryCount = 0;
+        log('Mic granted');
         return localStream;
       } catch (err) {
+        log('Mic denied: ' + err.message);
         handleMicError(err);
         return null;
       }
     }
     function handleMicError(err) {
-      if (retryCount++ < MAX_RETRIES) {
-        setTimeout(() => requestMic(type === 'outgoing'), 3000);
-      } else {
-        endCall('Mic access failed');
-      }
+      if (retryCount++ < MAX_RETRIES) setTimeout(() => requestMic(type === 'outgoing'), 3000);
+      else endCall('Mic access failed');
     }
+
+    // === CALL FLOW ===
     async function requestMic(isOutgoing) {
       elements.retry.style.display = 'flex';
       elements.status.textContent = 'Requesting microphone...';
@@ -601,19 +514,31 @@
       if (!stream) return;
       elements.retry.style.display = 'none';
       elements.status.textContent = 'Preparing call...';
+
       peer = createPeer();
-      stream.getTracks().forEach(t => peer.addTrack(t, stream));
+
+      stream.getTracks().forEach(track => {
+        peer.addTransceiver(track, { streams: [stream] });
+        log(`Added local track: ${track.kind}`);
+      });
+
       initLocalVisualizer();
+
       if (isOutgoing) {
         callState = 'connecting';
-        const offer = await peer.createOffer({ offerToReceiveAudio: true });
+        const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
-        if (socket?.connected) socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
+        if (socket?.connected) {
+          socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
+          log('Offer sent');
+        }
         updateUI();
-        setTimeout(() => { if (callState === 'connecting') endCall('No answer'); }, CALL_TIMEOUT);
+        setTimeout(() => {
+          if (callState === 'connecting') endCall('No answer');
+        }, CALL_TIMEOUT);
       }
     }
-    // === CALL FLOW ===
+
     async function startCall() {
       if (!recipientId || !socket?.connected) {
         setTimeout(startCall, 2000);
@@ -621,13 +546,17 @@
       }
       await requestMic(true);
     }
+
     async function answerCall() {
       if (!pendingOffer || !peer) return;
       try {
-        await peer.setRemoteDescription(new RTCSessionDescription(pendingOffer));
-        const answer = await peer.createAnswer({ offerToReceiveAudio: true });
+        await peer.setRemoteDescription(pendingOffer);
+        const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
-        if (socket?.connected) socket.emit('accept-call', { callId, answer });
+        if (socket?.connected) {
+          socket.emit('accept-call', { callId, answer });
+          log('Answer sent');
+        }
         callState = 'active';
         document.body.classList.add('call-active');
         startTimer();
@@ -635,9 +564,11 @@
         updateUI();
         pendingOffer = null;
       } catch (err) {
+        log('Answer failed: ' + err.message);
         endCall('Answer failed');
       }
     }
+
     function playRingtone() {
       elements.ringtone.volume = 0.5;
       elements.ringtone.play().catch(() => {});
@@ -646,6 +577,7 @@
       elements.ringtone.pause();
       elements.ringtone.currentTime = 0;
     }
+
     // === UI ===
     function updateUI() {
       const name = type === 'outgoing' ? recipientName : callerName;
@@ -657,6 +589,7 @@
       } else {
         elements.avatarLetter.textContent = name?.[0]?.toUpperCase() || 'U';
       }
+
       elements.avatar.classList.toggle('ringing', callState === 'ringing');
       elements.avatar.classList.toggle('connecting', callState === 'connecting');
       elements.back.style.display = ['connecting', 'ringing', 'active'].includes(callState) ? 'flex' : 'none';
@@ -667,31 +600,57 @@
       elements.end.style.display = ['connecting', 'active'].includes(callState) ? 'flex' : 'none';
       elements.retry.style.display = retryCount > 0 && callState !== 'active' ? 'flex' : 'none';
       elements.mute.classList.toggle('muted', isMuted);
-      elements.speaker.classList.toggle('speaker-on', isSpeaker);
       elements.status.classList.remove('connected', 'network-weak');
+
       let titleText, statusText;
       switch (callState) {
-        case 'init': titleText = 'Starting secure call...'; statusText = 'Initializing...'; elements.spinner.style.display = 'block'; break;
-        case 'connecting': titleText = `Calling ${recipientName || 'contact'}...`; statusText = 'Ringing...'; elements.spinner.style.display = 'block'; break;
-        case 'accepting': titleText = 'On call...'; statusText = 'Setting up audio...'; elements.spinner.style.display = 'block'; break;
-        case 'ringing': titleText = `${callerName || 'Someone'} is calling`; statusText = 'Tap to accept'; elements.spinner.style.display = 'none'; break;
-        case 'active': titleText = name || 'Contact'; elements.spinner.style.display = 'none'; updateNetworkStatus(); return;
-        case 'ended': titleText = 'Call Ended'; statusText = 'Returning to chat...'; elements.spinner.style.display = 'none'; break;
+        case 'init':
+          titleText = 'Starting call...';
+          statusText = 'Initializing...';
+          elements.spinner.style.display = 'block';
+          break;
+        case 'connecting':
+          titleText = `Calling ${recipientName || 'contact'}...`;
+          statusText = 'Ringing...';
+          elements.spinner.style.display = 'block';
+          break;
+        case 'accepting':
+          titleText = 'Connecting...';
+          statusText = 'Setting up audio...';
+          elements.spinner.style.display = 'block';
+          break;
+        case 'ringing':
+          titleText = `${callerName || 'Someone'} is calling`;
+          statusText = 'Tap to accept';
+          elements.spinner.style.display = 'none';
+          break;
+        case 'active':
+          titleText = name || 'Contact';
+          elements.spinner.style.display = 'none';
+          updateNetworkStatus();
+          return;
+        case 'ended':
+          titleText = 'Call Ended';
+          statusText = 'Returning to chat...';
+          elements.spinner.style.display = 'none';
+          break;
       }
       elements.title.textContent = titleText;
       elements.status.textContent = statusText;
       feather.replace();
     }
+
     function startTimer() {
       let sec = 0;
       elements.timer.style.display = 'block';
       timerId = setInterval(() => {
         sec++;
-        const mins = Math.floor(sec / 60).toString().padStart(2, '0');
-        const secs = (sec % 60).toString().padStart(2, '0');
-        elements.timer.textContent = `${mins}:${secs}`;
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toString().padStart(2, '0');
+        elements.timer.textContent = `${m}:${s}`;
       }, 1000);
     }
+
     function startAnimations() {
       if (callState === 'active') {
         startLocalSoundWaveAnimation();
@@ -699,6 +658,7 @@
         startAvatarSoundDance();
       }
     }
+
     function endCall(reason = 'Ended') {
       endReason = reason;
       callState = 'ended';
@@ -714,10 +674,10 @@
         location.href = chatId ? `/chat.html?chatId=${chatId}` : '/chat-list.html';
       }, 2000);
     }
+
     // === EVENTS ===
     elements.accept.onclick = async () => {
       if (callState !== 'ringing') return;
-      elements.accept.disabled = true;
       callState = 'accepting';
       stopRingtone();
       updateUI();
@@ -729,24 +689,33 @@
       try {
         await Promise.race([wait, new Promise((_, rej) => setTimeout(() => rej(), OFFER_WAIT_TIMEOUT))]);
         await answerCall();
-      } catch { endCall('Signal timeout'); }
-      elements.accept.disabled = false;
+      } catch {
+        endCall('Signal timeout');
+      }
     };
-    elements.decline.onclick = () => { socket.emit('decline-call', { callId }); endCall('Declined'); };
+    elements.decline.onclick = () => {
+      socket.emit('decline-call', { callId });
+      endCall('Declined');
+    };
     elements.mute.onclick = () => {
       isMuted = !isMuted;
       localStream.getAudioTracks()[0].enabled = !isMuted;
       elements.mute.innerHTML = isMuted ? '<i data-feather="mic-off"></i>' : '<i data-feather="mic"></i>';
       feather.replace();
     };
-    elements.speaker.onclick = () => { /* Speaker logic */ };
     elements.end.onclick = () => endCall('Ended by user');
     elements.back.onclick = () => confirm('End call?') && endCall('Back to chat');
-    elements.retry.onclick = () => { retryCount = 0; requestMic(type === 'outgoing'); };
+    elements.retry.onclick = () => {
+      retryCount = 0;
+      requestMic(type === 'outgoing');
+    };
+
     // === STARTUP ===
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(location.search);
-      callId = params.get('callId'); type = params.get('type'); chatId = params.get('chatId');
+      callId = params.get('callId');
+      type = params.get('type');
+      chatId = params.get('chatId');
       callerName = decodeURIComponent(params.get('callerName') || '').trim();
       callerAvatar = params.get('callerAvatar') || null;
       if (!callId || !type || !chatId) return setTimeout(() => location.href = '/chat-list.html', 2000);
@@ -767,20 +736,25 @@
           recipientAvatar = chat.recipient?.avatar || null;
         }
         callState = type === 'incoming' ? 'ringing' : 'init';
-        if (callState === 'ringing') { elements.spinner.style.display = 'none'; playRingtone(); }
+        if (callState === 'ringing') {
+          elements.spinner.style.display = 'none';
+          playRingtone();
+        }
         updateUI();
         initSocket();
-      } catch { setTimeout(() => location.href = '/chat-list.html', 3000); }
-    });
-    window.addEventListener('beforeunload', () => {
-      if (['connecting', 'ringing', 'active'].includes(callState) && socket?.connected) {
-        socket.emit('end-call', { callId });
+      } catch {
+        setTimeout(() => location.href = '/chat-list.html', 3000);
       }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (['connecting', 'ringing', 'active'].includes(callState) && socket?.connected) socket.emit('end-call', { callId });
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (peer) peer.close();
     });
-    ctx = elements.canvas.getContext('2d');
-    drawStaticBackground();
+
+    // === INITIAL DRAW ===
+    if (ctx) drawStaticBackground();
   </script>
 </body>
 </html>
