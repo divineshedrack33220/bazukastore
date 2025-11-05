@@ -408,6 +408,14 @@
         ]
       });
 
+      // ICE Gathering Timeout
+      setTimeout(() => {
+        if (peer.iceGatheringState !== 'complete') {
+          log('Gathering timeout — forcing complete');
+          peer.close(); // Or emit partial candidates
+        }
+      }, 10000); // 10s max gather
+
       peer.ontrack = (e) => {
         log(`REMOTE TRACK ADDED: ${e.track.kind}`);
         const stream = e.streams[0];
@@ -422,17 +430,25 @@
       peer.onconnectionstatechange = () => {
         log('ICE: ' + peer.connectionState);
         switch (peer.connectionState) {
+          case 'connected':
+            iceRetryCount = 0; // Reset on full recovery
+            log('ICE connected — retries reset');
+            break;
+          case 'completed':
+            iceRetryCount = 0; // Also reset post-gathering
+            break;
           case 'disconnected':
             log('ICE disconnected — auto-recovering...');
             networkQuality = 'poor';
             updateNetworkStatus();
+            const backoffDelay = Math.min(1000 * Math.pow(2, iceRetryCount), 10000); // 1s, 2s, 4s, cap at 10s
             setTimeout(() => {
               if (peer && peer.connectionState === 'disconnected' && iceRetryCount < MAX_ICE_RETRIES) {
                 peer.restartIce();
                 iceRetryCount++;
                 log(`ICE restart attempt ${iceRetryCount}`);
               }
-            }, 1000);
+            }, backoffDelay);
             break;
           case 'reconnecting':
             log('ICE reconnecting — monitoring...');
@@ -445,6 +461,14 @@
                   peer.createOffer().then(offer => {
                     peer.setLocalDescription(offer);
                     socket.emit('ice-renegotiate', { callId, offer });
+                    // Add listener for expected answer
+                    const answerListener = (data) => {
+                      if (data.callId === callId && data.answer) {
+                        peer.setRemoteDescription(data.answer);
+                        socket.off('call-accepted', answerListener); // Cleanup
+                      }
+                    };
+                    socket.once('call-accepted', answerListener); // Assuming server reuses this event
                   }).catch(e => log('Renegotiation failed: ' + e.message));
                 }
               }
@@ -457,6 +481,7 @@
             updateNetworkStatus();
             if (iceRetryCount < MAX_ICE_RETRIES) {
               iceRetryCount++;
+              const backoffDelay = Math.min(1000 * Math.pow(2, iceRetryCount - 1), 10000); // Start from 1s for first full recovery
               setTimeout(() => {
                 if (callState === 'active') {
                   peer.close();
@@ -468,7 +493,7 @@
                   }).catch(e => log('Recovery offer failed: ' + e.message));
                   log(`Full ICE recovery attempt ${iceRetryCount}`);
                 }
-              }, 2000);
+              }, backoffDelay);
             } else {
               log('Max ICE retries exceeded — ending call');
               endCall('ICE failure');
@@ -826,7 +851,12 @@
       if (remoteAnimationId) cancelAnimationFrame(remoteAnimationId);
       if (avatarAnimationId) cancelAnimationFrame(avatarAnimationId);
       localAnimationId = remoteAnimationId = avatarAnimationId = null;
-      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (localStream) {
+        localStream.getTracks().forEach(t => {
+          t.enabled = false; // Mute before stop
+          t.stop();
+        });
+      }
       if (peer) peer.close();
       document.body.classList.remove('call-active');
       if (callId && socket?.connected) socket.emit('end-call', { callId, reason });
