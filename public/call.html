@@ -23,7 +23,7 @@
   <style>
     :root {
       --white: #ffffff; --light-gray: #f3f4f6; --neutral-gray: #6b7280;
-      --primary-blue: #7c3aed; --alert-red: #ef4444; --primary-purple: #7c3aed;
+      --primary-blue: #3b82f6; --alert-red: #ef4444; --primary-purple: #a855f7;
       --glow: rgba(59, 130, 246, 0.6);
     }
     body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; color: white; }
@@ -62,7 +62,7 @@
     .call-btn.decline, .call-btn.end { background: linear-gradient(135deg, #ef4444, #dc2626); }
     .call-btn.mute { background: linear-gradient(135deg, #6b7280, #4b5563); }
     .call-btn.speaker { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-    .call-btn.retry { background: linear-gradient(135deg, #7c3aed, #2563eb); }
+    .call-btn.retry { background: linear-gradient(135deg, #3b82f6, #2563eb); }
     .call-btn:hover { transform: scale(1.15); box-shadow: 0 12px 30px rgba(0,0,0,.5); }
     .call-btn.muted { background: linear-gradient(135deg, #ef4444, #dc2626); }
     .call-btn.speaking, .call-btn.listening { background: linear-gradient(135deg, #10b981, #059669); animation: btn-glow 1.5s ease-in-out infinite; }
@@ -109,7 +109,7 @@
       <img id="avatar-img" style="display: none;" />
       <span id="avatar-letter">U</span>
     </div>
-    <h1 id="call-title" class="call-title">calling...</h1>
+    <h1 id="call-title" class="call-title">call...</h1>
     <p id="call-subtitle" class="call-subtitle" style="display: none;"></p> <!-- New: For both names -->
     <div id="call-timer" class="call-timer" style="display: none;">00:00</div>
     <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
@@ -192,9 +192,6 @@
     let connectionCheckInterval = null;
     let endReason = '';
     let networkQuality = 'good';
-    let iceRetryCount = 0;
-    const MAX_ICE_RETRIES = 3;
-    let mediaStatsInterval = null; // New: For monitoring audio stats
 
     // === CANVAS CONTEXT ===
     let ctx = null;
@@ -257,9 +254,9 @@
     function drawStaticBackground() {
       if (!ctx) return;
       const g = ctx.createRadialGradient(innerWidth/2, innerHeight/2, 0, innerWidth/2, innerHeight/2, Math.max(innerWidth, innerHeight));
-      g.addColorStop(0, 'rgba(147, 51, 234, 0.8)');
-      g.addColorStop(0.5, 'rgba(168, 85, 247, 0.6)');
-      g.addColorStop(1, 'rgba(196, 102, 255, 0.4)');
+      g.addColorStop(0, 'rgba(59, 130, 246, 0.8)');
+      g.addColorStop(0.5, 'rgba(239, 68, 68, 0.6)');
+      g.addColorStop(1, 'rgba(147, 51, 234, 0.4)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
     }
@@ -332,7 +329,6 @@
           elements.acceptSound.currentTime = 0;
           startTimer();
           startAnimations();
-          startMediaStats(); // New: Monitor audio stats
           updateUI();
           showToast('Connected! Say hi!'); // New: Fun toast on connect
           log('CALL ACTIVE');
@@ -358,7 +354,7 @@
             setTimeout(() => clearInterval(check), 10000);
           }
         } catch (e) {
-          log('ICE error: ' + e.message); // Enhanced: Don't ignore critical errors
+          log('ICE error (ignored): ' + e.message);
         }
       });
 
@@ -398,159 +394,36 @@
       }
     }
 
-    // New: Monitor media stats for audio issues
-    function startMediaStats() {
-      if (mediaStatsInterval) clearInterval(mediaStatsInterval);
-      mediaStatsInterval = setInterval(async () => {
-        if (!peer || callState !== 'active') return;
-        try {
-          const stats = await peer.getStats();
-          stats.forEach(report => {
-            if (report.type === 'inbound-rtp' && report.mediaType === 'audio') {
-              log(`Audio inbound: packetsLost=${report.packetsLost}, jitter=${report.jitter}, bytesReceived=${report.bytesReceived}`);
-              if (report.packetsLost > 10 || report.jitter > 30) {
-                networkQuality = 'poor';
-                updateNetworkStatus();
-                showToast('Audio lag detected — retrying ICE...');
-                if (iceRetryCount < MAX_ICE_RETRIES) peer.restartIce();
-              }
-            }
-          });
-        } catch (e) {
-          log('Stats error: ' + e.message);
-        }
-      }, 5000); // Check every 5s
-    }
-
     // === WEBRTC ===
     function createPeer() {
       peer = new RTCPeerConnection({
         iceServers: [
-          // Enhanced: More STUN for better discovery
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun.cloudflare.com:3478?transport=udp' },
-          { urls: 'stun:stun.stunprotocol.org:3478' },
-          // TURN: Keep reliable free one, add if more free available
           { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
           { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
           { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-        ],
-        // Enhanced: Bundle and mux for efficiency on cloud hosts like Render
-        bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require',
-        iceTransportPolicy: 'all' // Allow all, fallback to relay if needed
+        ]
       });
 
-      // ICE Gathering Timeout
-      setTimeout(() => {
-        if (peer.iceGatheringState !== 'complete') {
-          log('Gathering timeout — forcing complete');
-          peer.close(); // Or emit partial candidates
-        }
-      }, 10000); // 10s max gather
-
       peer.ontrack = (e) => {
-        log(`REMOTE TRACK ADDED: ${e.track.kind}, enabled: ${e.track.enabled}, muted: ${e.track.muted}`);
+        log(`REMOTE TRACK ADDED: ${e.track.kind}`);
         const stream = e.streams[0];
         elements.remoteAudio.srcObject = stream;
         elements.remoteAudio.muted = false;
         elements.remoteAudio.volume = 1.0;
-        // Enhanced: Ensure play on loadedmetadata for mobile/Render autoplay issues
-        elements.remoteAudio.addEventListener('loadedmetadata', () => {
-          elements.remoteAudio.play().catch(err => {
-            log('Remote play blocked: ' + err.message);
-            showToast('Tap to unmute audio');
-          });
-        });
-        elements.remoteAudio.play().catch(err => log('Initial play blocked: ' + err.message));
+        elements.remoteAudio.play().catch(err => log('Play blocked: ' + err.message));
         initRemoteVisualizer();
         initAvatarVisualizer();
       };
 
       peer.onconnectionstatechange = () => {
-        log('Connection state: ' + peer.connectionState);
-        switch (peer.connectionState) {
-          case 'connected':
-            iceRetryCount = 0; // Reset on full recovery
-            log('ICE connected — retries reset');
-            break;
-          case 'completed':
-            iceRetryCount = 0; // Also reset post-gathering
-            break;
-          case 'disconnected':
-            log('ICE disconnected — auto-recovering...');
-            networkQuality = 'poor';
-            updateNetworkStatus();
-            const backoffDelay = Math.min(1000 * Math.pow(2, iceRetryCount), 10000); // 1s, 2s, 4s, cap at 10s
-            setTimeout(() => {
-              if (peer && peer.connectionState === 'disconnected' && iceRetryCount < MAX_ICE_RETRIES) {
-                peer.restartIce();
-                iceRetryCount++;
-                log(`ICE restart attempt ${iceRetryCount}`);
-              }
-            }, backoffDelay);
-            break;
-          case 'reconnecting':
-            log('ICE reconnecting — monitoring...');
-            const reconStart = Date.now();
-            const reconCheck = setInterval(() => {
-              if (Date.now() - reconStart > 5000 && peer.connectionState !== 'connected') {
-                clearInterval(reconCheck);
-                if (callState === 'active' && socket?.connected) {
-                  log('Long reconnect — renegotiating...');
-                  peer.createOffer().then(offer => {
-                    peer.setLocalDescription(offer);
-                    socket.emit('ice-renegotiate', { callId, offer });
-                    // Add listener for expected answer
-                    const answerListener = (data) => {
-                      if (data.callId === callId && data.answer) {
-                        peer.setRemoteDescription(data.answer);
-                        socket.off('call-accepted', answerListener); // Cleanup
-                      }
-                    };
-                    socket.once('call-accepted', answerListener); // Assuming server reuses this event
-                  }).catch(e => log('Renegotiation failed: ' + e.message));
-                }
-              }
-            }, 1000);
-            setTimeout(() => clearInterval(reconCheck), 10000);
-            break;
-          case 'failed':
-            log('ICE failed — full recovery attempt...');
-            networkQuality = 'poor';
-            updateNetworkStatus();
-            if (iceRetryCount < MAX_ICE_RETRIES) {
-              iceRetryCount++;
-              const backoffDelay = Math.min(1000 * Math.pow(2, iceRetryCount - 1), 10000); // Start from 1s for first full recovery
-              setTimeout(() => {
-                if (callState === 'active') {
-                  peer.close();
-                  peer = createPeer();
-                  localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
-                  peer.createOffer().then(offer => {
-                    peer.setLocalDescription(offer);
-                    if (socket?.connected) socket.emit('ice-recovery', { callId, offer });
-                  }).catch(e => log('Recovery offer failed: ' + e.message));
-                  log(`Full ICE recovery attempt ${iceRetryCount}`);
-                }
-              }, backoffDelay);
-            } else {
-              log('Max ICE retries exceeded — ending call');
-              endCall('ICE failure');
-            }
-            break;
-        }
-      };
-
-      // Enhanced: Log selected candidate for debugging Render/TURN issues
-      peer.oniceconnectionstatechange = () => {
-        log('ICE connection state: ' + peer.iceConnectionState);
-        if (peer.iceConnectionState === 'connected') {
-          // Log selected pair
-          peer.getSelectedCandidatePair().then(pair => {
-            if (pair) log(`Selected candidate: local=${pair.localCandidateId}, remote=${pair.remoteCandidateId}`);
-          }).catch(e => log('Candidate pair error: ' + e.message));
+        log('ICE: ' + peer.connectionState);
+        if (peer.connectionState === 'failed') {
+          log('Connection failed — attempting recovery...');
+          networkQuality = 'poor';
+          updateNetworkStatus();
+          if (peer) peer.restartIce();
         }
       };
 
@@ -702,14 +575,11 @@
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true, // Enhanced: Enable for better volume on cloud
-            sampleRate: 48000, // Enhanced: Standard for Opus on WebRTC
-            channelCount: 1,
-            sampleSize: 16
+            autoGainControl: false,
           }
         });
         retryCount = 0;
-        log('Mic granted with enhanced constraints');
+        log('Mic granted');
         return localStream;
       } catch (err) {
         log('Mic denied: ' + err.message);
@@ -738,7 +608,7 @@
 
       stream.getTracks().forEach(track => {
         peer.addTrack(track, stream);
-        log(`Added local track: ${track.kind}, enabled: ${track.enabled}`);
+        log(`Added local track: ${track.kind}`);
       });
 
       initLocalVisualizer();
@@ -786,9 +656,8 @@
         document.body.classList.add('call-active');
         startTimer();
         startAnimations();
-        startMediaStats(); // New
         updateUI();
-        showToast('Connected! Say hi! ');
+        showToast('Connected! Say hi! 🎉');
         pendingOffer = null;
       } catch (err) {
         log('Answer failed: ' + err.message);
@@ -815,7 +684,7 @@
         elements.avatarImg.style.display = 'block';
         elements.avatarLetter.style.display = 'none';
       } else {
-        elements.avatarLetter.textContent = otherName?.[0]?.toUpperCase() || 'C';
+        elements.avatarLetter.textContent = otherName?.[0]?.toUpperCase() || 'U';
       }
 
       elements.avatar.classList.toggle('ringing', callState === 'ringing');
@@ -855,7 +724,7 @@
         case 'ringing':
           titleText = `${callerName || 'Contact'} is calling`;
           subtitleText = `Tap to chat with ${callerName || 'Contact'}`;
-          funMsg = `Hey ${userName}! ${callerName || 'They'} wants to catch up `; // New: Personalized fun
+          funMsg = `Hey ${userName}! ${callerName || 'They'} wants to catch up 🎉`; // New: Personalized fun
           elements.status.textContent = funMsg;
           break;
         case 'active':
@@ -864,8 +733,8 @@
           updateNetworkStatus();
           return;
         case 'ended':
-          titleText = 'Call Ended';
-          subtitleText = 'Bye';
+          titleText = 'Call concluded';
+          subtitleText = 'Great chat—see you soon!';
           elements.status.textContent = 'Returning to chat...';
           break;
       }
@@ -898,7 +767,6 @@
       callState = 'ended';
       clearInterval(timerId);
       clearInterval(connectionCheckInterval);
-      if (mediaStatsInterval) clearInterval(mediaStatsInterval); // New: Cleanup stats
       stopRingtone();
       stopOutgoingDial();
       elements.endSound.volume = 0.5;
@@ -908,12 +776,7 @@
       if (remoteAnimationId) cancelAnimationFrame(remoteAnimationId);
       if (avatarAnimationId) cancelAnimationFrame(avatarAnimationId);
       localAnimationId = remoteAnimationId = avatarAnimationId = null;
-      if (localStream) {
-        localStream.getTracks().forEach(t => {
-          t.enabled = false; // Mute before stop
-          t.stop();
-        });
-      }
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (peer) peer.close();
       document.body.classList.remove('call-active');
       if (callId && socket?.connected) socket.emit('end-call', { callId, reason });
