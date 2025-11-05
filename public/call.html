@@ -187,7 +187,7 @@
     let audioUnlocked = false;
     let currentRemoteTrack = null;
     let unmuteInterval = null;
-    let iceRestartTimeout = null; // For aggressive ICE restart
+    let iceRestartTimeout = null;
 
     // === CANVAS CONTEXT ===
     let ctx = null;
@@ -213,14 +213,14 @@
       const track = currentRemoteTrack;
 
       if (track) {
-      track.enabled = true;
-      log('Remote track FORCE UNMUTED');
+        track.enabled = true;
+        log('Remote track FORCE UNMUTED');
       }
 
       audio.muted = false;
       audio.volume = 1.0;
       audio.play().catch(() => {
-      log('Play blocked — will retry');
+        log('Play blocked — will retry');
       });
     }
 
@@ -242,14 +242,14 @@
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && socket && !socket.connected && callState !== 'ended') {
-      log('Tab refocused — re-init socket');
-      initSocket();
+        log('Tab refocused — re-init socket');
+        initSocket();
       }
     });
     window.addEventListener('focus', () => {
       if (socket && !socket.connected && callState !== 'ended') {
-      log('Window focused — re-init socket');
-      initSocket();
+        log('Window focused — re-init socket');
+        initSocket();
       }
     });
 
@@ -258,17 +258,17 @@
       elements.canvas.height = innerHeight;
       if (ctx) drawStaticBackground();
       if (localCtx) {
-      localCtx.canvas.width = elements.localSoundWaveCanvas.offsetWidth;
-      localCtx.canvas.height = elements.localSoundWaveCanvas.offsetHeight;
+        localCtx.canvas.width = elements.localSoundWaveCanvas.offsetWidth;
+        localCtx.canvas.height = elements.localSoundWaveCanvas.offsetHeight;
       }
       if (remoteCtx) {
-      remoteCtx.canvas.width = elements.remoteSoundWaveCanvas.offsetWidth;
-      remoteCtx.canvas.height = elements.remoteSoundWaveCanvas.offsetHeight;
+        remoteCtx.canvas.width = elements.remoteSoundWaveCanvas.offsetWidth;
+        remoteCtx.canvas.height = elements.remoteSoundWaveCanvas.offsetHeight;
       }
       if (avatarCtx) {
-      const s = elements.avatar.offsetWidth * 1.2;
-      avatarCtx.canvas.width = s;
-      avatarCtx.canvas.height = s;
+        const s = elements.avatar.offsetWidth * 1.2;
+        avatarCtx.canvas.width = s;
+        avatarCtx.canvas.height = s;
       }
     }
 
@@ -285,124 +285,124 @@
     // === SOCKET ===
     function initSocket() {
       socket = io(SOCKET_URL, {
-      auth: { token: `Bearer ${localStorage.getItem('token') || ''}` },
-      transports: ['websocket'],
-      reconnectionAttempts: 20,
-      reconnectionDelay: 500,
-      reconnectionDelayMax: 3000,
-      timeout: 15000,
-      forceNew: false
+        auth: { token: `Bearer ${localStorage.getItem('token') || ''}` },
+        transports: ['websocket'],
+        reconnectionAttempts: 20,
+        reconnectionDelay: 500,
+        reconnectionDelayMax: 3000,
+        timeout: 15000,
+        forceNew: false
       });
       socket.on('connect', () => {
-      networkQuality = 'good';
-      elements.network.textContent = 'Connected';
-      elements.network.className = 'network-indicator connected';
-      elements.network.style.display = 'flex';
-      updateNetworkStatus();
-      if (type === 'outgoing' && callState === 'init') startCall();
-      if (pendingOffer && callState === 'accepting') answerCall();
+        networkQuality = 'good';
+        elements.network.textContent = 'Connected';
+        elements.network.className = 'network-indicator connected';
+        elements.network.style.display = 'flex';
+        updateNetworkStatus();
+        if (type === 'outgoing' && callState === 'init') startCall();
+        if (pendingOffer && callState === 'accepting') answerCall();
       });
       socket.on('disconnect', () => {
-      networkQuality = 'poor';
-      elements.network.textContent = 'Reconnecting...';
-      elements.network.className = 'network-indicator disconnected';
-      updateNetworkStatus();
-      if (callState === 'active') {
-        showToast('Connection lost. Reconnecting...');
-        aggressiveIceRestart();
-      }
+        networkQuality = 'poor';
+        elements.network.textContent = 'Reconnecting...';
+        elements.network.className = 'network-indicator disconnected';
+        updateNetworkStatus();
+        if (callState === 'active') {
+          showToast('Connection lost. Reconnecting...');
+          aggressiveIceRestart();
+        }
       });
       socket.on('connect_error', () => {
-      networkQuality = 'poor';
-      elements.network.textContent = 'No connection';
-      elements.network.className = 'network-indicator disconnected';
-      updateNetworkStatus();
-      if (callState !== 'ended') {
-        showToast('Network error. Retrying...');
-      }
+        networkQuality = 'poor';
+        elements.network.textContent = 'No connection';
+        elements.network.className = 'network-indicator disconnected';
+        updateNetworkStatus();
+        if (callState !== 'ended') {
+          showToast('Network error. Retrying...');
+        }
       });
       socket.on('reconnect', () => {
-      networkQuality = 'good';
-      updateNetworkStatus();
-      showToast('Reconnected!');
+        networkQuality = 'good';
+        updateNetworkStatus();
+        showToast('Reconnected!');
       });
       socket.on('incoming-call', (data) => {
-      if (data.callId === callId && type === 'incoming') {
-        callState = 'ringing';
-        updateUI();
-        playRingtone();
-      }
+        if (data.callId === callId && type === 'incoming') {
+          callState = 'ringing';
+          updateUI();
+          playRingtone();
+        }
       });
 
       socket.on('call-offer', async ({ callId: id, offer }) => {
-      if (id !== callId || !['ringing', 'accepting'].includes(callState)) return;
-      pendingOffer = offer;
-      if (callState === 'accepting') await answerCall();
+        if (id !== callId || !['ringing', 'accepting'].includes(callState)) return;
+        pendingOffer = offer;
+        if (callState === 'accepting') await answerCall();
       });
 
       socket.on('call-accepted', async ({ callId: id, answer }) => {
-      if (id !== callId || callState !== 'connecting') return;
-      try {
-        log('Remote SDP received');
-        await peer.setRemoteDescription(answer);
-        log('Remote SDP set');
-        callState = 'active';
-        document.body.classList.add('call-active');
-        stopRingtone();
-        startTimer();
-        startAnimations();
-        updateUI();
-        showToast('Connected! Say hi!');
-        log('CALL ACTIVE');
-      } catch (e) {
-        log('Answer failed: ' + e.message);
-        showToast('Connection issue. Retrying...');
-        updateNetworkStatus();
-      }
+        if (id !== callId || callState !== 'connecting') return;
+        try {
+          log('Remote SDP received');
+          await peer.setRemoteDescription(answer);
+          log('Remote SDP set');
+          callState = 'active';
+          document.body.classList.add('call-active');
+          stopRingtone();
+          startTimer();
+          startAnimations();
+          updateUI();
+          showToast('Connected! Say hi!');
+          log('CALL ACTIVE');
+        } catch (e) {
+          log('Answer failed: ' + e.message);
+          showToast('Connection issue. Retrying...');
+          updateNetworkStatus();
+        }
       });
 
       socket.on('ice-candidate', async ({ callId: id, candidate }) => {
-      if (id !== callId || !peer) return;
-      try {
-        if (peer.remoteDescription) {
-        await peer.addIceCandidate(candidate);
-        } else {
-        log('ICE delayed');
-        const check = setInterval(async () => {
+        if (id !== callId || !peer) return;
+        try {
           if (peer.remoteDescription) {
-          clearInterval(check);
-          try { await peer.addIceCandidate(candidate); } catch (e) {}
+            await peer.addIceCandidate(candidate);
+          } else {
+            log('ICE delayed');
+            const check = setInterval(async () => {
+              if (peer.remoteDescription) {
+                clearInterval(check);
+                try { await peer.addIceCandidate(candidate); } catch (e) {}
+              }
+            }, 100);
+            setTimeout(() => clearInterval(check), 15000);
           }
-        }, 100);
-        setTimeout(() => clearInterval(check), 15000); // Longer delay
+        } catch (e) {
+          log('ICE error (ignored): ' + e.message);
         }
-      } catch (e) {
-        log('ICE error (ignored): ' + e.message);
-      }
       });
 
       socket.on('call-declined', () => endCall('Call declined by the other party.'));
       socket.on('call-ended', () => endCall('Call ended by the other party.'));
 
       connectionCheckInterval = setInterval(() => {
-      if (socket && callState === 'active') {
-        const start = Date.now();
-        socket.emit('ping', { callId }, (r) => {
-        const latency = Date.now() - start;
-        if (r?.status === 'pong') {
-          if (latency < 150) networkQuality = 'good';
-          else if (latency < 400) networkQuality = 'fair';
-          else networkQuality = 'poor';
-        } else {
-          networkQuality = 'poor';
+        if (socket && callState === 'active') {
+          const start = Date.now();
+          socket.emit('ping', { callId }, (r) => {
+            const latency = Date.now() - start;
+            if (r?.status === 'pong') {
+              if (latency < 150) networkQuality = 'good';
+              else if (latency < 400) networkQuality = 'fair';
+              else networkQuality = 'poor';
+            } else {
+              networkQuality = 'poor';
+            }
+            updateNetworkStatus();
+            if (networkQuality === 'poor') {
+              showToast('Weak signal. Optimizing connection...');
+              aggressiveIceRestart();
+            }
+          });
         }
-        updateNetworkStatus();
-        if (networkQuality === 'poor') {
-          showToast('Weak signal. Optimizing connection...');
-          aggressiveIceRestart();
-        }
-        });
-      }
       }, PING_INTERVAL);
     }
 
@@ -410,14 +410,14 @@
       if (callState !== 'active') return;
       const statusEl = elements.status;
       if (networkQuality === 'good') {
-      statusEl.className = 'call-status connected';
-      statusEl.textContent = 'Secure connection';
+        statusEl.className = 'call-status connected';
+        statusEl.textContent = 'Secure connection';
       } else if (networkQuality === 'fair') {
-      statusEl.className = 'call-status network-weak';
-      statusEl.textContent = 'Fair connection — optimizing...';
+        statusEl.className = 'call-status network-weak';
+        statusEl.textContent = 'Fair connection — optimizing...';
       } else {
-      statusEl.className = 'call-status network-weak';
-      statusEl.textContent = 'Poor connection — recovering...';
+        statusEl.className = 'call-status network-weak';
+        statusEl.textContent = 'Poor connection — recovering...';
       }
     }
 
@@ -430,136 +430,258 @@
       showToast('Optimizing connection...');
 
       iceRestartTimeout = setTimeout(async () => {
-      try {
-        const offer = await peer.createOffer({ iceRestart: true });
-        await peer.setLocalDescription(offer);
-        socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
-        log('ICE restart offer sent');
-      } catch (e) {
-        log('ICE restart failed: ' + e.message);
-      } finally {
-        iceRestartTimeout = null;
-      }
+        try {
+          const offer = await peer.createOffer({ iceRestart: true });
+          await peer.setLocalDescription(offer);
+          socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
+          log('ICE restart offer sent');
+        } catch (e) {
+          log('ICE restart failed: ' + e.message);
+        } finally {
+          iceRestartTimeout = null;
+        }
       }, 1000);
     }
 
     // === WEBRTC ===
     function createPeer() {
       peer = new RTCPeerConnection({
-      iceServers: [
-        // Google STUN
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        // OpenRelay TURN (fallback)
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-        // Twilio (backup)
-        { urls: 'stun:global.stun.twilio.com:3478' },
-        { urls: 'turn:global.turn.twilio.com:3478?transport=udp', username: 'your-twilio-username', credential: 'your-twilio-credential' },
-        { urls: 'turn:global.turn.twilio.com:3478?transport=tcp', username: 'your-twilio-username', credential: 'your-twilio-credential' }
-      ],
-      iceCandidatePoolSize: 10,
-      // Force relay for maximum reliability
-      // Uncomment if needed: iceTransportPolicy: 'relay'
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'stun:global.stun.twilio.com:3478' }
+        ],
+        iceCandidatePoolSize: 10
       });
 
       peer.ontrack = (e) => {
-      log(`REMOTE TRACK ADDED: ${e.track.kind}`);
-      const stream = e.streams[0];
-      const audioTrack = stream.getAudioTracks()[0];
-      currentRemoteTrack = audioTrack;
+        log(`REMOTE TRACK ADDED: ${e.track.kind}`);
+        const stream = e.streams[0];
+        const audioTrack = stream.getAudioTracks()[0];
+        currentRemoteTrack = audioTrack;
 
-      elements.remoteAudio.srcObject = stream;
-      elements.remoteAudio.muted = false;
-      elements.remoteAudio.volume = 1.0;
+        elements.remoteAudio.srcObject = stream;
+        elements.remoteAudio.muted = false;
+        elements.remoteAudio.volume = 1.0;
 
-      if (unmuteInterval) clearInterval(unmuteInterval);
-      let attempts = 0;
-      unmuteInterval = setInterval(() => {
-        forceUnmute();
-        attempts++;
-        if (attempts >= 15) {
-        clearInterval(unmuteInterval);
-        unmuteInterval = null;
+        if (unmuteInterval) clearInterval(unmuteInterval);
+        let attempts = 0;
+        unmuteInterval = setInterval(() => {
+          forceUnmute();
+          attempts++;
+          if (attempts >= 15) {
+            clearInterval(unmuteInterval);
+            unmuteInterval = null;
+          }
+        }, 500);
+
+        if (audioUnlocked) {
+          forceUnmute();
+        } else {
+          showToast('Tap screen to hear caller');
         }
-      }, 500);
 
-      if (audioUnlocked) {
-        forceUnmute();
-      } else {
-        showToast('Tap screen to hear caller');
-      }
+        initRemoteVisualizer();
+        initAvatarVisualizer();
 
-      initRemoteVisualizer();
-      initAvatarVisualizer();
+        e.track.onunmute = () => {
+          log('Remote track naturally unmuted');
+          forceUnmute();
+        };
 
-      e.track.onunmute = () => {
-        log('Remote track naturally unmuted');
-        forceUnmute();
-      };
-
-      e.track.onmute = () => {
-        log('Remote track muted again');
-        forceUnmute();
-      };
+        e.track.onmute = () => {
+          log('Remote track muted again');
+          forceUnmute();
+        };
       };
 
       peer.onconnectionstatechange = () => {
-      log('ICE: ' + peer.connectionState);
-      if (peer.connectionState === 'failed') {
-        log('Connection failed — aggressive recovery');
-        networkQuality = 'poor';
-        updateNetworkStatus();
-        showToast('Connection failed. Recovering...');
-        aggressiveIceRestart();
-      } else if (peer.connectionState === 'disconnected') {
-        showToast('Reconnecting...');
-        aggressiveIceRestart();
-      }
+        log('ICE: ' + peer.connectionState);
+        if (peer.connectionState === 'failed') {
+          log('Connection failed — aggressive recovery');
+          networkQuality = 'poor';
+          updateNetworkStatus();
+          showToast('Connection failed. Recovering...');
+          aggressiveIceRestart();
+        } else if (peer.connectionState === 'disconnected') {
+          showToast('Reconnecting...');
+          aggressiveIceRestart();
+        }
       };
 
       peer.onicecandidate = (e) => {
-      if (e.candidate) {
-        socket.emit('ice-candidate', { callId, candidate: e.candidate.toJSON() });
-      }
+        if (e.candidate) {
+          socket.emit('ice-candidate', { callId, candidate: e.candidate.toJSON() });
+        }
       };
 
       peer.oniceconnectionstatechange = () => {
-      if (peer.iceConnectionState === 'failed') {
-        showToast('ICE failed. Restarting...');
-        aggressiveIceRestart();
-      }
+        if (peer.iceConnectionState === 'failed') {
+          showToast('ICE failed. Restarting...');
+          aggressiveIceRestart();
+        }
       };
 
       return peer;
     }
 
-    // === VISUALIZERS (unchanged) ===
-    // ... [same as before] ...
+    // === VISUALIZERS ===
+    function initAvatarVisualizer() {
+      if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      avatarAnalyser = actx.createAnalyser();
+      avatarAnalyser.fftSize = 512;
+      avatarAnalyser.smoothingTimeConstant = 0.85;
+      actx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(avatarAnalyser);
+      avatarDataArray = new Uint8Array(avatarAnalyser.frequencyBinCount);
+      avatarCtx = elements.avatarSoundCanvas.getContext('2d');
+      resizeCanvas();
+      startAvatarSoundDance();
+    }
+
+    function startAvatarSoundDance() {
+      if (avatarAnimationId) return;
+      const draw = () => {
+        avatarAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !avatarAnalyser) {
+          elements.avatar.classList.remove('speaking');
+          return;
+        }
+        avatarAnalyser.getByteFrequencyData(avatarDataArray);
+        const vol = avatarDataArray.reduce((a, b) => a + b, 0) / avatarDataArray.length / 255;
+        if (vol > 0.03) {
+          elements.avatar.classList.add('speaking');
+          drawAvatarWave(vol);
+        } else {
+          elements.avatar.classList.remove('speaking');
+          avatarCtx.clearRect(0, 0, avatarCtx.canvas.width, avatarCtx.canvas.height);
+        }
+      };
+      draw();
+    }
+
+    function drawAvatarWave(vol) {
+      const c = avatarCtx.canvas;
+      avatarCtx.clearRect(0, 0, c.width, c.height);
+      const cx = c.width / 2, cy = c.height / 2;
+      const bars = 64;
+      const radius = c.width * 0.35;
+      const barWidth = 2.5;
+      const gap = 1.5;
+
+      avatarCtx.lineCap = 'round';
+      for (let i = 0; i < bars; i++) {
+        const angle = (i / bars) * Math.PI * 2 - Math.PI / 2;
+        const index = Math.floor((i / bars) * avatarDataArray.length);
+        const value = avatarDataArray[index] / 255;
+        const height = value * vol * c.width * 0.18;
+
+        const x1 = cx + Math.cos(angle) * radius;
+        const y1 = cy + Math.sin(angle) * radius;
+        const x2 = cx + Math.cos(angle) * (radius + height);
+        const y2 = cy + Math.sin(angle) * (radius + height);
+
+        const gradient = avatarCtx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, `hsla(210, 100%, 70%, ${vol})`);
+        gradient.addColorStop(1, `hsla(210, 100%, 50%, ${vol * 0.6})`);
+
+        avatarCtx.beginPath();
+        avatarCtx.moveTo(x1, y1);
+        avatarCtx.lineTo(x2, y2);
+        avatarCtx.lineWidth = barWidth + gap * value;
+        avatarCtx.strokeStyle = gradient;
+        avatarCtx.stroke();
+      }
+    }
+
+    function initLocalVisualizer() {
+      if (!localStream || localAnalyser) return;
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      localAnalyser = actx.createAnalyser();
+      localAnalyser.fftSize = 256;
+      localAnalyser.smoothingTimeConstant = 0.8;
+      actx.createMediaStreamSource(localStream).connect(localAnalyser);
+      localDataArray = new Uint8Array(localAnalyser.frequencyBinCount);
+      localCtx = elements.localSoundWaveCanvas.getContext('2d');
+      elements.localSoundWaveCanvas.style.display = 'block';
+      resizeCanvas();
+      startLocalSoundWaveAnimation();
+    }
+
+    function startLocalSoundWaveAnimation() {
+      if (localAnimationId) return;
+      const draw = () => {
+        localAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !localAnalyser) {
+          elements.mute.classList.remove('listening');
+          return;
+        }
+        localAnalyser.getByteFrequencyData(localDataArray);
+        const vol = localDataArray.reduce((a, b) => a + b, 0) / localDataArray.length / 255;
+        if (vol > 0.02 && !isMuted) elements.mute.classList.add('listening');
+        else elements.mute.classList.remove('listening');
+      };
+      draw();
+    }
+
+    function initRemoteVisualizer() {
+      if (!elements.remoteAudio.srcObject || remoteAnalyser) return;
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      remoteAnalyser = actx.createAnalyser();
+      remoteAnalyser.fftSize = 256;
+      remoteAnalyser.smoothingTimeConstant = 0.8;
+      actx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(remoteAnalyser);
+      remoteDataArray = new Uint8Array(remoteAnalyser.frequencyBinCount);
+      remoteCtx = elements.remoteSoundWaveCanvas.getContext('2d');
+      elements.remoteSoundWaveCanvas.style.display = 'block';
+      resizeCanvas();
+      startRemoteSoundWaveAnimation();
+    }
+
+    function startRemoteSoundWaveAnimation() {
+      if (remoteAnimationId) return;
+      const draw = () => {
+        remoteAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !remoteAnalyser) {
+          elements.speaker.classList.remove('speaking');
+          return;
+        }
+        remoteAnalyser.getByteFrequencyData(remoteDataArray);
+        const vol = remoteDataArray.reduce((a, b) => a + b, 0) / remoteDataArray.length / 255;
+        if (vol > 0.02) elements.speaker.classList.add('speaking');
+        else elements.speaker.classList.remove('speaking');
+      };
+      draw();
+    }
 
     // === MEDIA ===
     async function getMic() {
       try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: false,
-        sampleRate: 48000,
-        channelCount: 1
-        }
-      });
-      retryCount = 0;
-      log('Mic granted');
-      return localStream;
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false,
+            sampleRate: 48000,
+            channelCount: 1
+          }
+        });
+        retryCount = 0;
+        log('Mic granted');
+        return localStream;
       } catch (err) {
-      log('Mic denied: ' + err.message);
-      handleMicError(err);
-      return null;
+        log('Mic denied: ' + err.message);
+        handleMicError(err);
+        return null;
       }
     }
 
@@ -582,21 +704,21 @@
       peer = createPeer();
 
       stream.getTracks().forEach(track => {
-      peer.addTrack(track, stream);
-      log(`Added local track: ${track.kind}`);
+        peer.addTrack(track, stream);
+        log(`Added local track: ${track.kind}`);
       });
 
       initLocalVisualizer();
 
       if (isOutgoing) {
-      callState = 'connecting';
-      const offer = await peer.createOffer({ iceRestart: true });
-      await peer.setLocalDescription(offer);
-      if (socket?.connected) {
-        socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
-        log('Offer sent');
-      }
-      updateUI();
+        callState = 'connecting';
+        const offer = await peer.createOffer({ iceRestart: true });
+        await peer.setLocalDescription(offer);
+        if (socket?.connected) {
+          socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
+          log('Offer sent');
+        }
+        updateUI();
       }
 
       return { stream, peer };
@@ -604,8 +726,8 @@
 
     async function startCall() {
       if (!recipientId || !socket?.connected) {
-      setTimeout(startCall, 1000);
-      return;
+        setTimeout(startCall, 1000);
+        return;
       }
       await requestMic(true);
     }
@@ -613,25 +735,25 @@
     async function answerCall() {
       if (!pendingOffer || !peer) return;
       try {
-      await peer.setRemoteDescription(pendingOffer);
-      const answer = await peer.createAnswer();
-      await peer.setLocalDescription(answer);
-      if (socket?.connected) {
-        socket.emit('accept-call', { callId, answer });
-        log('Answer sent');
-      }
-      callState = 'active';
-      document.body.classList.add('call-active');
-      startTimer();
-      startAnimations();
-      updateUI();
-      showToast('Connected! Say hi!');
-      pendingOffer = null;
+        await peer.setRemoteDescription(pendingOffer);
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        if (socket?.connected) {
+          socket.emit('accept-call', { callId, answer });
+          log('Answer sent');
+        }
+        callState = 'active';
+        document.body.classList.add('call-active');
+        startTimer();
+        startAnimations();
+        updateUI();
+        showToast('Connected! Say hi!');
+        pendingOffer = null;
       } catch (err) {
-      log('Answer failed: ' + err.message);
-      showToast('Failed to connect. Retrying...');
-      elements.status.textContent = 'Connection in progress...';
-      updateNetworkStatus();
+        log('Answer failed: ' + err.message);
+        showToast('Failed to connect. Retrying...');
+        elements.status.textContent = 'Connection in progress...';
+        updateNetworkStatus();
       }
     }
 
@@ -646,15 +768,85 @@
 
     // === UI ===
     function updateUI() {
-      // ... [unchanged] ...
+      const otherName = type === 'outgoing' ? recipientName : callerName;
+      const otherAvatar = type === 'outgoing' ? recipientAvatar : callerAvatar;
+      if (otherAvatar) {
+        elements.avatarImg.src = otherAvatar;
+        elements.avatarImg.style.display = 'block';
+        elements.avatarLetter.style.display = 'none';
+      } else {
+        elements.avatarLetter.textContent = otherName?.[0]?.toUpperCase() || 'U';
+      }
+
+      elements.avatar.classList.toggle('ringing', callState === 'ringing');
+      elements.avatar.classList.toggle('connecting', callState === 'connecting');
+      elements.back.style.display = ['connecting', 'ringing', 'active'].includes(callState) ? 'flex' : 'none';
+      elements.accept.style.display = callState === 'ringing' ? 'flex' : 'none';
+      elements.decline.style.display = callState === 'ringing' ? 'flex' : 'none';
+      elements.mute.style.display = callState === 'active' ? 'flex' : 'none';
+      elements.speaker.style.display = callState === 'active' ? 'flex' : 'none';
+      elements.end.style.display = ['connecting', 'active'].includes(callState) ? 'flex' : 'none';
+      elements.retry.style.display = retryCount > 0 && callState !== 'active' ? 'flex' : 'none';
+      elements.mute.classList.toggle('muted', isMuted);
+      elements.status.classList.remove('connected', 'network-weak');
+      elements.spinner.style.display = 'none';
+      elements.subtitle.style.display = 'block';
+
+      let titleText, subtitleText;
+      switch (callState) {
+        case 'init':
+          titleText = 'Initiating secure call';
+          subtitleText = `${userName} & ${recipientName || 'Contact'}`;
+          elements.status.textContent = 'Getting you ready to chat...';
+          break;
+        case 'connecting':
+          titleText = `${userName} & ${recipientName || 'Contact'}`;
+          subtitleText = 'Reaching out...';
+          elements.status.textContent = 'Linking you up... almost there!';
+          break;
+        case 'accepting':
+          titleText = 'Joining call';
+          subtitleText = `${userName} & ${callerName || 'Contact'}`;
+          elements.status.textContent = 'One sec—grabbing your mic!';
+          break;
+        case 'ringing':
+          titleText = `${callerName || 'Contact'} is calling`;
+          subtitleText = `Tap to chat with ${callerName || 'Contact'}`;
+          elements.status.textContent = `Hey ${userName}! ${callerName || 'They'} wants to catch up`;
+          break;
+        case 'active':
+          titleText = `${userName} & ${otherName || 'Contact'}`;
+          subtitleText = 'Live audio connection';
+          updateNetworkStatus();
+          return;
+        case 'ended':
+          titleText = 'Call concluded';
+          subtitleText = 'Great chat—see you soon!';
+          elements.status.textContent = `Call ended: ${endReason}. Returning to chat...`;
+          break;
+      }
+      elements.title.textContent = titleText;
+      elements.subtitle.textContent = subtitleText;
+      feather.replace();
     }
 
     function startTimer() {
-      // ... [unchanged] ...
+      let sec = 0;
+      elements.timer.style.display = 'block';
+      timerId = setInterval(() => {
+        sec++;
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toString().padStart(2, '0');
+        elements.timer.textContent = `${m}:${s}`;
+      }, 1000);
     }
 
     function startAnimations() {
-      // ... [unchanged] ...
+      if (callState === 'active') {
+        startLocalSoundWaveAnimation();
+        startRemoteSoundWaveAnimation();
+        startAvatarSoundDance();
+      }
     }
 
     function endCall(reason = 'Ended by user') {
@@ -665,8 +857,8 @@
       clearInterval(connectionCheckInterval);
       if (iceRestartTimeout) clearTimeout(iceRestartTimeout);
       if (unmuteInterval) {
-      clearInterval(unmuteInterval);
-      unmuteInterval = null;
+        clearInterval(unmuteInterval);
+        unmuteInterval = null;
       }
       stopRingtone();
       elements.endSound.volume = 0.5;
@@ -683,7 +875,7 @@
       updateUI();
       showToast(`Call ending: ${reason}`);
       setTimeout(() => {
-      location.href = chatId ? `/chat.html?chatId=${chatId}` : '/chat-list.html';
+        location.href = chatId ? `/chat.html?chatId=${chatId}` : '/chat-list.html';
       }, 3000);
     }
 
@@ -708,74 +900,74 @@
       let attempt = 0;
 
       const tryAccept = async () => {
-      attempt++;
-      log(`Accept attempt ${attempt}/${maxRetries}`);
+        attempt++;
+        log(`Accept attempt ${attempt}/${maxRetries}`);
 
-      const micPromise = requestMic(false);
-      const offerWaitPromise = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Offer timeout')), 20000);
-        const check = () => {
-        if (pendingOffer) {
-          clearTimeout(timeout);
-          resolve();
-        } else if (callState !== 'accepting') {
-          clearTimeout(timeout);
-          reject(new Error('Call state changed'));
-        } else {
-          setTimeout(check, 100);
+        const micPromise = requestMic(false);
+        const offerWaitPromise = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Offer timeout')), 20000);
+          const check = () => {
+            if (pendingOffer) {
+              clearTimeout(timeout);
+              resolve();
+            } else if (callState !== 'accepting') {
+              clearTimeout(timeout);
+              reject(new Error('Call state changed'));
+            } else {
+              setTimeout(check, 100);
+            }
+          };
+          check();
+        });
+
+        try {
+          const results = await Promise.allSettled([micPromise, offerWaitPromise]);
+
+          const micResult = results[0];
+          const offerResult = results[1];
+
+          if (micResult.status === 'rejected') {
+            log('Mic failed: ' + micResult.reason.message);
+            showToast('Microphone access denied. Please allow and retry.');
+            throw micResult.reason;
+          }
+
+          if (offerResult.status === 'rejected') {
+            log('Offer wait failed: ' + offerResult.reason.message);
+            showToast('Connection timeout. Retrying...');
+            throw offerResult.reason;
+          }
+
+          await answerCall();
+          log('Call accepted successfully');
+
+          audioUnlocked = true;
+          forceUnmute();
+          log('Full audio force on accept');
+
+          return;
+
+        } catch (err) {
+          log('Accept failed: ' + err.message);
+          if (attempt < maxRetries) {
+            showToast(`Retrying... (${attempt}/${maxRetries})`);
+            elements.status.textContent = `Retrying connection... (${attempt}/${maxRetries})`;
+            setTimeout(tryAccept, 2000);
+          } else {
+            showToast('Failed to connect. Please try again.');
+            endCall('Connection failed after retries.');
+          }
         }
-        };
-        check();
-      });
-
-      try {
-        const results = await Promise.allSettled([micPromise, offerWaitPromise]);
-
-        const micResult = results[0];
-        const offerResult = results[1];
-
-        if (micResult.status === 'rejected') {
-        log('Mic failed: ' + micResult.reason.message);
-        showToast('Microphone access denied. Please allow and retry.');
-        throw micResult.reason;
-        }
-
-        if (offerResult.status === 'rejected') {
-        log('Offer wait failed: ' + offerResult.reason.message);
-        showToast('Connection timeout. Retrying...');
-        throw offerResult.reason;
-        }
-
-        await answerCall();
-        log('Call accepted successfully');
-
-        audioUnlocked = true;
-        forceUnmute();
-        log('Full audio force on accept');
-
-        return;
-
-      } catch (err) {
-        log('Accept failed: ' + err.message);
-        if (attempt < maxRetries) {
-        showToast(`Retrying... (${attempt}/${maxRetries})`);
-        elements.status.textContent = `Retrying connection... (${attempt}/${maxRetries})`;
-        setTimeout(tryAccept, 2000);
-        } else {
-        showToast('Failed to connect. Please try again.');
-        endCall('Connection failed after retries.');
-        }
-      }
       };
 
       tryAccept();
 
       setTimeout(() => {
-      if (callState === 'accepting') {
-        log('Accept stuck — forcing end');
-        showToast('Connection took too long. Ending call.');
-        endCall('Connection timeout.');
-      }
+        if (callState === 'accepting') {
+          log('Accept stuck — forcing end');
+          showToast('Connection took too long. Ending call.');
+          endCall('Connection timeout.');
+        }
       }, 40000);
     };
 
@@ -800,16 +992,16 @@
     // === STARTUP ===
     async function performStartupFetches(token, isOutgoing) {
       const [callRes, profileRes, chatRes] = await Promise.all([
-      fetch(`${API_BASE_URL}/calls/${callId}`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE_URL}/users/profile`, { headers: { Authorization: `Bearer ${token}` } }),
-      isOutgoing ? fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({}) })
+        fetch(`${API_BASE_URL}/calls/${callId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/users/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+        isOutgoing ? fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({}) })
       ]);
       if (!callRes.ok || !profileRes.ok || !chatRes.ok) throw new Error('Validation failed');
       if (isOutgoing) {
-      const chat = await chatRes.json();
-      recipientId = chat.recipient?._id;
-      recipientName = chat.recipient?.name?.trim();
-      recipientAvatar = chat.recipient?.avatar || null;
+        const chat = await chatRes.json();
+        recipientId = chat.recipient?._id;
+        recipientName = chat.recipient?.name?.trim();
+        recipientAvatar = chat.recipient?.avatar || null;
       }
       return true;
     }
@@ -829,31 +1021,31 @@
       initSocket();
 
       if (type === 'incoming') {
-      callState = 'ringing';
-      updateUI();
-      playRingtone();
-      performStartupFetches(token, false).catch(err => {
-        log('Incoming validation failed (non-blocking): ' + err.message);
-      });
-      return;
+        callState = 'ringing';
+        updateUI();
+        playRingtone();
+        performStartupFetches(token, false).catch(err => {
+          log('Incoming validation failed (non-blocking): ' + err.message);
+        });
+        return;
       }
 
       elements.status.textContent = 'Validating session...';
       const retryStartup = async (attempt = 1) => {
-      try {
-        await performStartupFetches(token, true);
-        callState = 'init';
-        updateUI();
-      } catch (err) {
-        log('Startup failed (attempt ' + attempt + '): ' + err.message);
-        elements.status.textContent = `Session validation in progress (attempt ${attempt})...`;
-        if (attempt >= 3) {
-        showToast('Session validation failed. Please try again.');
-        setTimeout(() => location.href = '/chat-list.html', 2000);
-        } else {
-        setTimeout(() => retryStartup(attempt + 1), 3000);
+        try {
+          await performStartupFetches(token, true);
+          callState = 'init';
+          updateUI();
+        } catch (err) {
+          log('Startup failed (attempt ' + attempt + '): ' + err.message);
+          elements.status.textContent = `Session validation in progress (attempt ${attempt})...`;
+          if (attempt >= 3) {
+            showToast('Session validation failed. Please try again.');
+            setTimeout(() => location.href = '/chat-list.html', 2000);
+          } else {
+            setTimeout(() => retryStartup(attempt + 1), 3000);
+          }
         }
-      }
       };
       await retryStartup();
     });
@@ -866,7 +1058,7 @@
 
     window.addEventListener('load', () => {
       if (callState === 'active' && (!peer || peer.connectionState !== 'connected')) {
-      endCall('Session refreshed. Starting fresh.');
+        endCall('Session refreshed. Starting fresh.');
       }
     });
 
