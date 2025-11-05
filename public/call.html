@@ -23,7 +23,7 @@
   <style>
     :root {
       --white: #ffffff; --light-gray: #f3f4f6; --neutral-gray: #6b7280;
-      --primary-blue: #3b82f6; --alert-red: #ef4444; --primary-purple: #a855f7;
+      --primary-blue: #3b82f6; --alert-red: #ef4444;
       --glow: rgba(59, 130, 246, 0.6);
     }
     body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; color: white; }
@@ -41,7 +41,7 @@
     @keyframes toastSlide { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(-10px); } }
     .call-avatar { width: 160px; height: 160px; border-radius: 50%; background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: bold; margin-bottom: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4), 0 0 30px var(--glow); position: relative; overflow: hidden; transition: all 0.3s ease; }
     .call-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-    .call-avatar::before { content: ''; position: absolute; top: -12px; left: -12px; right: -12px; bottom: -12px; background: conic-gradient(var(--primary-blue), var(--alert-red), var(--primary-purple)); border-radius: 50%; z-index: -1; opacity: 0; transition: opacity 0.4s ease; animation: rotate-gradient 8s linear infinite; animation-play-state: paused; }
+    .call-avatar::before { content: ''; position: absolute; top: -12px; left: -12px; right: -12px; bottom: -12px; background: conic-gradient(var(--primary-blue), var(--alert-red), var(--primary-blue)); border-radius: 50%; z-index: -1; opacity: 0; transition: opacity 0.4s ease; animation: rotate-gradient 8s linear infinite; animation-play-state: paused; }
     .call-avatar.ringing::before, .call-avatar.connecting::before { opacity: 1; animation-play-state: running; }
     @keyframes rotate-gradient { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .call-avatar .pulse-ring { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 3px solid rgba(255,255,255,0.7); border-radius: 50%; transform: translate(-50%,-50%) scale(1); opacity: 0; pointer-events: none; animation: ig-pulse-ring 2s ease-out infinite; }
@@ -109,7 +109,7 @@
       <img id="avatar-img" style="display: none;" />
       <span id="avatar-letter">U</span>
     </div>
-    <h1 id="call-title" class="call-title">call...</h1>
+    <h1 id="call-title" class="call-title">Incoming call...</h1>
     <p id="call-subtitle" class="call-subtitle" style="display: none;"></p> <!-- New: For both names -->
     <div id="call-timer" class="call-timer" style="display: none;">00:00</div>
     <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
@@ -124,19 +124,10 @@
   </div>
   <audio id="remote-audio" autoplay playsinline></audio>
   <audio id="ringtone" loop preload="auto">
-    <source src="sound/mixkit-on-hold-ringtone-1361.wav" type="audio/wav">
+    <source src="sound/mixkit-on-hold-ringtone-1361.wav" type="audio/mpeg">
   </audio>
   <audio id="end-sound" preload="auto">
-    <source src="sound/end-call-120633.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="outgoing-dial" loop preload="auto">
-    <source src="sound/phone-outgoing-call-72202.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="accept-sound" preload="auto">
-    <source src="sound/alert-sound-230091.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="reconnect-sound" preload="auto">
-    <source src="sound/notification-beep-229154.mp3" type="audio/mpeg">
+    <source src="sound/end-call-120633.mp3" type="audio/wav">
   </audio>
 
   <script>
@@ -170,9 +161,6 @@
       remoteAudio: document.getElementById('remote-audio'),
       ringtone: document.getElementById('ringtone'),
       endSound: document.getElementById('end-sound'),
-      outgoingDial: document.getElementById('outgoing-dial'),
-      acceptSound: document.getElementById('accept-sound'),
-      reconnectSound: document.getElementById('reconnect-sound'),
       network: document.getElementById('network-indicator'),
       debug: document.getElementById('debug-info')
     };
@@ -190,10 +178,8 @@
     let recipientId = null;
     let callerAvatar = null, recipientAvatar = null;
     let connectionCheckInterval = null;
-    let silenceCheck = null;
     let endReason = '';
     let networkQuality = 'good';
-    let localActx = null, remoteActx = null, avatarActx = null;
 
     // === CANVAS CONTEXT ===
     let ctx = null;
@@ -258,7 +244,7 @@
       const g = ctx.createRadialGradient(innerWidth/2, innerHeight/2, 0, innerWidth/2, innerHeight/2, Math.max(innerWidth, innerHeight));
       g.addColorStop(0, 'rgba(59, 130, 246, 0.8)');
       g.addColorStop(0.5, 'rgba(239, 68, 68, 0.6)');
-      g.addColorStop(1, 'rgba(147, 51, 234, 0.4)');
+      g.addColorStop(1, 'rgba(59, 130, 246, 0.4)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
     }
@@ -297,17 +283,10 @@
       });
       socket.on('reconnect', () => {
         networkQuality = 'good';
-        elements.reconnectSound.volume = 0.5;
-        elements.reconnectSound.play().catch(() => {});
-        elements.reconnectSound.currentTime = 0;
         updateNetworkStatus();
       });
       socket.on('incoming-call', (data) => {
-        if (data.callId !== callId) {
-          log('Ignored mismatched incoming-call: ' + data.callId);
-          return;
-        }
-        if (type === 'incoming') {
+        if (data.callId === callId && type === 'incoming') {
           callState = 'ringing';
           updateUI();
           playRingtone();
@@ -329,14 +308,10 @@
           callState = 'active';
           document.body.classList.add('call-active');
           stopRingtone();
-          stopOutgoingDial();
-          elements.acceptSound.volume = 0.5;
-          elements.acceptSound.play().catch(() => {});
-          elements.acceptSound.currentTime = 0;
           startTimer();
           startAnimations();
           updateUI();
-          showToast('Connected! Say hi!'); // New: Fun toast on connect
+          showToast('Connected! Say hi! 🎉'); // New: Fun toast on connect
           log('CALL ACTIVE');
         } catch (e) {
           log('Answer failed: ' + e.message);
@@ -380,24 +355,6 @@
               networkQuality = 'poor';
             }
             updateNetworkStatus();
-            // Add stats check
-            peer.getStats().then(stats => {
-              let packetsLost = 0, totalPackets = 0;
-              stats.forEach(report => {
-                if (report.type === 'outbound-rtp' || report.type === 'inbound-rtp') {
-                  packetsLost += report.packetsLost || 0;
-                  totalPackets += (report.packetsSent || report.packetsReceived) || 0;
-                }
-              });
-              const lossRate = totalPackets > 0 ? (packetsLost / totalPackets) * 100 : 0;
-              if (lossRate > 10) {
-                log(`High loss (${lossRate.toFixed(1)}%) — restarting ICE`);
-                peer.restartIce();
-                showToast('Recovering connection... 📡');
-                networkQuality = 'fair';  // Trigger UI
-                updateNetworkStatus();
-              }
-            }).catch(e => log('Stats error: ' + e.message));
           });
         }
       }, PING_INTERVAL);
@@ -435,7 +392,7 @@
         const stream = e.streams[0];
         elements.remoteAudio.srcObject = stream;
         elements.remoteAudio.muted = false;
-        elements.remoteAudio.volume = 0.8;
+        elements.remoteAudio.volume = 1.0;
         elements.remoteAudio.play().catch(err => log('Play blocked: ' + err.message));
         initRemoteVisualizer();
         initAvatarVisualizer();
@@ -463,10 +420,8 @@
     // === CHATGPT-STYLE SOUND WAVES ===
     function initAvatarVisualizer() {
       if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
-      if (avatarActx) avatarActx.close();
       const actx = new (window.AudioContext || window.webkitAudioContext)();
       if (actx.state === 'suspended') actx.resume();
-      avatarActx = actx;
       avatarAnalyser = actx.createAnalyser();
       avatarAnalyser.fftSize = 512;
       avatarAnalyser.smoothingTimeConstant = 0.85;
@@ -534,10 +489,8 @@
 
     function initLocalVisualizer() {
       if (!localStream || localAnalyser) return;
-      if (localActx) localActx.close();
       const actx = new (window.AudioContext || window.webkitAudioContext)();
       if (actx.state === 'suspended') actx.resume();
-      localActx = actx;
       localAnalyser = actx.createAnalyser();
       localAnalyser.fftSize = 256;
       localAnalyser.smoothingTimeConstant = 0.8;
@@ -567,10 +520,8 @@
 
     function initRemoteVisualizer() {
       if (!elements.remoteAudio.srcObject || remoteAnalyser) return;
-      if (remoteActx) remoteActx.close();
       const actx = new (window.AudioContext || window.webkitAudioContext)();
       if (actx.state === 'suspended') actx.resume();
-      remoteActx = actx;
       remoteAnalyser = actx.createAnalyser();
       remoteAnalyser.fftSize = 256;
       remoteAnalyser.smoothingTimeConstant = 0.8;
@@ -603,10 +554,9 @@
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            channelCount: { ideal: 1 },
-            echoCancellation: { ideal: true },
-            noiseSuppression: { ideal: true },
-            autoGainControl: { ideal: true },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false,
           }
         });
         retryCount = 0;
@@ -652,17 +602,10 @@
           socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
           log('Offer sent');
         }
-        elements.outgoingDial.volume = 0.5;
-        elements.outgoingDial.play().catch(() => {});
         updateUI();
       }
 
       return { stream, peer };
-    }
-
-    function stopOutgoingDial() {
-      elements.outgoingDial.pause();
-      elements.outgoingDial.currentTime = 0;
     }
 
     async function startCall() {
@@ -762,7 +705,7 @@
           titleText = `${userName} & ${otherName || 'Contact'}`;
           subtitleText = 'Live audio connection';
           updateNetworkStatus();
-          break;
+          return;
         case 'ended':
           titleText = 'Call concluded';
           subtitleText = 'Great chat—see you soon!';
@@ -790,26 +733,6 @@
         startLocalSoundWaveAnimation();
         startRemoteSoundWaveAnimation();
         startAvatarSoundDance();
-        // Silence detector: WhatsApp-style auto-recovery
-        let silenceStart = null;
-        const SILENCE_THRESHOLD = 0.01;  // Adjust if too sensitive
-        const SILENCE_TIMEOUT = 5000;    // 5s before retry
-        silenceCheck = setInterval(() => {
-          if (callState !== 'active' || !remoteDataArray) return;
-          const avgVol = remoteDataArray.reduce((a, b) => a + b, 0) / remoteDataArray.length / 255;
-          if (avgVol < SILENCE_THRESHOLD) {
-            if (!silenceStart) silenceStart = Date.now();
-            if (Date.now() - silenceStart > SILENCE_TIMEOUT) {
-              log('Silence detected — auto-retrying audio');
-              showToast('Optimizing audio... 🔄');
-              endCall('Silence retry');  // Clean end, then restart via global retry
-              setTimeout(() => requestMic(type === 'outgoing'), 1000);  // Re-init
-              clearInterval(silenceCheck);
-            }
-          } else {
-            silenceStart = null;
-          }
-        }, 2000);  // Check every 2s
       }
     }
 
@@ -818,9 +741,7 @@
       callState = 'ended';
       clearInterval(timerId);
       clearInterval(connectionCheckInterval);
-      if (silenceCheck) clearInterval(silenceCheck);
       stopRingtone();
-      stopOutgoingDial();
       elements.endSound.volume = 0.5;
       elements.endSound.play().catch(() => {});
       elements.endSound.currentTime = 0;
@@ -828,21 +749,7 @@
       if (remoteAnimationId) cancelAnimationFrame(remoteAnimationId);
       if (avatarAnimationId) cancelAnimationFrame(avatarAnimationId);
       localAnimationId = remoteAnimationId = avatarAnimationId = null;
-      if (localActx) localActx.close();
-      if (remoteActx) remoteActx.close();
-      if (avatarActx) avatarActx.close();
-      localActx = remoteActx = avatarActx = null;
       if (localStream) localStream.getTracks().forEach(t => t.stop());
-      // Force-clean remote too (WhatsApp ensures no ghost audio)
-      if (elements.remoteAudio.srcObject) {
-        elements.remoteAudio.srcObject.getTracks().forEach(t => t.stop());
-        elements.remoteAudio.srcObject = null;
-      }
-      // Pause all sounds to kill loops
-      [elements.ringtone, elements.outgoingDial, elements.endSound, elements.acceptSound, elements.reconnectSound].forEach(sound => {
-        sound.pause();
-        sound.currentTime = 0;
-      });
       if (peer) peer.close();
       document.body.classList.remove('call-active');
       if (callId && socket?.connected) socket.emit('end-call', { callId, reason });
@@ -857,9 +764,6 @@
       if (callState !== 'ringing') return;
       callState = 'accepting';
       stopRingtone();
-      elements.acceptSound.volume = 0.5;
-      elements.acceptSound.play().catch(() => {});
-      elements.acceptSound.currentTime = 0;
       updateUI();
       elements.accept.style.animation = 'wiggle 0.5s ease'; // New: Fun button wiggle on tap
       setTimeout(() => elements.accept.style.animation = '', 500);
@@ -892,12 +796,8 @@
       elements.mute.innerHTML = isMuted ? '<i data-feather="mic-off"></i>' : '<i data-feather="mic"></i>';
       feather.replace();
     };
-    elements.end.onclick = () => {
-      if (confirm('End call?')) endCall('Ended by user');
-    };
-    elements.back.onclick = () => {
-      if (confirm('End call and return to chat?')) endCall('Back to chat');
-    };
+    elements.end.onclick = () => endCall('Ended by user');
+    elements.back.onclick = () => confirm('End call and return to chat?') && endCall('Back to chat');
     elements.retry.onclick = () => {
       retryCount = 0;
       requestMic(type === 'outgoing');
@@ -911,11 +811,6 @@
         isOutgoing ? fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({}) })
       ]);
       if (!callRes.ok || !profileRes.ok || !chatRes.ok) throw new Error('Validation failed');
-      
-      // Sync userName from profile (for both types)
-      const profile = await profileRes.json();
-      userName = profile.name?.trim() || userName;  // Fallback to localStorage if null
-      
       if (isOutgoing) {
         const chat = await chatRes.json();
         recipientId = chat.recipient?._id;
@@ -966,9 +861,6 @@
 
     window.addEventListener('beforeunload', () => {
       if (['connecting', 'ringing', 'active'].includes(callState) && socket?.connected) socket.emit('end-call', { callId });
-      if (localActx) localActx.close();
-      if (remoteActx) remoteActx.close();
-      if (avatarActx) avatarActx.close();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (peer) peer.close();
     });
