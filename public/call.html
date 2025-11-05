@@ -28,16 +28,16 @@
     }
     body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; color: white; }
     body.call-active { color: white; }
-    body.call-ending { background: linear-gradient(135deg, #3b82f6, #1e40af); } /* New: Gradient for ending call */
+    body.call-ending { background: linear-gradient(135deg, #3b82f6, #1e40af); transition: background 0.6s ease; }
     #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(1px); }
     .call-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem 8rem 1rem; position: relative; z-index: 1; }
     .call-status { font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; transition: all 0.3s ease; }
     .call-status.connected { color: #10b981; font-weight: 600; }
     .call-status.network-weak { color: var(--alert-red); animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
-    .call-subtitle { font-size: 1rem; opacity: 0.8; color: var(--neutral-gray); margin-top: -0.5rem; transition: all 0.3s ease; animation: fadeInUp 0.5s ease-out; } /* New: For both names */
+    @keyframes pulse { 0%,100% { opacity: 0.7; } 50% professeur { opacity: 1; } }
+    .call-subtitle { font-size: 1rem; opacity: 0.8; color: var(--neutral-gray); margin-top: -0.5rem; transition: all 0.3s ease; animation: fadeInUp 0.5s ease-out; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 0.8; transform: translateY(0); } }
-    .call-toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(16, 185, 129, 0.9); color: white; padding: 0.75rem 1.5rem; border-radius: 25px; font-weight: 500; z-index: 20; opacity: 0; transition: all 0.3s ease; animation: toastSlide 0.4s ease-out; } /* New: Fun AI-like toast */
+    .call-toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(16, 185, 129, 0.9); color: white; padding: 0.75rem 1.5rem; border-radius: 25px; font-weight: 500; z-index: 20; opacity: 0; transition: all 0.3s ease; animation: toastSlide 0.4s ease-out; }
     .call-toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
     @keyframes toastSlide { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(-10px); } }
     .call-avatar { width: 160px; height: 160px; border-radius: 50%; background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: bold; margin-bottom: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4), 0 0 30px var(--glow); position: relative; overflow: hidden; transition: all 0.3s ease; }
@@ -53,7 +53,7 @@
     .call-avatar .sound-wave-bg { position: absolute; top: 50%; left: 50%; width: 120%; height: 120%; transform: translate(-50%,-50%); border-radius: 50%; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 0.3s ease; }
     .call-avatar.speaking .sound-wave-bg { opacity: 1; }
     .call-avatar .sound-wave-bg canvas { width: 100%; height: 100%; display: block; }
-    .call-title { font-size: 2rem; font-weight: 600; margin-bottom: .5rem; color: white; text-shadow: 0 2px 4px rgba(0,0,0,.3); transition: all 0.3s ease; } /* Enhanced for fun texts */
+    .call-title { font-size: 2rem; font-weight: 600; margin-bottom: .5rem; color: white; text-shadow: 0 2px 4px rgba(0,0,0,.3); transition: all 0.3s ease; }
     .call-timer { font-size: 1.5rem; font-weight: 500; margin: 1.5rem 0; color: white; text-shadow: 0 1px 2px rgba(0,0,0,.3); }
     .call-controls { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1.5rem; z-index: 10; }
     .call-btn { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .3s ease; border: none; cursor: pointer; font-size: 1.75rem; box-shadow: 0 8px 20px rgba(0,0,0,.4); position: relative; color: white; backdrop-filter: blur(12px); background: rgba(255,255,255,.1); }
@@ -64,6 +64,7 @@
     .call-btn.mute { background: linear-gradient(135deg, #6b7280, #4b5563); }
     .call-btn.speaker { background: linear-gradient(135deg, #6366f1, #4f46e5); }
     .call-btn.retry { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .call-btn.connecting { animation: btn-glow 1.2s ease-in-out infinite; }
     .call-btn:hover { transform: scale(1.15); box-shadow: 0 12px 30px rgba(0,0,0,.5); }
     .call-btn.muted { background: linear-gradient(135deg, #ef4444, #dc2626); }
     .call-btn.speaking, .call-btn.listening { background: linear-gradient(135deg, #10b981, #059669); animation: btn-glow 1.5s ease-in-out infinite; }
@@ -78,6 +79,8 @@
     @keyframes blink { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
     .sound-wave { position: absolute; top: -20px; right: -20px; width: 110px; height: 110px; pointer-events: none; }
     .debug-info { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #0f0; padding: 8px 16px; border-radius: 8px; font-family: monospace; font-size: 0.9rem; z-index: 100; display: none; }
+    @keyframes spin-loader { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .spin { animation: spin-loader 1s linear infinite; }
     @media (max-width: 640px) { 
       .call-container { padding: 2rem 1rem 6rem 1rem; }
       .call-btn { width: 60px; height: 60px; font-size: 1.5rem; } 
@@ -99,7 +102,7 @@
     <span>Connecting...</span>
   </div>
   <div id="debug-info" class="debug-info"></div>
-  <div id="call-toast" class="call-toast"></div> <!-- New: AI-like fun messages -->
+  <div id="call-toast" class="call-toast"></div>
   <div class="call-container">
     <p id="call-status" class="call-status"></p>
     <div id="call-avatar" class="call-avatar">
@@ -111,7 +114,7 @@
       <span id="avatar-letter">U</span>
     </div>
     <h1 id="call-title" class="call-title">Incoming call...</h1>
-    <p id="call-subtitle" class="call-subtitle" style="display: none;"></p> <!-- New: For both names -->
+    <p id="call-subtitle" class="call-subtitle" style="display: none;"></p>
     <div id="call-timer" class="call-timer" style="display: none;">00:00</div>
     <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
     <div id="call-controls" class="call-controls">
@@ -143,11 +146,11 @@
       avatarImg: document.getElementById('avatar-img'),
       avatarLetter: document.getElementById('avatar-letter'),
       title: document.getElementById('call-title'),
-      subtitle: document.getElementById('call-subtitle'), // New: For both names
+      subtitle: document.getElementById('call-subtitle'),
       status: document.getElementById('call-status'),
       timer: document.getElementById('call-timer'),
       spinner: document.getElementById('loading-spinner'),
-      toast: document.getElementById('call-toast'), // New: Fun messages
+      toast: document.getElementById('call-toast'),
       accept: document.getElementById('accept-call'),
       decline: document.getElementById('decline-call'),
       mute: document.getElementById('mute-btn'),
@@ -167,7 +170,7 @@
     };
 
     // === STATE ===
-    let callId = null, type = null, chatId = null, callerName = null, recipientName = null, userName = localStorage.getItem('userName') || 'You'; // New: Quick user name for both display
+    let callId = null, type = null, chatId = null, callerName = null, recipientName = null, userName = localStorage.getItem('userName') || 'You';
     let callState = 'init';
     let localStream = null, peer = null, timerId = null, retryCount = 0;
     let isMuted = false, pendingOffer = null;
@@ -188,13 +191,12 @@
       ctx = elements.canvas.getContext('2d');
     }
 
-    // === DEBUG ===
+    // === DEBUG (CONSOLE ONLY) ===
     function log(msg) {
       console.log('[CALL]', msg);
-      // Removed display to user; only console
     }
 
-    // New: Fun AI-like toast message (auto-hides after 2s)
+    // === TOAST ===
     function showToast(msg) {
       elements.toast.textContent = msg;
       elements.toast.classList.add('show');
@@ -316,7 +318,7 @@
           startTimer();
           startAnimations();
           updateUI();
-          showToast('Connected! Say hi! 🎉'); // New: Fun toast on connect
+          showToast('Connected! Say hi! 🎉');
           log('CALL ACTIVE');
         } catch (e) {
           log('Answer failed: ' + e.message);
@@ -411,7 +413,6 @@
         });
         initRemoteVisualizer();
         initAvatarVisualizer();
-        // Ensure audio is flowing both ways
         e.track.onmute = () => {
           log('Remote track muted');
           showToast('Remote audio muted. Checking connection...');
@@ -448,7 +449,7 @@
       return peer;
     }
 
-    // === CHATGPT-STYLE SOUND WAVES ===
+    // === VISUALIZERS ===
     function initAvatarVisualizer() {
       if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
       const actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -531,7 +532,6 @@
       elements.localSoundWaveCanvas.style.display = 'block';
       resizeCanvas();
       startLocalSoundWaveAnimation();
-      // Ensure local audio track is enabled
       localStream.getAudioTracks()[0].onmute = () => {
         log('Local track muted');
         showToast('Your microphone seems muted. Please check your device settings.');
@@ -711,33 +711,39 @@
       elements.mute.classList.toggle('muted', isMuted);
       elements.status.classList.remove('connected', 'network-weak');
       elements.spinner.style.display = 'none';
-      elements.subtitle.style.display = 'block'; // New: Always show subtitle for names
+      elements.subtitle.style.display = 'block';
 
-      let titleText, subtitleText, funMsg;
+      // RE-ENABLE ACCEPT BUTTON ON RINGING
+      if (callState === 'ringing') {
+        elements.accept.disabled = false;
+        elements.accept.style.opacity = '1';
+        elements.accept.style.pointerEvents = 'auto';
+        elements.accept.classList.remove('connecting');
+        elements.accept.innerHTML = '<i data-feather="phone"></i>';
+        feather.replace();
+      }
+
+      let titleText, subtitleText;
       switch (callState) {
         case 'init':
           titleText = 'Initiating secure call';
           subtitleText = `${userName} & ${recipientName || 'Contact'}`;
-          funMsg = 'Getting you ready to chat... 🚀';
-          elements.status.textContent = funMsg; // New: Fun status
+          elements.status.textContent = 'Getting you ready to chat... 🚀';
           break;
         case 'connecting':
           titleText = `${userName} & ${recipientName || 'Contact'}`;
           subtitleText = 'Reaching out...';
-          funMsg = 'Linking you up... almost there! ✨';
-          elements.status.textContent = funMsg;
+          elements.status.textContent = 'Linking you up... almost there! ✨';
           break;
         case 'accepting':
           titleText = 'Joining call';
           subtitleText = `${userName} & ${callerName || 'Contact'}`;
-          funMsg = 'One sec—grabbing your mic! 🎤';
-          elements.status.textContent = funMsg;
+          elements.status.textContent = 'One sec—grabbing your mic! 🎤';
           break;
         case 'ringing':
           titleText = `${callerName || 'Contact'} is calling`;
           subtitleText = `Tap to chat with ${callerName || 'Contact'}`;
-          funMsg = `Hey ${userName}! ${callerName || 'They'} wants to catch up 🎉`; // New: Personalized fun
-          elements.status.textContent = funMsg;
+          elements.status.textContent = `Hey ${userName}! ${callerName || 'They'} wants to catch up 🎉`;
           break;
         case 'active':
           titleText = `${userName} & ${otherName || 'Contact'}`;
@@ -777,7 +783,7 @@
     function endCall(reason = 'Ended by user') {
       endReason = reason;
       callState = 'ended';
-      document.body.classList.add('call-ending'); // Apply gradient for ending
+      document.body.classList.add('call-ending');
       clearInterval(timerId);
       clearInterval(connectionCheckInterval);
       stopRingtone();
@@ -796,38 +802,97 @@
       showToast(`Call ending: ${reason}`);
       setTimeout(() => {
         location.href = chatId ? `/chat.html?chatId=${chatId}` : '/chat-list.html';
-      }, 3000); // Increased delay for graceful end
+      }, 3000);
     }
 
-    // === EVENTS ===
+    // === ACCEPT CALL BUTTON — FULLY REWORKED ===
     elements.accept.onclick = async () => {
       if (callState !== 'ringing') return;
+
+      elements.accept.disabled = true;
+      elements.accept.style.opacity = '0.7';
+      elements.accept.style.pointerEvents = 'none';
+
       callState = 'accepting';
       stopRingtone();
       updateUI();
-      elements.accept.style.animation = 'wiggle 0.5s ease'; // New: Fun button wiggle on tap
-      setTimeout(() => elements.accept.style.animation = '', 500);
 
-      const micSetup = requestMic(false);
-      const offerWait = new Promise((resolve) => {
-        const check = () => pendingOffer ? resolve() : setTimeout(check, 200);
-        check();
-      });
+      elements.accept.classList.add('connecting');
+      elements.accept.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      elements.accept.innerHTML = '<i data-feather="loader" class="spin"></i>';
+      feather.replace();
 
-      try {
-        const [micResult] = await Promise.all([micSetup, offerWait]);
-        if (!micResult) {
-          log('Mic setup failed during accept — showing retry');
-          showToast('Microphone setup failed. Please grant permission and retry.');
+      const maxRetries = 3;
+      let attempt = 0;
+
+      const tryAccept = async () => {
+        attempt++;
+        log(`Accept attempt ${attempt}/${maxRetries}`);
+
+        const micPromise = requestMic(false);
+        const offerWaitPromise = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Offer timeout')), 15000);
+          const check = () => {
+            if (pendingOffer) {
+              clearTimeout(timeout);
+              resolve();
+            } else if (callState !== 'accepting') {
+              clearTimeout(timeout);
+              reject(new Error('Call state changed'));
+            } else {
+              setTimeout(check, 100);
+            }
+          };
+          check();
+        });
+
+        try {
+          const results = await Promise.allSettled([micPromise, offerWaitPromise]);
+
+          const micResult = results[0];
+          const offerResult = results[1];
+
+          if (micResult.status === 'rejected') {
+            log('Mic failed: ' + micResult.reason.message);
+            showToast('Microphone access denied. Please allow and retry.');
+            throw micResult.reason;
+          }
+
+          if (offerResult.status === 'rejected') {
+            log('Offer wait failed: ' + offerResult.reason.message);
+            showToast('Connection timeout. Please try again.');
+            throw offerResult.reason;
+          }
+
+          await answerCall();
+          log('Call accepted successfully');
           return;
+
+        } catch (err) {
+          log('Accept failed: ' + err.message);
+          if (attempt < maxRetries) {
+            showToast(`Retrying... (${attempt}/${maxRetries})`);
+            elements.status.textContent = `Retrying connection... (${attempt}/${maxRetries})`;
+            setTimeout(tryAccept, 2000);
+          } else {
+            showToast('Failed to connect. Please try calling again.');
+            endCall('Connection failed after retries.');
+          }
         }
-        await answerCall();
-      } catch (err) {
-        log('Accept race failed: ' + err.message);
-        showToast('Failed to accept call due to connection issues. Please try again.');
-        elements.status.textContent = 'Connection setup in progress...';
-      }
+      };
+
+      tryAccept();
+
+      setTimeout(() => {
+        if (callState === 'accepting') {
+          log('Accept stuck — forcing end');
+          showToast('Connection took too long. Ending call.');
+          endCall('Connection timeout.');
+        }
+      }, 30000);
     };
+
+    // === OTHER EVENTS ===
     elements.decline.onclick = () => {
       socket.emit('decline-call', { callId });
       endCall('You declined the call.');
@@ -912,14 +977,12 @@
       if (peer) peer.close();
     });
 
-    // To prevent false 'already on call' after refresh
     window.addEventListener('load', () => {
       if (callState === 'active' && (!peer || peer.connectionState !== 'connected')) {
         endCall('Session refreshed. Starting fresh.');
       }
     });
 
-    // === INITIAL DRAW ===
     if (ctx) drawStaticBackground();
   </script>
 </body>
