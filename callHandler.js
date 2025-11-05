@@ -83,7 +83,7 @@ const setupCallHandlers = (io, socket, onlineUsers, app) => {
     }
   });
 
-  socket.on('end-call', async ({ callId }) => {
+  socket.on('end-call', async ({ callId /* , reason */ }) => {  // Optional: Uncomment reason capture below
     try {
       const call = await CallModel.findById(callId);
       if (!call || call.status === 'ended') return;
@@ -94,6 +94,7 @@ const setupCallHandlers = (io, socket, onlineUsers, app) => {
       await CallModel.updateOne({ _id: callId }, { 
         status: 'ended', 
         endedAt: new Date(),
+        // reason: reason || 'user-ended',  // Optional: Add if analytics needed
         ...(call.startedAt && { duration: Math.floor((new Date() - call.startedAt) / 1000) })
       });
 
@@ -122,6 +123,19 @@ const setupCallHandlers = (io, socket, onlineUsers, app) => {
       }
     } catch (err) {
       console.error('[ICE ERROR]', err);
+    }
+  });
+
+  // 5. PING/PONG for latency (frontend network monitoring)
+  socket.on('ping', async ({ callId }, callback) => {
+    try {
+      const call = await CallModel.findById(callId).select('status');
+      if (!call || call.status !== 'accepted') return callback({ status: 'error' });
+      callback({ status: 'pong' });  // Simple ack — measures round-trip
+      console.log('[PING → PONG]', callId);
+    } catch (err) {
+      console.error('[PING ERROR]', err);
+      callback({ status: 'error' });
     }
   });
 };
