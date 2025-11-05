@@ -28,6 +28,7 @@
     }
     body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; color: white; }
     body.call-active { color: white; }
+    body.call-ending { background: linear-gradient(135deg, #3b82f6, #1e40af); } /* New: Gradient for ending call */
     #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(1px); }
     .call-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem 8rem 1rem; position: relative; z-index: 1; }
     .call-status { font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; transition: all 0.3s ease; }
@@ -190,9 +191,7 @@
     // === DEBUG ===
     function log(msg) {
       console.log('[CALL]', msg);
-      elements.debug.textContent = msg;
-      elements.debug.style.display = 'block';
-      setTimeout(() => elements.debug.style.display = 'none', 5000);
+      // Removed display to user; only console
     }
 
     // New: Fun AI-like toast message (auto-hides after 2s)
@@ -274,12 +273,18 @@
         elements.network.textContent = 'Reconnecting...';
         elements.network.className = 'network-indicator disconnected';
         updateNetworkStatus();
+        if (callState === 'active') {
+          showToast('Your internet connection is unstable. Please check your network and try calling again.');
+        }
       });
       socket.on('connect_error', () => {
         networkQuality = 'poor';
         elements.network.textContent = 'No connection';
         elements.network.className = 'network-indicator disconnected';
         updateNetworkStatus();
+        if (callState !== 'ended') {
+          showToast('Connection error. Please ensure your internet is stable and try again.');
+        }
       });
       socket.on('reconnect', () => {
         networkQuality = 'good';
@@ -315,6 +320,7 @@
           log('CALL ACTIVE');
         } catch (e) {
           log('Answer failed: ' + e.message);
+          showToast('Connection issue. Please try calling again.');
           updateNetworkStatus();
         }
       });
@@ -339,8 +345,8 @@
         }
       });
 
-      socket.on('call-declined', () => endCall('Declined'));
-      socket.on('call-ended', () => endCall('Ended by peer'));
+      socket.on('call-declined', () => endCall('Call declined by the other party.'));
+      socket.on('call-ended', () => endCall('Call ended by the other party.'));
 
       connectionCheckInterval = setInterval(() => {
         if (socket && callState === 'active') {
@@ -355,6 +361,9 @@
               networkQuality = 'poor';
             }
             updateNetworkStatus();
+            if (networkQuality === 'poor') {
+              showToast('Poor network quality detected. If audio issues persist, please end the call and try again.');
+            }
           });
         }
       }, PING_INTERVAL);
@@ -381,6 +390,9 @@
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
           { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
           { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
           { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
@@ -393,9 +405,19 @@
         elements.remoteAudio.srcObject = stream;
         elements.remoteAudio.muted = false;
         elements.remoteAudio.volume = 1.0;
-        elements.remoteAudio.play().catch(err => log('Play blocked: ' + err.message));
+        elements.remoteAudio.play().catch(err => {
+          log('Play blocked: ' + err.message);
+          showToast('Audio playback issue. Please ensure your device volume is up and try speaking.');
+        });
         initRemoteVisualizer();
         initAvatarVisualizer();
+        // Ensure audio is flowing both ways
+        e.track.onmute = () => {
+          log('Remote track muted');
+          showToast('Remote audio muted. Checking connection...');
+          if (peer) peer.restartIce();
+        };
+        e.track.onunmute = () => log('Remote track unmuted');
       };
 
       peer.onconnectionstatechange = () => {
@@ -404,13 +426,22 @@
           log('Connection failed — attempting recovery...');
           networkQuality = 'poor';
           updateNetworkStatus();
+          showToast('Connection failed due to network issues. Please try reconnecting.');
           if (peer) peer.restartIce();
+        } else if (peer.connectionState === 'disconnected') {
+          showToast('Disconnected. Attempting to reconnect...');
         }
       };
 
       peer.onicecandidate = (e) => {
         if (e.candidate) {
           socket.emit('ice-candidate', { callId, candidate: e.candidate.toJSON() });
+        }
+      };
+
+      peer.oniceconnectionstatechange = () => {
+        if (peer.iceConnectionState === 'failed') {
+          showToast('ICE connection failed. Your network might be unstable; please end the call and try again.');
         }
       };
 
@@ -500,6 +531,12 @@
       elements.localSoundWaveCanvas.style.display = 'block';
       resizeCanvas();
       startLocalSoundWaveAnimation();
+      // Ensure local audio track is enabled
+      localStream.getAudioTracks()[0].onmute = () => {
+        log('Local track muted');
+        showToast('Your microphone seems muted. Please check your device settings.');
+      };
+      localStream.getAudioTracks()[0].onunmute = () => log('Local track unmuted');
     }
 
     function startLocalSoundWaveAnimation() {
@@ -571,7 +608,7 @@
 
     function handleMicError(err) {
       retryCount++;
-      elements.status.textContent = `Microphone access required. Tap to retry.`;
+      elements.status.textContent = `Microphone access is required for the call. Please grant permission and tap retry.`;
       elements.retry.style.display = 'flex';
       setTimeout(() => requestMic(type === 'outgoing'), 3000);
     }
@@ -635,6 +672,7 @@
         pendingOffer = null;
       } catch (err) {
         log('Answer failed: ' + err.message);
+        showToast('Failed to establish connection. Please try again.');
         elements.status.textContent = 'Connection setup in progress...';
         updateNetworkStatus();
       }
@@ -709,7 +747,7 @@
         case 'ended':
           titleText = 'Call concluded';
           subtitleText = 'Great chat—see you soon!';
-          elements.status.textContent = 'Returning to chat...';
+          elements.status.textContent = `Call ended: ${endReason}. Returning to chat...`;
           break;
       }
       elements.title.textContent = titleText;
@@ -736,9 +774,10 @@
       }
     }
 
-    function endCall(reason = 'Ended') {
+    function endCall(reason = 'Ended by user') {
       endReason = reason;
       callState = 'ended';
+      document.body.classList.add('call-ending'); // Apply gradient for ending
       clearInterval(timerId);
       clearInterval(connectionCheckInterval);
       stopRingtone();
@@ -754,9 +793,10 @@
       document.body.classList.remove('call-active');
       if (callId && socket?.connected) socket.emit('end-call', { callId, reason });
       updateUI();
+      showToast(`Call ending: ${reason}`);
       setTimeout(() => {
         location.href = chatId ? `/chat.html?chatId=${chatId}` : '/chat-list.html';
-      }, 2000);
+      }, 3000); // Increased delay for graceful end
     }
 
     // === EVENTS ===
@@ -778,17 +818,19 @@
         const [micResult] = await Promise.all([micSetup, offerWait]);
         if (!micResult) {
           log('Mic setup failed during accept — showing retry');
+          showToast('Microphone setup failed. Please grant permission and retry.');
           return;
         }
         await answerCall();
       } catch (err) {
         log('Accept race failed: ' + err.message);
+        showToast('Failed to accept call due to connection issues. Please try again.');
         elements.status.textContent = 'Connection setup in progress...';
       }
     };
     elements.decline.onclick = () => {
       socket.emit('decline-call', { callId });
-      endCall('Declined');
+      endCall('You declined the call.');
     };
     elements.mute.onclick = () => {
       isMuted = !isMuted;
@@ -796,8 +838,8 @@
       elements.mute.innerHTML = isMuted ? '<i data-feather="mic-off"></i>' : '<i data-feather="mic"></i>';
       feather.replace();
     };
-    elements.end.onclick = () => endCall('Ended by user');
-    elements.back.onclick = () => confirm('End call and return to chat?') && endCall('Back to chat');
+    elements.end.onclick = () => endCall('You ended the call.');
+    elements.back.onclick = () => confirm('End call and return to chat?') && endCall('Returned to chat.');
     elements.retry.onclick = () => {
       retryCount = 0;
       requestMic(type === 'outgoing');
@@ -853,7 +895,12 @@
         } catch (err) {
           log('Startup failed (attempt ' + attempt + '): ' + err.message);
           elements.status.textContent = `Session validation in progress (attempt ${attempt})...`;
-          setTimeout(() => retryStartup(attempt + 1), 5000);
+          if (attempt >= 3) {
+            showToast('Session validation failed after multiple attempts. Please try starting a new call.');
+            setTimeout(() => location.href = '/chat-list.html', 2000);
+          } else {
+            setTimeout(() => retryStartup(attempt + 1), 5000);
+          }
         }
       };
       await retryStartup();
@@ -863,6 +910,13 @@
       if (['connecting', 'ringing', 'active'].includes(callState) && socket?.connected) socket.emit('end-call', { callId });
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (peer) peer.close();
+    });
+
+    // To prevent false 'already on call' after refresh
+    window.addEventListener('load', () => {
+      if (callState === 'active' && (!peer || peer.connectionState !== 'connected')) {
+        endCall('Session refreshed. Starting fresh.');
+      }
     });
 
     // === INITIAL DRAW ===
