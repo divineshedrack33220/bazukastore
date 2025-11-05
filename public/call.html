@@ -7,7 +7,7 @@
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
-    connect-src 'self' ws: wss: https://bazukastore.com https://cdn.jsdelivr.net;
+    connect-src 'self' ws: wss: http://localhost:5000 https://cdn.jsdelivr.net;
     media-src 'self' https://assets.mixkit.co;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src https://fonts.gstatic.com;
@@ -23,21 +23,25 @@
   <style>
     :root {
       --white: #ffffff; --light-gray: #f3f4f6; --neutral-gray: #6b7280;
-      --primary-purple: #7c3aed; --secondary-yellow: #f59e0b;
-      --alert-red: #ef4444; --success-green: #10b981;
-      --glow: rgba(124, 58, 237, 0.6);
+      --primary-blue: #7c3aed; --alert-red: #ef4444; --primary-purple: #7c3aed;
+      --glow: rgba(59, 130, 246, 0.6);
     }
     body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; color: white; }
     body.call-active { color: white; }
     #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(1px); }
     .call-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem 8rem 1rem; position: relative; z-index: 1; }
     .call-status { font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; transition: all 0.3s ease; }
-    .call-status.connected { color: var(--success-green); font-weight: 600; }
+    .call-status.connected { color: #10b981; font-weight: 600; }
     .call-status.network-weak { color: var(--alert-red); animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
-    .call-avatar { width: 160px; height: 160px; border-radius: 50%; background: var(--secondary-yellow); color: white; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: bold; margin-bottom: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4), 0 0 30px var(--glow); position: relative; overflow: hidden; transition: all 0.3s ease; }
+    .call-subtitle { font-size: 1rem; opacity: 0.8; color: var(--neutral-gray); margin-top: -0.5rem; transition: all 0.3s ease; animation: fadeInUp 0.5s ease-out; } /* New: For both names */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 0.8; transform: translateY(0); } }
+    .call-toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(16, 185, 129, 0.9); color: white; padding: 0.75rem 1.5rem; border-radius: 25px; font-weight: 500; z-index: 20; opacity: 0; transition: all 0.3s ease; animation: toastSlide 0.4s ease-out; } /* New: Fun AI-like toast */
+    .call-toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+    @keyframes toastSlide { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(-10px); } }
+    .call-avatar { width: 160px; height: 160px; border-radius: 50%; background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: bold; margin-bottom: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4), 0 0 30px var(--glow); position: relative; overflow: hidden; transition: all 0.3s ease; }
     .call-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-    .call-avatar::before { content: ''; position: absolute; top: -12px; left: -12px; right: -12px; bottom: -12px; background: conic-gradient(var(--primary-purple), var(--secondary-yellow), var(--alert-red), var(--primary-purple)); border-radius: 50%; z-index: -1; opacity: 0; transition: opacity 0.4s ease; animation: rotate-gradient 8s linear infinite; animation-play-state: paused; }
+    .call-avatar::before { content: ''; position: absolute; top: -12px; left: -12px; right: -12px; bottom: -12px; background: conic-gradient(var(--primary-blue), var(--alert-red), var(--primary-purple)); border-radius: 50%; z-index: -1; opacity: 0; transition: opacity 0.4s ease; animation: rotate-gradient 8s linear infinite; animation-play-state: paused; }
     .call-avatar.ringing::before, .call-avatar.connecting::before { opacity: 1; animation-play-state: running; }
     @keyframes rotate-gradient { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .call-avatar .pulse-ring { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 3px solid rgba(255,255,255,0.7); border-radius: 50%; transform: translate(-50%,-50%) scale(1); opacity: 0; pointer-events: none; animation: ig-pulse-ring 2s ease-out infinite; }
@@ -48,7 +52,7 @@
     .call-avatar .sound-wave-bg { position: absolute; top: 50%; left: 50%; width: 120%; height: 120%; transform: translate(-50%,-50%); border-radius: 50%; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 0.3s ease; }
     .call-avatar.speaking .sound-wave-bg { opacity: 1; }
     .call-avatar .sound-wave-bg canvas { width: 100%; height: 100%; display: block; }
-    .call-title { font-size: 2rem; font-weight: 600; margin-bottom: .5rem; color: white; text-shadow: 0 2px 4px rgba(0,0,0,.3); }
+    .call-title { font-size: 2rem; font-weight: 600; margin-bottom: .5rem; color: white; text-shadow: 0 2px 4px rgba(0,0,0,.3); transition: all 0.3s ease; } /* Enhanced for fun texts */
     .call-timer { font-size: 1.5rem; font-weight: 500; margin: 1.5rem 0; color: white; text-shadow: 0 1px 2px rgba(0,0,0,.3); }
     .call-controls { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1.5rem; z-index: 10; }
     .call-btn { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .3s ease; border: none; cursor: pointer; font-size: 1.75rem; box-shadow: 0 8px 20px rgba(0,0,0,.4); position: relative; color: white; backdrop-filter: blur(12px); background: rgba(255,255,255,.1); }
@@ -58,14 +62,14 @@
     .call-btn.decline, .call-btn.end { background: linear-gradient(135deg, #ef4444, #dc2626); }
     .call-btn.mute { background: linear-gradient(135deg, #6b7280, #4b5563); }
     .call-btn.speaker { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-    .call-btn.retry { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+    .call-btn.retry { background: linear-gradient(135deg, #7c3aed, #2563eb); }
     .call-btn:hover { transform: scale(1.15); box-shadow: 0 12px 30px rgba(0,0,0,.5); }
     .call-btn.muted { background: linear-gradient(135deg, #ef4444, #dc2626); }
     .call-btn.speaking, .call-btn.listening { background: linear-gradient(135deg, #10b981, #059669); animation: btn-glow 1.5s ease-in-out infinite; }
     @keyframes btn-glow { 0%,100% { box-shadow: 0 0 15px rgba(16,185,129,.6); } 50% { box-shadow: 0 0 30px rgba(16,185,129,.9); } }
     .back-btn { position: fixed; top: 1rem; left: 1rem; z-index: 50; background: rgba(255,255,255,.2); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); transition: all 0.3s; }
     .back-btn:hover { background: rgba(255,255,255,.3); }
-    .loading-spinner { border: 4px solid var(--light-gray); border-top: 4px solid var(--primary-purple); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; }
+    .loading-spinner { border: 4px solid var(--light-gray); border-top: 4px solid var(--primary-blue); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .network-indicator { position: fixed; top: 1rem; right: 1rem; z-index: 50; padding: 0.5rem 1rem; background: rgba(255,255,255,.2); border-radius: 20px; font-size: 0.8rem; color: white; backdrop-filter: blur(8px); display: flex; align-items: center; gap: .5rem; }
     .network-indicator::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; animation: blink 1.5s infinite; }
@@ -81,6 +85,7 @@
       .sound-wave { width: 90px; height: 90px; } 
       .call-title { font-size: 1.75rem; }
       .call-status { font-size: 1rem; top: -40px; }
+      .call-subtitle { font-size: 0.9rem; }
     }
   </style>
 </head>
@@ -93,8 +98,9 @@
     <span>Connecting...</span>
   </div>
   <div id="debug-info" class="debug-info"></div>
+  <div id="call-toast" class="call-toast"></div> <!-- New: AI-like fun messages -->
   <div class="call-container">
-    <p id="call-status" class="call-status">Please wait while we connect securely...</p>
+    <p id="call-status" class="call-status"></p>
     <div id="call-avatar" class="call-avatar">
       <div class="pulse-ring"></div>
       <div class="pulse-ring"></div>
@@ -103,9 +109,10 @@
       <img id="avatar-img" style="display: none;" />
       <span id="avatar-letter">U</span>
     </div>
-    <h1 id="call-title" class="call-title">Initializing...</h1>
+    <h1 id="call-title" class="call-title">calling...</h1>
+    <p id="call-subtitle" class="call-subtitle" style="display: none;"></p> <!-- New: For both names -->
     <div id="call-timer" class="call-timer" style="display: none;">00:00</div>
-    <div id="loading-spinner" class="loading-spinner"></div>
+    <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
     <div id="call-controls" class="call-controls">
       <button id="accept-call" class="call-btn accept" style="display: none;"><i data-feather="phone"></i></button>
       <button id="decline-call" class="call-btn decline" style="display: none;"><i data-feather="phone-off"></i></button>
@@ -117,16 +124,25 @@
   </div>
   <audio id="remote-audio" autoplay playsinline></audio>
   <audio id="ringtone" loop preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-classic-phone-ring-1466.mp3" type="audio/mpeg">
+    <source src="sound/mixkit-on-hold-ringtone-1361.wav" type="audio/mpeg">
+  </audio>
+  <audio id="end-sound" preload="auto">
+    <source src="sound/end-call-120633.mp3" type="audio/mp3">
+  </audio>
+  <audio id="outgoing-dial" loop preload="auto">
+    <source src="sound/phone-outgoing-call-72202.mp3" type="audio/wav">
+  </audio>
+  <audio id="accept-sound" preload="auto">
+    <source src="sound/alert-sound-230091.mp3" type="audio/wav">
+  </audio>
+  <audio id="reconnect-sound" preload="auto">
+    <source src="sound/notification-beep-229154.mp3" type="audio/wav">
   </audio>
 
   <script>
     // === CONFIG ===
-    const API_BASE_URL = 'https://bazukastore.com/api';
-    const SOCKET_URL = 'https://bazukastore.com';
-    const MAX_RETRIES = 5;
-    const CALL_TIMEOUT = 45000;
-    const OFFER_WAIT_TIMEOUT = 8000;
+    const API_BASE_URL = 'http://localhost:5000/api';
+    const SOCKET_URL = 'http://localhost:5000';
     const PING_INTERVAL = 3000;
 
     // === ELEMENTS ===
@@ -135,9 +151,11 @@
       avatarImg: document.getElementById('avatar-img'),
       avatarLetter: document.getElementById('avatar-letter'),
       title: document.getElementById('call-title'),
+      subtitle: document.getElementById('call-subtitle'), // New: For both names
       status: document.getElementById('call-status'),
       timer: document.getElementById('call-timer'),
       spinner: document.getElementById('loading-spinner'),
+      toast: document.getElementById('call-toast'), // New: Fun messages
       accept: document.getElementById('accept-call'),
       decline: document.getElementById('decline-call'),
       mute: document.getElementById('mute-btn'),
@@ -151,12 +169,16 @@
       avatarSoundCanvas: document.getElementById('avatar-sound-canvas'),
       remoteAudio: document.getElementById('remote-audio'),
       ringtone: document.getElementById('ringtone'),
+      endSound: document.getElementById('end-sound'),
+      outgoingDial: document.getElementById('outgoing-dial'),
+      acceptSound: document.getElementById('accept-sound'),
+      reconnectSound: document.getElementById('reconnect-sound'),
       network: document.getElementById('network-indicator'),
       debug: document.getElementById('debug-info')
     };
 
     // === STATE ===
-    let callId = null, type = null, chatId = null, callerName = null, recipientName = null;
+    let callId = null, type = null, chatId = null, callerName = null, recipientName = null, userName = localStorage.getItem('userName') || 'You'; // New: Quick user name for both display
     let callState = 'init';
     let localStream = null, peer = null, timerId = null, retryCount = 0;
     let isMuted = false, pendingOffer = null;
@@ -170,6 +192,8 @@
     let connectionCheckInterval = null;
     let endReason = '';
     let networkQuality = 'good';
+    let iceRetryCount = 0;
+    const MAX_ICE_RETRIES = 3;
 
     // === CANVAS CONTEXT ===
     let ctx = null;
@@ -185,10 +209,30 @@
       setTimeout(() => elements.debug.style.display = 'none', 5000);
     }
 
+    // New: Fun AI-like toast message (auto-hides after 2s)
+    function showToast(msg) {
+      elements.toast.textContent = msg;
+      elements.toast.classList.add('show');
+      setTimeout(() => elements.toast.classList.remove('show'), 2000);
+    }
+
     // === INIT ===
     feather.replace();
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && socket && !socket.connected && callState !== 'ended') {
+        log('Tab refocused — re-init socket');
+        initSocket();
+      }
+    });
+    window.addEventListener('focus', () => {
+      if (socket && !socket.connected && callState !== 'ended') {
+        log('Window focused — re-init socket');
+        initSocket();
+      }
+    });
 
     function resizeCanvas() {
       elements.canvas.width = innerWidth;
@@ -212,9 +256,9 @@
     function drawStaticBackground() {
       if (!ctx) return;
       const g = ctx.createRadialGradient(innerWidth/2, innerHeight/2, 0, innerWidth/2, innerHeight/2, Math.max(innerWidth, innerHeight));
-      g.addColorStop(0, 'rgba(124, 58, 237, 0.8)');
-      g.addColorStop(0.5, 'rgba(245, 158, 11, 0.6)');
-      g.addColorStop(1, 'rgba(239, 68, 68, 0.4)');
+      g.addColorStop(0, 'rgba(147, 51, 234, 0.8)');
+      g.addColorStop(0.5, 'rgba(168, 85, 247, 0.6)');
+      g.addColorStop(1, 'rgba(196, 102, 255, 0.4)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
     }
@@ -253,12 +297,14 @@
       });
       socket.on('reconnect', () => {
         networkQuality = 'good';
+        elements.reconnectSound.volume = 0.5;
+        elements.reconnectSound.play().catch(() => {});
+        elements.reconnectSound.currentTime = 0;
         updateNetworkStatus();
       });
       socket.on('incoming-call', (data) => {
         if (data.callId === callId && type === 'incoming') {
           callState = 'ringing';
-          elements.spinner.style.display = 'none';
           updateUI();
           playRingtone();
         }
@@ -279,13 +325,18 @@
           callState = 'active';
           document.body.classList.add('call-active');
           stopRingtone();
+          stopOutgoingDial();
+          elements.acceptSound.volume = 0.5;
+          elements.acceptSound.play().catch(() => {});
+          elements.acceptSound.currentTime = 0;
           startTimer();
           startAnimations();
           updateUI();
+          showToast('Connected! Say hi!'); // New: Fun toast on connect
           log('CALL ACTIVE');
         } catch (e) {
           log('Answer failed: ' + e.message);
-          endCall('Setup failed');
+          updateNetworkStatus();
         }
       });
 
@@ -335,13 +386,13 @@
       const statusEl = elements.status;
       if (networkQuality === 'good') {
         statusEl.className = 'call-status connected';
-        statusEl.textContent = 'Excellent connection';
+        statusEl.textContent = 'Secure connection established';
       } else if (networkQuality === 'fair') {
         statusEl.className = 'call-status network-weak';
-        statusEl.textContent = 'Fair connection';
+        statusEl.textContent = 'Fair connection — optimizing...';
       } else {
         statusEl.className = 'call-status network-weak';
-        statusEl.textContent = 'Poor connection';
+        statusEl.textContent = 'Poor connection — recovering...';
       }
     }
 
@@ -370,7 +421,60 @@
 
       peer.onconnectionstatechange = () => {
         log('ICE: ' + peer.connectionState);
-        if (peer.connectionState === 'failed') endCall('Connection failed');
+        switch (peer.connectionState) {
+          case 'disconnected':
+            log('ICE disconnected — auto-recovering...');
+            networkQuality = 'poor';
+            updateNetworkStatus();
+            setTimeout(() => {
+              if (peer && peer.connectionState === 'disconnected' && iceRetryCount < MAX_ICE_RETRIES) {
+                peer.restartIce();
+                iceRetryCount++;
+                log(`ICE restart attempt ${iceRetryCount}`);
+              }
+            }, 1000);
+            break;
+          case 'reconnecting':
+            log('ICE reconnecting — monitoring...');
+            const reconStart = Date.now();
+            const reconCheck = setInterval(() => {
+              if (Date.now() - reconStart > 5000 && peer.connectionState !== 'connected') {
+                clearInterval(reconCheck);
+                if (callState === 'active' && socket?.connected) {
+                  log('Long reconnect — renegotiating...');
+                  peer.createOffer().then(offer => {
+                    peer.setLocalDescription(offer);
+                    socket.emit('ice-renegotiate', { callId, offer });
+                  }).catch(e => log('Renegotiation failed: ' + e.message));
+                }
+              }
+            }, 1000);
+            setTimeout(() => clearInterval(reconCheck), 10000);
+            break;
+          case 'failed':
+            log('ICE failed — full recovery attempt...');
+            networkQuality = 'poor';
+            updateNetworkStatus();
+            if (iceRetryCount < MAX_ICE_RETRIES) {
+              iceRetryCount++;
+              setTimeout(() => {
+                if (callState === 'active') {
+                  peer.close();
+                  peer = createPeer();
+                  localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+                  peer.createOffer().then(offer => {
+                    peer.setLocalDescription(offer);
+                    if (socket?.connected) socket.emit('ice-recovery', { callId, offer });
+                  }).catch(e => log('Recovery offer failed: ' + e.message));
+                  log(`Full ICE recovery attempt ${iceRetryCount}`);
+                }
+              }, 2000);
+            } else {
+              log('Max ICE retries exceeded — ending call');
+              endCall('ICE failure');
+            }
+            break;
+        }
       };
 
       peer.onicecandidate = (e) => {
@@ -386,7 +490,7 @@
     function initAvatarVisualizer() {
       if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
       const actx = new (window.AudioContext || window.webkitAudioContext)();
-      actx.resume();
+      if (actx.state === 'suspended') actx.resume();
       avatarAnalyser = actx.createAnalyser();
       avatarAnalyser.fftSize = 512;
       avatarAnalyser.smoothingTimeConstant = 0.85;
@@ -440,8 +544,8 @@
         const y2 = cy + Math.sin(angle) * (radius + height);
 
         const gradient = avatarCtx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, `hsla(280, 100%, 70%, ${vol})`);
-        gradient.addColorStop(1, `hsla(280, 100%, 50%, ${vol * 0.6})`);
+        gradient.addColorStop(0, `hsla(210, 100%, 70%, ${vol})`);
+        gradient.addColorStop(1, `hsla(210, 100%, 50%, ${vol * 0.6})`);
 
         avatarCtx.beginPath();
         avatarCtx.moveTo(x1, y1);
@@ -455,7 +559,7 @@
     function initLocalVisualizer() {
       if (!localStream || localAnalyser) return;
       const actx = new (window.AudioContext || window.webkitAudioContext)();
-      actx.resume();
+      if (actx.state === 'suspended') actx.resume();
       localAnalyser = actx.createAnalyser();
       localAnalyser.fftSize = 256;
       localAnalyser.smoothingTimeConstant = 0.8;
@@ -486,7 +590,7 @@
     function initRemoteVisualizer() {
       if (!elements.remoteAudio.srcObject || remoteAnalyser) return;
       const actx = new (window.AudioContext || window.webkitAudioContext)();
-      actx.resume();
+      if (actx.state === 'suspended') actx.resume();
       remoteAnalyser = actx.createAnalyser();
       remoteAnalyser.fftSize = 256;
       remoteAnalyser.smoothingTimeConstant = 0.8;
@@ -521,9 +625,7 @@
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: false,  // Disabled to prevent echo
-            sampleRate: 48000,
-            channelCount: 1
+            autoGainControl: false,
           }
         });
         retryCount = 0;
@@ -537,22 +639,23 @@
     }
 
     function handleMicError(err) {
-      if (retryCount++ < MAX_RETRIES) setTimeout(() => requestMic(type === 'outgoing'), 3000);
-      else endCall('Mic access failed');
+      retryCount++;
+      elements.status.textContent = `Microphone access required. Tap to retry.`;
+      elements.retry.style.display = 'flex';
+      setTimeout(() => requestMic(type === 'outgoing'), 3000);
     }
 
     // === CALL FLOW ===
     async function requestMic(isOutgoing) {
       elements.retry.style.display = 'flex';
-      elements.status.textContent = 'Requesting microphone...';
+      elements.status.textContent = 'Requesting microphone permission...';
       const stream = await getMic();
-      if (!stream) return;
+      if (!stream) return null;
       elements.retry.style.display = 'none';
-      elements.status.textContent = 'Preparing call...';
+      elements.status.textContent = 'Securing audio stream...';
 
       peer = createPeer();
 
-      // Send clean track to peer (no processing)
       stream.getTracks().forEach(track => {
         peer.addTrack(track, stream);
         log(`Added local track: ${track.kind}`);
@@ -568,11 +671,17 @@
           socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
           log('Offer sent');
         }
+        elements.outgoingDial.volume = 0.5;
+        elements.outgoingDial.play().catch(() => {});
         updateUI();
-        setTimeout(() => {
-          if (callState === 'connecting') endCall('No answer');
-        }, CALL_TIMEOUT);
       }
+
+      return { stream, peer };
+    }
+
+    function stopOutgoingDial() {
+      elements.outgoingDial.pause();
+      elements.outgoingDial.currentTime = 0;
     }
 
     async function startCall() {
@@ -598,10 +707,12 @@
         startTimer();
         startAnimations();
         updateUI();
+        showToast('Connected! Say hi! ');
         pendingOffer = null;
       } catch (err) {
         log('Answer failed: ' + err.message);
-        endCall('Answer failed');
+        elements.status.textContent = 'Connection setup in progress...';
+        updateNetworkStatus();
       }
     }
 
@@ -616,14 +727,14 @@
 
     // === UI ===
     function updateUI() {
-      const name = type === 'outgoing' ? recipientName : callerName;
-      const avatarUrl = type === 'outgoing' ? recipientAvatar : callerAvatar;
-      if (avatarUrl) {
-        elements.avatarImg.src = avatarUrl;
+      const otherName = type === 'outgoing' ? recipientName : callerName;
+      const otherAvatar = type === 'outgoing' ? recipientAvatar : callerAvatar;
+      if (otherAvatar) {
+        elements.avatarImg.src = otherAvatar;
         elements.avatarImg.style.display = 'block';
         elements.avatarLetter.style.display = 'none';
       } else {
-        elements.avatarLetter.textContent = name?.[0]?.toUpperCase() || 'U';
+        elements.avatarLetter.textContent = otherName?.[0]?.toUpperCase() || 'C';
       }
 
       elements.avatar.classList.toggle('ringing', callState === 'ringing');
@@ -637,42 +748,48 @@
       elements.retry.style.display = retryCount > 0 && callState !== 'active' ? 'flex' : 'none';
       elements.mute.classList.toggle('muted', isMuted);
       elements.status.classList.remove('connected', 'network-weak');
+      elements.spinner.style.display = 'none';
+      elements.subtitle.style.display = 'block'; // New: Always show subtitle for names
 
-      let titleText, statusText;
+      let titleText, subtitleText, funMsg;
       switch (callState) {
         case 'init':
-          titleText = 'Starting call...';
-          statusText = 'Initializing...';
-          elements.spinner.style.display = 'block';
+          titleText = 'Initiating secure call';
+          subtitleText = `${userName} & ${recipientName || 'Contact'}`;
+          funMsg = 'Getting you ready to chat... 🚀';
+          elements.status.textContent = funMsg; // New: Fun status
           break;
         case 'connecting':
-          titleText = `Calling ${recipientName || 'contact'}...`;
-          statusText = 'Ringing...';
-          elements.spinner.style.display = 'block';
+          titleText = `${userName} & ${recipientName || 'Contact'}`;
+          subtitleText = 'Reaching out...';
+          funMsg = 'Linking you up... almost there! ✨';
+          elements.status.textContent = funMsg;
           break;
         case 'accepting':
-          titleText = 'Connecting...';
-          statusText = 'Setting up audio...';
-          elements.spinner.style.display = 'block';
+          titleText = 'Joining call';
+          subtitleText = `${userName} & ${callerName || 'Contact'}`;
+          funMsg = 'One sec—grabbing your mic! 🎤';
+          elements.status.textContent = funMsg;
           break;
         case 'ringing':
-          titleText = `${callerName || 'Someone'} is calling`;
-          statusText = 'Tap to accept';
-          elements.spinner.style.display = 'none';
+          titleText = `${callerName || 'Contact'} is calling`;
+          subtitleText = `Tap to chat with ${callerName || 'Contact'}`;
+          funMsg = `Hey ${userName}! ${callerName || 'They'} wants to catch up `; // New: Personalized fun
+          elements.status.textContent = funMsg;
           break;
         case 'active':
-          titleText = name || 'Contact';
-          elements.spinner.style.display = 'none';
+          titleText = `${userName} & ${otherName || 'Contact'}`;
+          subtitleText = 'Live audio connection';
           updateNetworkStatus();
           return;
         case 'ended':
           titleText = 'Call Ended';
-          statusText = 'Returning to chat...';
-          elements.spinner.style.display = 'none';
+          subtitleText = 'Bye';
+          elements.status.textContent = 'Returning to chat...';
           break;
       }
       elements.title.textContent = titleText;
-      elements.status.textContent = statusText;
+      elements.subtitle.textContent = subtitleText;
       feather.replace();
     }
 
@@ -701,6 +818,14 @@
       clearInterval(timerId);
       clearInterval(connectionCheckInterval);
       stopRingtone();
+      stopOutgoingDial();
+      elements.endSound.volume = 0.5;
+      elements.endSound.play().catch(() => {});
+      elements.endSound.currentTime = 0;
+      if (localAnimationId) cancelAnimationFrame(localAnimationId);
+      if (remoteAnimationId) cancelAnimationFrame(remoteAnimationId);
+      if (avatarAnimationId) cancelAnimationFrame(avatarAnimationId);
+      localAnimationId = remoteAnimationId = avatarAnimationId = null;
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (peer) peer.close();
       document.body.classList.remove('call-active');
@@ -716,17 +841,29 @@
       if (callState !== 'ringing') return;
       callState = 'accepting';
       stopRingtone();
+      elements.acceptSound.volume = 0.5;
+      elements.acceptSound.play().catch(() => {});
+      elements.acceptSound.currentTime = 0;
       updateUI();
-      await requestMic(false);
-      const wait = new Promise(r => {
-        const check = () => pendingOffer ? r() : setTimeout(check, 200);
+      elements.accept.style.animation = 'wiggle 0.5s ease'; // New: Fun button wiggle on tap
+      setTimeout(() => elements.accept.style.animation = '', 500);
+
+      const micSetup = requestMic(false);
+      const offerWait = new Promise((resolve) => {
+        const check = () => pendingOffer ? resolve() : setTimeout(check, 200);
         check();
       });
+
       try {
-        await Promise.race([wait, new Promise((_, rej) => setTimeout(() => rej(), OFFER_WAIT_TIMEOUT))]);
+        const [micResult] = await Promise.all([micSetup, offerWait]);
+        if (!micResult) {
+          log('Mic setup failed during accept — showing retry');
+          return;
+        }
         await answerCall();
-      } catch {
-        endCall('Signal timeout');
+      } catch (err) {
+        log('Accept race failed: ' + err.message);
+        elements.status.textContent = 'Connection setup in progress...';
       }
     };
     elements.decline.onclick = () => {
@@ -740,13 +877,29 @@
       feather.replace();
     };
     elements.end.onclick = () => endCall('Ended by user');
-    elements.back.onclick = () => confirm('End call?') && endCall('Back to chat');
+    elements.back.onclick = () => confirm('End call and return to chat?') && endCall('Back to chat');
     elements.retry.onclick = () => {
       retryCount = 0;
       requestMic(type === 'outgoing');
     };
 
     // === STARTUP ===
+    async function performStartupFetches(token, isOutgoing) {
+      const [callRes, profileRes, chatRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/calls/${callId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/users/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+        isOutgoing ? fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({}) })
+      ]);
+      if (!callRes.ok || !profileRes.ok || !chatRes.ok) throw new Error('Validation failed');
+      if (isOutgoing) {
+        const chat = await chatRes.json();
+        recipientId = chat.recipient?._id;
+        recipientName = chat.recipient?.name?.trim();
+        recipientAvatar = chat.recipient?.avatar || null;
+      }
+      return true;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(location.search);
       callId = params.get('callId');
@@ -758,29 +911,32 @@
       const token = localStorage.getItem('token');
       if (!token) return setTimeout(() => location.href = '/login.html', 2000);
       elements.network.style.display = 'flex';
-      try {
-        const [callRes, profileRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/calls/${callId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/users/profile`, { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-        if (!callRes.ok || !profileRes.ok) throw new Error('Validation failed');
-        if (type === 'outgoing') {
-          const chatRes = await fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } });
-          const chat = await chatRes.json();
-          recipientId = chat.recipient?._id;
-          recipientName = chat.recipient?.name?.trim();
-          recipientAvatar = chat.recipient?.avatar || null;
-        }
-        callState = type === 'incoming' ? 'ringing' : 'init';
-        if (callState === 'ringing') {
-          elements.spinner.style.display = 'none';
-          playRingtone();
-        }
+
+      initSocket();
+
+      if (type === 'incoming') {
+        callState = 'ringing';
         updateUI();
-        initSocket();
-      } catch {
-        setTimeout(() => location.href = '/chat-list.html', 3000);
+        playRingtone();
+        performStartupFetches(token, false).catch(err => {
+          log('Incoming validation failed (non-blocking): ' + err.message);
+        });
+        return;
       }
+
+      elements.status.textContent = 'Validating session...';
+      const retryStartup = async (attempt = 1) => {
+        try {
+          await performStartupFetches(token, true);
+          callState = 'init';
+          updateUI();
+        } catch (err) {
+          log('Startup failed (attempt ' + attempt + '): ' + err.message);
+          elements.status.textContent = `Session validation in progress (attempt ${attempt})...`;
+          setTimeout(() => retryStartup(attempt + 1), 5000);
+        }
+      };
+      await retryStartup();
     });
 
     window.addEventListener('beforeunload', () => {
