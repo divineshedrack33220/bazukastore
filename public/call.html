@@ -124,19 +124,19 @@
   </div>
   <audio id="remote-audio" autoplay playsinline></audio>
   <audio id="ringtone" loop preload="auto">
-    <source src="sound/mixkit-on-hold-ringtone-1361.wav" type="audio/mpeg">
+    <source src="sound/mixkit-on-hold-ringtone-1361.wav" type="audio/wav">
   </audio>
   <audio id="end-sound" preload="auto">
-    <source src="sound/end-call-120633.mp3" type="audio/mp3">
+    <source src="sound/end-call-120633.mp3" type="audio/mpeg">
   </audio>
   <audio id="outgoing-dial" loop preload="auto">
-    <source src="sound/phone-outgoing-call-72202.mp3" type="audio/wav">
+    <source src="sound/phone-outgoing-call-72202.mp3" type="audio/mpeg">
   </audio>
   <audio id="accept-sound" preload="auto">
-    <source src="sound/alert-sound-230091.mp3" type="audio/wav">
+    <source src="sound/alert-sound-230091.mp3" type="audio/mpeg">
   </audio>
   <audio id="reconnect-sound" preload="auto">
-    <source src="sound/notification-beep-229154.mp3" type="audio/wav">
+    <source src="sound/notification-beep-229154.mp3" type="audio/mpeg">
   </audio>
 
   <script>
@@ -192,6 +192,7 @@
     let connectionCheckInterval = null;
     let endReason = '';
     let networkQuality = 'good';
+    let localActx = null, remoteActx = null, avatarActx = null;
 
     // === CANVAS CONTEXT ===
     let ctx = null;
@@ -301,7 +302,11 @@
         updateNetworkStatus();
       });
       socket.on('incoming-call', (data) => {
-        if (data.callId === callId && type === 'incoming') {
+        if (data.callId !== callId) {
+          log('Ignored mismatched incoming-call: ' + data.callId);
+          return;
+        }
+        if (type === 'incoming') {
           callState = 'ringing';
           updateUI();
           playRingtone();
@@ -439,8 +444,10 @@
     // === CHATGPT-STYLE SOUND WAVES ===
     function initAvatarVisualizer() {
       if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
+      if (avatarActx) avatarActx.close();
       const actx = new (window.AudioContext || window.webkitAudioContext)();
       if (actx.state === 'suspended') actx.resume();
+      avatarActx = actx;
       avatarAnalyser = actx.createAnalyser();
       avatarAnalyser.fftSize = 512;
       avatarAnalyser.smoothingTimeConstant = 0.85;
@@ -508,8 +515,10 @@
 
     function initLocalVisualizer() {
       if (!localStream || localAnalyser) return;
+      if (localActx) localActx.close();
       const actx = new (window.AudioContext || window.webkitAudioContext)();
       if (actx.state === 'suspended') actx.resume();
+      localActx = actx;
       localAnalyser = actx.createAnalyser();
       localAnalyser.fftSize = 256;
       localAnalyser.smoothingTimeConstant = 0.8;
@@ -539,8 +548,10 @@
 
     function initRemoteVisualizer() {
       if (!elements.remoteAudio.srcObject || remoteAnalyser) return;
+      if (remoteActx) remoteActx.close();
       const actx = new (window.AudioContext || window.webkitAudioContext)();
       if (actx.state === 'suspended') actx.resume();
+      remoteActx = actx;
       remoteAnalyser = actx.createAnalyser();
       remoteAnalyser.fftSize = 256;
       remoteAnalyser.smoothingTimeConstant = 0.8;
@@ -731,7 +742,7 @@
           titleText = `${userName} & ${otherName || 'Contact'}`;
           subtitleText = 'Live audio connection';
           updateNetworkStatus();
-          return;
+          break;
         case 'ended':
           titleText = 'Call concluded';
           subtitleText = 'Great chat—see you soon!';
@@ -776,6 +787,10 @@
       if (remoteAnimationId) cancelAnimationFrame(remoteAnimationId);
       if (avatarAnimationId) cancelAnimationFrame(avatarAnimationId);
       localAnimationId = remoteAnimationId = avatarAnimationId = null;
+      if (localActx) localActx.close();
+      if (remoteActx) remoteActx.close();
+      if (avatarActx) avatarActx.close();
+      localActx = remoteActx = avatarActx = null;
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (peer) peer.close();
       document.body.classList.remove('call-active');
@@ -841,6 +856,11 @@
         isOutgoing ? fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({}) })
       ]);
       if (!callRes.ok || !profileRes.ok || !chatRes.ok) throw new Error('Validation failed');
+      
+      // Sync userName from profile (for both types)
+      const profile = await profileRes.json();
+      userName = profile.name?.trim() || userName;  // Fallback to localStorage if null
+      
       if (isOutgoing) {
         const chat = await chatRes.json();
         recipientId = chat.recipient?._id;
@@ -891,6 +911,9 @@
 
     window.addEventListener('beforeunload', () => {
       if (['connecting', 'ringing', 'active'].includes(callState) && socket?.connected) socket.emit('end-call', { callId });
+      if (localActx) localActx.close();
+      if (remoteActx) remoteActx.close();
+      if (avatarActx) avatarActx.close();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (peer) peer.close();
     });
