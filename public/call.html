@@ -190,6 +190,7 @@
     let recipientId = null;
     let callerAvatar = null, recipientAvatar = null;
     let connectionCheckInterval = null;
+    let silenceCheck = null;
     let endReason = '';
     let networkQuality = 'good';
     let localActx = null, remoteActx = null, avatarActx = null;
@@ -379,6 +380,24 @@
               networkQuality = 'poor';
             }
             updateNetworkStatus();
+            // Add stats check
+            peer.getStats().then(stats => {
+              let packetsLost = 0, totalPackets = 0;
+              stats.forEach(report => {
+                if (report.type === 'outbound-rtp' || report.type === 'inbound-rtp') {
+                  packetsLost += report.packetsLost || 0;
+                  totalPackets += (report.packetsSent || report.packetsReceived) || 0;
+                }
+              });
+              const lossRate = totalPackets > 0 ? (packetsLost / totalPackets) * 100 : 0;
+              if (lossRate > 10) {
+                log(`High loss (${lossRate.toFixed(1)}%) — restarting ICE`);
+                peer.restartIce();
+                showToast('Recovering connection... 📡');
+                networkQuality = 'fair';  // Trigger UI
+                updateNetworkStatus();
+              }
+            }).catch(e => log('Stats error: ' + e.message));
           });
         }
       }, PING_INTERVAL);
@@ -416,7 +435,7 @@
         const stream = e.streams[0];
         elements.remoteAudio.srcObject = stream;
         elements.remoteAudio.muted = false;
-        elements.remoteAudio.volume = 1.0;
+        elements.remoteAudio.volume = 0.8;
         elements.remoteAudio.play().catch(err => log('Play blocked: ' + err.message));
         initRemoteVisualizer();
         initAvatarVisualizer();
@@ -584,9 +603,10 @@
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: false,
+            channelCount: { ideal: 1 },
+            echoCancellation: { ideal: true },
+            noiseSuppression: { ideal: true },
+            autoGainControl: { ideal: true },
           }
         });
         retryCount = 0;
@@ -770,6 +790,26 @@
         startLocalSoundWaveAnimation();
         startRemoteSoundWaveAnimation();
         startAvatarSoundDance();
+        // Silence detector: WhatsApp-style auto-recovery
+        let silenceStart = null;
+        const SILENCE_THRESHOLD = 0.01;  // Adjust if too sensitive
+        const SILENCE_TIMEOUT = 5000;    // 5s before retry
+        silenceCheck = setInterval(() => {
+          if (callState !== 'active' || !remoteDataArray) return;
+          const avgVol = remoteDataArray.reduce((a, b) => a + b, 0) / remoteDataArray.length / 255;
+          if (avgVol < SILENCE_THRESHOLD) {
+            if (!silenceStart) silenceStart = Date.now();
+            if (Date.now() - silenceStart > SILENCE_TIMEOUT) {
+              log('Silence detected — auto-retrying audio');
+              showToast('Optimizing audio... 🔄');
+              endCall('Silence retry');  // Clean end, then restart via global retry
+              setTimeout(() => requestMic(type === 'outgoing'), 1000);  // Re-init
+              clearInterval(silenceCheck);
+            }
+          } else {
+            silenceStart = null;
+          }
+        }, 2000);  // Check every 2s
       }
     }
 
@@ -778,6 +818,7 @@
       callState = 'ended';
       clearInterval(timerId);
       clearInterval(connectionCheckInterval);
+      if (silenceCheck) clearInterval(silenceCheck);
       stopRingtone();
       stopOutgoingDial();
       elements.endSound.volume = 0.5;
@@ -792,6 +833,16 @@
       if (avatarActx) avatarActx.close();
       localActx = remoteActx = avatarActx = null;
       if (localStream) localStream.getTracks().forEach(t => t.stop());
+      // Force-clean remote too (WhatsApp ensures no ghost audio)
+      if (elements.remoteAudio.srcObject) {
+        elements.remoteAudio.srcObject.getTracks().forEach(t => t.stop());
+        elements.remoteAudio.srcObject = null;
+      }
+      // Pause all sounds to kill loops
+      [elements.ringtone, elements.outgoingDial, elements.endSound, elements.acceptSound, elements.reconnectSound].forEach(sound => {
+        sound.pause();
+        sound.currentTime = 0;
+      });
       if (peer) peer.close();
       document.body.classList.remove('call-active');
       if (callId && socket?.connected) socket.emit('end-call', { callId, reason });
@@ -841,8 +892,12 @@
       elements.mute.innerHTML = isMuted ? '<i data-feather="mic-off"></i>' : '<i data-feather="mic"></i>';
       feather.replace();
     };
-    elements.end.onclick = () => endCall('Ended by user');
-    elements.back.onclick = () => confirm('End call and return to chat?') && endCall('Back to chat');
+    elements.end.onclick = () => {
+      if (confirm('End call?')) endCall('Ended by user');
+    };
+    elements.back.onclick = () => {
+      if (confirm('End call and return to chat?')) endCall('Back to chat');
+    };
     elements.retry.onclick = () => {
       retryCount = 0;
       requestMic(type === 'outgoing');
