@@ -34,7 +34,7 @@
     .call-status { font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; transition: all 0.3s ease; }
     .call-status.connected { color: #10b981; font-weight: 600; }
     .call-status.network-weak { color: var(--alert-red); animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 0.7; } 50% professeur { opacity: 1; } }
+    @keyframes pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
     .call-subtitle { font-size: 1rem; opacity: 0.8; color: var(--neutral-gray); margin-top: -0.5rem; transition: all 0.3s ease; animation: fadeInUp 0.5s ease-out; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 0.8; transform: translateY(0); } }
     .call-toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(16, 185, 129, 0.9); color: white; padding: 0.75rem 1.5rem; border-radius: 25px; font-weight: 500; z-index: 20; opacity: 0; transition: all 0.3s ease; animation: toastSlide 0.4s ease-out; }
@@ -184,6 +184,7 @@
     let connectionCheckInterval = null;
     let endReason = '';
     let networkQuality = 'good';
+    let audioUnlocked = false; // NEW: Audio unlock flag
 
     // === CANVAS CONTEXT ===
     let ctx = null;
@@ -201,6 +202,20 @@
       elements.toast.textContent = msg;
       elements.toast.classList.add('show');
       setTimeout(() => elements.toast.classList.remove('show'), 2000);
+    }
+
+    // === AUDIO UNLOCK (CRITICAL FOR PC) ===
+    document.body.addEventListener('click', unlockAudio, { once: true });
+    document.body.addEventListener('touchstart', unlockAudio, { once: true });
+
+    function unlockAudio() {
+      audioUnlocked = true;
+      const audio = elements.remoteAudio;
+      if (audio.srcObject && !audio.muted) {
+        audio.play().catch(() => {});
+      }
+      log('Audio context unlocked via user gesture');
+      showToast('Sound enabled');
     }
 
     // === INIT ===
@@ -318,7 +333,7 @@
           startTimer();
           startAnimations();
           updateUI();
-          showToast('Connected! Say hi! 🎉');
+          showToast('Connected! Say hi!');
           log('CALL ACTIVE');
         } catch (e) {
           log('Answer failed: ' + e.message);
@@ -407,18 +422,28 @@
         elements.remoteAudio.srcObject = stream;
         elements.remoteAudio.muted = false;
         elements.remoteAudio.volume = 1.0;
-        elements.remoteAudio.play().catch(err => {
-          log('Play blocked: ' + err.message);
-          showToast('Audio playback issue. Please ensure your device volume is up and try speaking.');
-        });
+
+        if (audioUnlocked) {
+          elements.remoteAudio.play().catch(err => {
+            log('Play failed: ' + err.message);
+          });
+        } else {
+          log('Remote audio ready — waiting for tap');
+          showToast('Tap screen to hear caller');
+        }
+
         initRemoteVisualizer();
         initAvatarVisualizer();
+
         e.track.onmute = () => {
           log('Remote track muted');
-          showToast('Remote audio muted. Checking connection...');
+          showToast('Caller muted. Checking...');
           if (peer) peer.restartIce();
         };
-        e.track.onunmute = () => log('Remote track unmuted');
+        e.track.onunmute = () => {
+          log('Remote track unmuted');
+          if (audioUnlocked) elements.remoteAudio.play().catch(() => {});
+        };
       };
 
       peer.onconnectionstatechange = () => {
@@ -449,7 +474,7 @@
       return peer;
     }
 
-    // === VISUALIZERS ===
+    // === VISUALIZERS (unchanged) ===
     function initAvatarVisualizer() {
       if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
       const actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -668,7 +693,7 @@
         startTimer();
         startAnimations();
         updateUI();
-        showToast('Connected! Say hi! 🎉');
+        showToast('Connected! Say hi!');
         pendingOffer = null;
       } catch (err) {
         log('Answer failed: ' + err.message);
@@ -713,7 +738,6 @@
       elements.spinner.style.display = 'none';
       elements.subtitle.style.display = 'block';
 
-      // RE-ENABLE ACCEPT BUTTON ON RINGING
       if (callState === 'ringing') {
         elements.accept.disabled = false;
         elements.accept.style.opacity = '1';
@@ -728,22 +752,22 @@
         case 'init':
           titleText = 'Initiating secure call';
           subtitleText = `${userName} & ${recipientName || 'Contact'}`;
-          elements.status.textContent = 'Getting you ready to chat... 🚀';
+          elements.status.textContent = 'Getting you ready to chat...';
           break;
         case 'connecting':
           titleText = `${userName} & ${recipientName || 'Contact'}`;
           subtitleText = 'Reaching out...';
-          elements.status.textContent = 'Linking you up... almost there! ✨';
+          elements.status.textContent = 'Linking you up... almost there!';
           break;
         case 'accepting':
           titleText = 'Joining call';
           subtitleText = `${userName} & ${callerName || 'Contact'}`;
-          elements.status.textContent = 'One sec—grabbing your mic! 🎤';
+          elements.status.textContent = 'One sec—grabbing your mic!';
           break;
         case 'ringing':
           titleText = `${callerName || 'Contact'} is calling`;
           subtitleText = `Tap to chat with ${callerName || 'Contact'}`;
-          elements.status.textContent = `Hey ${userName}! ${callerName || 'They'} wants to catch up 🎉`;
+          elements.status.textContent = `Hey ${userName}! ${callerName || 'They'} wants to catch up`;
           break;
         case 'active':
           titleText = `${userName} & ${otherName || 'Contact'}`;
@@ -805,7 +829,7 @@
       }, 3000);
     }
 
-    // === ACCEPT CALL BUTTON — FULLY REWORKED ===
+    // === ACCEPT CALL BUTTON — FULLY REWORKED + AUDIO UNLOCK ===
     elements.accept.onclick = async () => {
       if (callState !== 'ringing') return;
 
@@ -866,6 +890,12 @@
 
           await answerCall();
           log('Call accepted successfully');
+
+          // CRITICAL: FORCE AUDIO PLAY ON ACCEPT TAP
+          audioUnlocked = true;
+          elements.remoteAudio.play().catch(() => {});
+          log('Audio forced on accept');
+
           return;
 
         } catch (err) {
