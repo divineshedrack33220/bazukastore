@@ -7,7 +7,7 @@
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
-    connect-src 'self' ws: wss: http://localhost:5000 https://cdn.jsdelivr.net;
+    connect-src 'self' ws: wss: https://bazukastore.com https://cdn.jsdelivr.net;
     media-src 'self' https://assets.mixkit.co;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src https://fonts.gstatic.com;
@@ -141,8 +141,8 @@
 
   <script>
     // === CONFIG ===
-    const API_BASE_URL = 'http://localhost:5000/api';
-    const SOCKET_URL = 'http://localhost:5000';
+    const API_BASE_URL = 'https://bazukastore.com/api';
+    const SOCKET_URL = 'https://bazukastore.com';
     const PING_INTERVAL = 3000;
 
     // === ELEMENTS ===
