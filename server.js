@@ -9,6 +9,9 @@ const fs = require('fs').promises;
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
+// CLOUDINARY (loaded early → shows real config)
+require('./config/cloudinary');
+
 // DB & Models
 const connectDB = require('./config/db');
 let User, Chat, Message, Call;
@@ -37,22 +40,23 @@ const customerRoutes = require('./routes/customerRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const callRoutes = require('./routes/callRoutes');
+const storeRoutes = require('./routes/storeRoutes');
+
+// Optional routes (fail silently)
 let requestRoutes;
-try { requestRoutes = require('./routes/requestRoutes'); } catch (e) { console.error(e); }
+try { requestRoutes = require('./routes/requestRoutes'); } catch (e) {}
 
 // CALL HANDLER
 const { setupCallHandlers } = require('./callHandler');
 const { setIo } = require('./utils/socket');
 
-// Ensure dirs
-const uploadDir = path.join(__dirname, 'Uploads');
-const imagesDir = path.join(__dirname, 'public', 'images');
+// Ensure upload directories
 Promise.all([
-  fs.mkdir(uploadDir, { recursive: true }).catch(() => {}),
-  fs.mkdir(imagesDir, { recursive: true }).catch(() => {})
+  fs.mkdir(path.join(__dirname, 'Uploads'), { recursive: true }).catch(() => {}),
+  fs.mkdir(path.join(__dirname, 'public', 'images'), { recursive: true }).catch(() => {})
 ]);
 
-// EXPRESS
+// EXPRESS + SOCKET.IO
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -68,7 +72,7 @@ app.use((req, _, next) => {
   next();
 });
 
-// Static
+// Static files
 app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
 app.use('/static', express.static(path.join(__dirname, 'public')));
 app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
@@ -76,12 +80,12 @@ app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use('/admin/static', express.static(path.join(__dirname, 'admin/static')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Early request routes
+// Optional request routes
 if (requestRoutes) app.use('/api/requests', requestRoutes);
 
 // Body parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API ROUTES
 app.use('/api/users', auth, userRoutes);
@@ -91,6 +95,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', auth, orderRoutes);
 app.use('/api/chats', auth, chatRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/stores', storeRoutes);
+app.use('/api/store-products', require('./routes/storeProduct'));
 app.use('/api/carts', auth, cartRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/addresses', auth, addressRoutes);
@@ -101,11 +107,11 @@ app.use('/api/visitors', auth, visitorRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/customers', auth, customerRoutes);
-app.use('/api/messages', auth, messageRoutes(io));  // PASS io HERE
+app.use('/api/messages', auth, messageRoutes(io));
 app.use('/api/upload', auth, uploadRoutes);
 app.use('/api/calls', auth, callRoutes);
 
-// DB + SOCKET
+// DB + SOCKET SETUP
 const onlineUsers = new Map();
 app.set('onlineUsers', onlineUsers);
 
@@ -125,30 +131,22 @@ connectDB()
       Call = null;
     }
 
-    // ONE-TIME DB CLEANUP (DEV ONLY)
+    // DEV-ONLY: Clean up old call data
     if (process.env.NODE_ENV === 'development' && Call) {
-      console.log('Running one-time DB cleanup for calls collection...');
+      console.log('Running one-time DB cleanup...');
       try {
-        await Call.collection.dropIndex('callId_1').catch(err => {
-          if (!err.message.includes('index not found')) throw err;
-          console.log('callId_1 index already gone');
-        });
-
-        const unsetResult = await Call.updateMany({}, { $unset: { callId: '' } });
-        console.log(`Removed callId from ${unsetResult.modifiedCount} documents`);
-
-        const deleteResult = await Call.deleteMany({});
-        console.log(`Deleted ${deleteResult.deletedCount} call documents`);
-
+        await Call.collection.dropIndex('callId_1').catch(() => {});
+        await Call.updateMany({}, { $unset: { callId: '' } });
+        await Call.deleteMany({});
         console.log('DB cleanup completed');
       } catch (err) {
-        console.error('DB cleanup failed:', err);
+        console.error('Cleanup failed:', err.message);
       }
     }
 
     console.log('DB + Models Ready');
 
-    // SOCKET AUTH
+    // SOCKET.IO AUTH
     io.use((socket, next) => {
       const token = socket.handshake.auth.token?.replace('Bearer ', '');
       if (!token) return next(new Error('No token'));
@@ -156,15 +154,14 @@ connectDB()
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.user = { id: decoded.id, name: decoded.name || 'User' };
         next();
-      } catch (e) { next(new Error('Invalid token')); }
+      } catch (e) {
+        next(new Error('Invalid token'));
+      }
     });
 
-    // SOCKET CONNECTION
     io.on('connection', (socket) => {
       console.log(`[SOCKET] Connected ${socket.id} | User ${socket.user.id}`);
       onlineUsers.set(socket.user.id, socket.id);
-
-      // CALL HANDLERS
       setupCallHandlers(io, socket, onlineUsers, app);
 
       const rooms = new Set();
@@ -174,36 +171,44 @@ connectDB()
           const chat = await Chat.findById(chatId).populate('participants', '_id');
           if (!chat || !chat.participants.some(p => p._id.toString() === socket.user.id))
             throw new Error('Unauthorized');
-          const r = `chat_${chatId}`;
-          socket.join(r); rooms.add(r);
-          if (cb) cb();
-        } catch (e) { if (cb) cb({ error: e.message }); }
+          const room = `chat_${chatId}`;
+          socket.join(room);
+          rooms.add(room);
+          cb?.();
+        } catch (e) {
+          cb?.({ error: e.message });
+        }
       });
 
       socket.on('leaveChat', ({ chatId }) => {
-        const r = `chat_${chatId}`;
-        socket.leave(r); rooms.delete(r);
+        const room = `chat_${chatId}`;
+        socket.leave(room);
+        rooms.delete(room);
       });
 
       socket.on('typing', async ({ chatId, senderName }) => {
         const chat = await Chat.findById(chatId);
-        if (chat?.participants.some(p => p.toString() === socket.user.id))
+        if (chat?.participants.some(p => p.toString() === socket.user.id)) {
           socket.to(`chat_${chatId}`).emit('typing', { chatId, senderName });
+        }
       });
-
-      // REMOVED DUPLICATE 'message' HANDLER — NOW IN messageRoutes(io)
 
       socket.on('joinAdmin', async (token) => {
         try {
           const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
-          const u = await User.findById(decoded.id);
-          if (u?.isAdmin) { socket.join('adminRoom'); rooms.add('adminRoom'); }
-        } catch { socket.disconnect(); }
+          const user = await User.findById(decoded.id);
+          if (user?.isAdmin) {
+            socket.join('adminRoom');
+            rooms.add('adminRoom');
+          }
+        } catch {
+          socket.disconnect();
+        }
       });
 
-      ['categoryUpdate', 'productUpdate', 'submissionUpdate'].forEach(ev => {
-        socket.on(ev, () => io.to('adminRoom').emit(ev));
-      });
+      ['categoryUpdate', 'productUpdate', 'submissionUpdate'].forEach(ev =>
+        socket.on(ev, () => io.to('adminRoom').emit(ev))
+      );
 
       socket.on('orderStatusUpdate', (order) => {
         io.to('adminRoom').emit('orderStatusUpdate', order);
@@ -215,39 +220,39 @@ connectDB()
 
       socket.on('disconnect', () => {
         rooms.forEach(r => socket.leave(r));
-        for (let [userId, sid] of onlineUsers.entries()) {
+        onlineUsers.forEach((sid, userId) => {
           if (sid === socket.id) onlineUsers.delete(userId);
-        }
+        });
         console.log(`[SOCKET] Disconnected ${socket.id}`);
       });
     });
   })
   .catch(err => {
-    console.error('DB failed:', err);
+    console.error('DB connection failed:', err);
     process.exit(1);
   });
 
-// VISITOR NOTIFY
+// VISITOR TRACKING
 app.use(async (req, res, next) => {
   if (req.originalUrl.startsWith('/api/locations')) return next();
   next();
   try {
-    const v = await VisitorLocation.findOne().sort({ timestamp: -1 }).lean();
-    if (v) io.to('adminRoom').emit('newVisitor', v);
-  } catch (e) { console.error(e); }
+    const latest = await VisitorLocation.findOne().sort({ timestamp: -1 }).lean();
+    if (latest) io.to('adminRoom').emit('newVisitor', latest);
+  } catch (e) {}
 });
 
 // FALLBACKS
 app.get('/service-worker.js', (_, res) => res.status(404).send('Not found'));
 app.get('/images/:filename', async (req, res) => {
-  const p = path.join(__dirname, 'public', 'images', req.params.filename);
-  try { await fs.access(p); res.sendFile(p); }
+  const filePath = path.join(__dirname, 'public', 'images', req.params.filename);
+  try { await fs.access(filePath); res.sendFile(filePath); }
   catch { res.redirect('https://placehold.co/600x400?text=No+Image'); }
 });
 
 app.use((_, res) => res.status(404).json({ message: 'Route not found' }));
 
-// FRONTEND
+// FRONTEND ROUTES
 const serve = file => (_, res) => res.sendFile(path.join(__dirname, 'public', file));
 app.get('/', serve('index.html'));
 app.get('/categories.html', serve('categories.html'));
@@ -264,6 +269,7 @@ app.get('/admin', auth, (req, res) => {
   if (!req.user?.isAdmin) return res.status(403).json({ message: 'Admin only' });
   res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
+
 ['sales-orders.html', 'products.html', 'customers.html'].forEach(f =>
   app.get(`/admin/${f}`, auth, (req, res) => {
     if (!req.user?.isAdmin) return res.status(403).json({ message: 'Admin only' });
@@ -271,7 +277,10 @@ app.get('/admin', auth, (req, res) => {
   })
 );
 
-// ERROR & START
+// ERROR HANDLING & START
 app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on :${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on :${PORT}`);
+  console.log(`Visit: http://localhost:${PORT}`);
+});
