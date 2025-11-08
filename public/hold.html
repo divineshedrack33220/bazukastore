@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Call | Bazuka Store</title>
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
+    connect-src 'self' ws: wss: http://localhost:5000 https://cdn.jsdelivr.net;
+    media-src 'self' https://assets.mixkit.co;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    img-src 'self' data: https:;
+    object-src 'none';
+    base-uri 'self';
+    frame-src 'none';
+  ">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.0/dist/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="chat.css" />
+  <style>
+    :root {
+      --white: #ffffff; --light-gray: #f3f4f6; --neutral-gray: #6b7280;
+      --primary-blue: #3b82f6; --alert-red: #ef4444; --primary-purple: #a855f7;
+      --glow: rgba(59, 130, 246, 0.6);
+    }
+    body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; color: white; }
+    body.call-active { color: white; }
+    #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(1px); }
+    .call-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1rem 8rem 1rem; position: relative; z-index: 1; }
+    .call-status { font-size: 1.1rem; opacity: 0.9; color: var(--neutral-gray); margin-bottom: 1rem; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 100%; transition: all 0.3s ease; }
+    .call-status.connected { color: #10b981; font-weight: 600; }
+    .call-status.network-weak { color: var(--alert-red); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+    .call-subtitle { font-size: 1rem; opacity: 0.8; color: var(--neutral-gray); margin-top: -0.5rem; transition: all 0.3s ease; animation: fadeInUp 0.5s ease-out; } /* New: For both names */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 0.8; transform: translateY(0); } }
+    .call-toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(16, 185, 129, 0.9); color: white; padding: 0.75rem 1.5rem; border-radius: 25px; font-weight: 500; z-index: 20; opacity: 0; transition: all 0.3s ease; animation: toastSlide 0.4s ease-out; } /* New: Fun AI-like toast */
+    .call-toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+    @keyframes toastSlide { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(-10px); } }
+    .call-avatar { width: 160px; height: 160px; border-radius: 50%; background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: bold; margin-bottom: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4), 0 0 30px var(--glow); position: relative; overflow: hidden; transition: all 0.3s ease; }
+    .call-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+    .call-avatar::before { content: ''; position: absolute; top: -12px; left: -12px; right: -12px; bottom: -12px; background: conic-gradient(var(--primary-blue), var(--alert-red), var(--primary-purple)); border-radius: 50%; z-index: -1; opacity: 0; transition: opacity 0.4s ease; animation: rotate-gradient 8s linear infinite; animation-play-state: paused; }
+    .call-avatar.ringing::before, .call-avatar.connecting::before { opacity: 1; animation-play-state: running; }
+    @keyframes rotate-gradient { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .call-avatar .pulse-ring { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 3px solid rgba(255,255,255,0.7); border-radius: 50%; transform: translate(-50%,-50%) scale(1); opacity: 0; pointer-events: none; animation: ig-pulse-ring 2s ease-out infinite; }
+    .call-avatar.ringing .pulse-ring, .call-avatar.connecting .pulse-ring { animation-play-state: running; }
+    .call-avatar.ringing .pulse-ring:nth-child(2), .call-avatar.connecting .pulse-ring:nth-child(2) { animation-delay: 0.7s; }
+    .call-avatar.ringing .pulse-ring:nth-child(3), .call-avatar.connecting .pulse-ring:nth-child(3) { animation-delay: 1.4s; }
+    @keyframes ig-pulse-ring { 0% { transform: translate(-50%,-50%) scale(0.9); opacity: 0.8; } 100% { transform: translate(-50%,-50%) scale(1.8); opacity: 0; } }
+    .call-avatar .sound-wave-bg { position: absolute; top: 50%; left: 50%; width: 120%; height: 120%; transform: translate(-50%,-50%); border-radius: 50%; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 0.3s ease; }
+    .call-avatar.speaking .sound-wave-bg { opacity: 1; }
+    .call-avatar .sound-wave-bg canvas { width: 100%; height: 100%; display: block; }
+    .call-title { font-size: 2rem; font-weight: 600; margin-bottom: .5rem; color: white; text-shadow: 0 2px 4px rgba(0,0,0,.3); transition: all 0.3s ease; } /* Enhanced for fun texts */
+    .call-timer { font-size: 1.5rem; font-weight: 500; margin: 1.5rem 0; color: white; text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+    .call-controls { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 1.5rem; z-index: 10; }
+    .call-btn { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all .3s ease; border: none; cursor: pointer; font-size: 1.75rem; box-shadow: 0 8px 20px rgba(0,0,0,.4); position: relative; color: white; backdrop-filter: blur(12px); background: rgba(255,255,255,.1); }
+    .call-btn::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: rgba(255,255,255,0.15); opacity: 0; transition: opacity 0.3s; }
+    .call-btn:active::before { opacity: 1; }
+    .call-btn.accept { background: linear-gradient(135deg, #10b981, #059669); }
+    .call-btn.decline, .call-btn.end { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .call-btn.mute { background: linear-gradient(135deg, #6b7280, #4b5563); }
+    .call-btn.speaker { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    .call-btn.retry { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .call-btn:hover { transform: scale(1.15); box-shadow: 0 12px 30px rgba(0,0,0,.5); }
+    .call-btn.muted { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .call-btn.speaking, .call-btn.listening { background: linear-gradient(135deg, #10b981, #059669); animation: btn-glow 1.5s ease-in-out infinite; }
+    @keyframes btn-glow { 0%,100% { box-shadow: 0 0 15px rgba(16,185,129,.6); } 50% { box-shadow: 0 0 30px rgba(16,185,129,.9); } }
+    .back-btn { position: fixed; top: 1rem; left: 1rem; z-index: 50; background: rgba(255,255,255,.2); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); transition: all 0.3s; }
+    .back-btn:hover { background: rgba(255,255,255,.3); }
+    .loading-spinner { border: 4px solid var(--light-gray); border-top: 4px solid var(--primary-blue); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 1rem auto; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .network-indicator { position: fixed; top: 1rem; right: 1rem; z-index: 50; padding: 0.5rem 1rem; background: rgba(255,255,255,.2); border-radius: 20px; font-size: 0.8rem; color: white; backdrop-filter: blur(8px); display: flex; align-items: center; gap: .5rem; }
+    .network-indicator::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; animation: blink 1.5s infinite; }
+    .network-indicator.connected::before { background: #10b981; animation: none; }
+    @keyframes blink { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .sound-wave { position: absolute; top: -20px; right: -20px; width: 110px; height: 110px; pointer-events: none; }
+    .debug-info { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #0f0; padding: 8px 16px; border-radius: 8px; font-family: monospace; font-size: 0.9rem; z-index: 100; display: none; }
+    @media (max-width: 640px) { 
+      .call-container { padding: 2rem 1rem 6rem 1rem; }
+      .call-btn { width: 60px; height: 60px; font-size: 1.5rem; } 
+      .call-controls { gap: 1rem; } 
+      .call-avatar { width: 120px; height: 120px; font-size: 3rem; } 
+      .sound-wave { width: 90px; height: 90px; } 
+      .call-title { font-size: 1.75rem; }
+      .call-status { font-size: 1rem; top: -40px; }
+      .call-subtitle { font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <button id="back-to-chat" class="back-btn" style="display: none;">
+    <i data-feather="arrow-left"></i>
+  </button>
+  <div id="network-indicator" class="network-indicator" style="display: none;">
+    <span>Connecting...</span>
+  </div>
+  <div id="debug-info" class="debug-info"></div>
+  <div id="call-toast" class="call-toast"></div> <!-- New: AI-like fun messages -->
+  <div class="call-container">
+    <p id="call-status" class="call-status"></p>
+    <div id="call-avatar" class="call-avatar">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="sound-wave-bg"><canvas id="avatar-sound-canvas"></canvas></div>
+      <img id="avatar-img" style="display: none;" />
+      <span id="avatar-letter">U</span>
+    </div>
+    <h1 id="call-title" class="call-title">call...</h1>
+    <p id="call-subtitle" class="call-subtitle" style="display: none;"></p> <!-- New: For both names -->
+    <div id="call-timer" class="call-timer" style="display: none;">00:00</div>
+    <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
+    <div id="call-controls" class="call-controls">
+      <button id="accept-call" class="call-btn accept" style="display: none;"><i data-feather="phone"></i></button>
+      <button id="decline-call" class="call-btn decline" style="display: none;"><i data-feather="phone-off"></i></button>
+      <button id="mute-btn" class="call-btn mute" style="display: none;"><i data-feather="mic"></i><canvas id="local-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas></button>
+      <button id="speaker-btn" class="call-btn speaker" style="display: none;"><i data-feather="volume-2"></i><canvas id="remote-sound-wave-canvas" class="sound-wave" style="display: none;"></canvas></button>
+      <button id="end-call" class="call-btn end" style="display: none;"><i data-feather="phone-off"></i></button>
+      <button id="retry-mic" class="call-btn retry" style="display: none;"><i data-feather="refresh-cw"></i></button>
+    </div>
+  </div>
+  <audio id="remote-audio" autoplay playsinline></audio>
+  <audio id="ringtone" loop preload="auto">
+    <source src="sound/mixkit-on-hold-ringtone-1361.wav" type="audio/mpeg">
+  </audio>
+  <audio id="end-sound" preload="auto">
+    <source src="sound/end-call-120633.mp3" type="audio/mp3">
+  </audio>
+  <audio id="outgoing-dial" loop preload="auto">
+    <source src="sound/phone-outgoing-call-72202.mp3" type="audio/wav">
+  </audio>
+  <audio id="accept-sound" preload="auto">
+    <source src="sound/alert-sound-230091.mp3" type="audio/wav">
+  </audio>
+  <audio id="reconnect-sound" preload="auto">
+    <source src="sound/notification-beep-229154.mp3" type="audio/wav">
+  </audio>
+
+  <script>
+    // === CONFIG ===
+    const API_BASE_URL = 'http://localhost:5000/api';
+    const SOCKET_URL = 'http://localhost:5000';
+    const PING_INTERVAL = 3000;
+
+    // === ELEMENTS ===
+    const elements = {
+      avatar: document.getElementById('call-avatar'),
+      avatarImg: document.getElementById('avatar-img'),
+      avatarLetter: document.getElementById('avatar-letter'),
+      title: document.getElementById('call-title'),
+      subtitle: document.getElementById('call-subtitle'), // New: For both names
+      status: document.getElementById('call-status'),
+      timer: document.getElementById('call-timer'),
+      spinner: document.getElementById('loading-spinner'),
+      toast: document.getElementById('call-toast'), // New: Fun messages
+      accept: document.getElementById('accept-call'),
+      decline: document.getElementById('decline-call'),
+      mute: document.getElementById('mute-btn'),
+      speaker: document.getElementById('speaker-btn'),
+      end: document.getElementById('end-call'),
+      retry: document.getElementById('retry-mic'),
+      back: document.getElementById('back-to-chat'),
+      canvas: document.getElementById('bg-canvas'),
+      localSoundWaveCanvas: document.getElementById('local-sound-wave-canvas'),
+      remoteSoundWaveCanvas: document.getElementById('remote-sound-wave-canvas'),
+      avatarSoundCanvas: document.getElementById('avatar-sound-canvas'),
+      remoteAudio: document.getElementById('remote-audio'),
+      ringtone: document.getElementById('ringtone'),
+      endSound: document.getElementById('end-sound'),
+      outgoingDial: document.getElementById('outgoing-dial'),
+      acceptSound: document.getElementById('accept-sound'),
+      reconnectSound: document.getElementById('reconnect-sound'),
+      network: document.getElementById('network-indicator'),
+      debug: document.getElementById('debug-info')
+    };
+
+    // === STATE ===
+    let callId = null, type = null, chatId = null, callerName = null, recipientName = null, userName = localStorage.getItem('userName') || 'You'; // New: Quick user name for both display
+    let callState = 'init';
+    let localStream = null, peer = null, timerId = null, retryCount = 0;
+    let isMuted = false, pendingOffer = null;
+    let socket = null;
+    let localCtx = null, remoteCtx = null, avatarCtx = null;
+    let localAnalyser = null, remoteAnalyser = null, avatarAnalyser = null;
+    let localDataArray = null, remoteDataArray = null, avatarDataArray = null;
+    let localAnimationId = null, remoteAnimationId = null, avatarAnimationId = null;
+    let recipientId = null;
+    let callerAvatar = null, recipientAvatar = null;
+    let connectionCheckInterval = null;
+    let endReason = '';
+    let networkQuality = 'good';
+
+    // === CANVAS CONTEXT ===
+    let ctx = null;
+    if (elements.canvas) {
+      ctx = elements.canvas.getContext('2d');
+    }
+
+    // === DEBUG ===
+    function log(msg) {
+      console.log('[CALL]', msg);
+      elements.debug.textContent = msg;
+      elements.debug.style.display = 'block';
+      setTimeout(() => elements.debug.style.display = 'none', 5000);
+    }
+
+    // New: Fun AI-like toast message (auto-hides after 2s)
+    function showToast(msg) {
+      elements.toast.textContent = msg;
+      elements.toast.classList.add('show');
+      setTimeout(() => elements.toast.classList.remove('show'), 2000);
+    }
+
+    // === INIT ===
+    feather.replace();
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && socket && !socket.connected && callState !== 'ended') {
+        log('Tab refocused — re-init socket');
+        initSocket();
+      }
+    });
+    window.addEventListener('focus', () => {
+      if (socket && !socket.connected && callState !== 'ended') {
+        log('Window focused — re-init socket');
+        initSocket();
+      }
+    });
+
+    function resizeCanvas() {
+      elements.canvas.width = innerWidth;
+      elements.canvas.height = innerHeight;
+      if (ctx) drawStaticBackground();
+      if (localCtx) {
+        localCtx.canvas.width = elements.localSoundWaveCanvas.offsetWidth;
+        localCtx.canvas.height = elements.localSoundWaveCanvas.offsetHeight;
+      }
+      if (remoteCtx) {
+        remoteCtx.canvas.width = elements.remoteSoundWaveCanvas.offsetWidth;
+        remoteCtx.canvas.height = elements.remoteSoundWaveCanvas.offsetHeight;
+      }
+      if (avatarCtx) {
+        const s = elements.avatar.offsetWidth * 1.2;
+        avatarCtx.canvas.width = s;
+        avatarCtx.canvas.height = s;
+      }
+    }
+
+    function drawStaticBackground() {
+      if (!ctx) return;
+      const g = ctx.createRadialGradient(innerWidth/2, innerHeight/2, 0, innerWidth/2, innerHeight/2, Math.max(innerWidth, innerHeight));
+      g.addColorStop(0, 'rgba(59, 130, 246, 0.8)');
+      g.addColorStop(0.5, 'rgba(239, 68, 68, 0.6)');
+      g.addColorStop(1, 'rgba(147, 51, 234, 0.4)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+    }
+
+    // === SOCKET ===
+    function initSocket() {
+      socket = io(SOCKET_URL, {
+        auth: { token: `Bearer ${localStorage.getItem('token') || ''}` },
+        transports: ['websocket'],
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+        forceNew: false
+      });
+      socket.on('connect', () => {
+        networkQuality = 'good';
+        elements.network.textContent = 'Connected';
+        elements.network.className = 'network-indicator connected';
+        elements.network.style.display = 'flex';
+        updateNetworkStatus();
+        if (type === 'outgoing' && callState === 'init') startCall();
+        if (pendingOffer && callState === 'accepting') answerCall();
+      });
+      socket.on('disconnect', () => {
+        networkQuality = 'poor';
+        elements.network.textContent = 'Reconnecting...';
+        elements.network.className = 'network-indicator disconnected';
+        updateNetworkStatus();
+      });
+      socket.on('connect_error', () => {
+        networkQuality = 'poor';
+        elements.network.textContent = 'No connection';
+        elements.network.className = 'network-indicator disconnected';
+        updateNetworkStatus();
+      });
+      socket.on('reconnect', () => {
+        networkQuality = 'good';
+        elements.reconnectSound.volume = 0.5;
+        elements.reconnectSound.play().catch(() => {});
+        elements.reconnectSound.currentTime = 0;
+        updateNetworkStatus();
+      });
+      socket.on('incoming-call', (data) => {
+        if (data.callId === callId && type === 'incoming') {
+          callState = 'ringing';
+          updateUI();
+          playRingtone();
+        }
+      });
+
+      socket.on('call-offer', async ({ callId: id, offer }) => {
+        if (id !== callId || !['ringing', 'accepting'].includes(callState)) return;
+        pendingOffer = offer;
+        if (callState === 'accepting') await answerCall();
+      });
+
+      socket.on('call-accepted', async ({ callId: id, answer }) => {
+        if (id !== callId || callState !== 'connecting') return;
+        try {
+          log('Remote SDP received');
+          await peer.setRemoteDescription(answer);
+          log('Remote SDP set');
+          callState = 'active';
+          document.body.classList.add('call-active');
+          stopRingtone();
+          stopOutgoingDial();
+          elements.acceptSound.volume = 0.5;
+          elements.acceptSound.play().catch(() => {});
+          elements.acceptSound.currentTime = 0;
+          startTimer();
+          startAnimations();
+          updateUI();
+          showToast('Connected! Say hi!'); // New: Fun toast on connect
+          log('CALL ACTIVE');
+        } catch (e) {
+          log('Answer failed: ' + e.message);
+          updateNetworkStatus();
+        }
+      });
+
+      socket.on('ice-candidate', async ({ callId: id, candidate }) => {
+        if (id !== callId || !peer) return;
+        try {
+          if (peer.remoteDescription) {
+            await peer.addIceCandidate(candidate);
+          } else {
+            log('ICE delayed');
+            const check = setInterval(async () => {
+              if (peer.remoteDescription) {
+                clearInterval(check);
+                try { await peer.addIceCandidate(candidate); } catch (e) {}
+              }
+            }, 100);
+            setTimeout(() => clearInterval(check), 10000);
+          }
+        } catch (e) {
+          log('ICE error (ignored): ' + e.message);
+        }
+      });
+
+      socket.on('call-declined', () => endCall('Declined'));
+      socket.on('call-ended', () => endCall('Ended by peer'));
+
+      connectionCheckInterval = setInterval(() => {
+        if (socket && callState === 'active') {
+          const start = Date.now();
+          socket.emit('ping', { callId }, (r) => {
+            const latency = Date.now() - start;
+            if (r?.status === 'pong') {
+              if (latency < 150) networkQuality = 'good';
+              else if (latency < 400) networkQuality = 'fair';
+              else networkQuality = 'poor';
+            } else {
+              networkQuality = 'poor';
+            }
+            updateNetworkStatus();
+          });
+        }
+      }, PING_INTERVAL);
+    }
+
+    function updateNetworkStatus() {
+      if (callState !== 'active') return;
+      const statusEl = elements.status;
+      if (networkQuality === 'good') {
+        statusEl.className = 'call-status connected';
+        statusEl.textContent = 'Secure connection established';
+      } else if (networkQuality === 'fair') {
+        statusEl.className = 'call-status network-weak';
+        statusEl.textContent = 'Fair connection — optimizing...';
+      } else {
+        statusEl.className = 'call-status network-weak';
+        statusEl.textContent = 'Poor connection — recovering...';
+      }
+    }
+
+    // === WEBRTC ===
+    function createPeer() {
+      peer = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+        ]
+      });
+
+      peer.ontrack = (e) => {
+        log(`REMOTE TRACK ADDED: ${e.track.kind}`);
+        const stream = e.streams[0];
+        elements.remoteAudio.srcObject = stream;
+        elements.remoteAudio.muted = false;
+        elements.remoteAudio.volume = 1.0;
+        elements.remoteAudio.play().catch(err => log('Play blocked: ' + err.message));
+        initRemoteVisualizer();
+        initAvatarVisualizer();
+      };
+
+      peer.onconnectionstatechange = () => {
+        log('ICE: ' + peer.connectionState);
+        if (peer.connectionState === 'failed') {
+          log('Connection failed — attempting recovery...');
+          networkQuality = 'poor';
+          updateNetworkStatus();
+          if (peer) peer.restartIce();
+        }
+      };
+
+      peer.onicecandidate = (e) => {
+        if (e.candidate) {
+          socket.emit('ice-candidate', { callId, candidate: e.candidate.toJSON() });
+        }
+      };
+
+      return peer;
+    }
+
+    // === CHATGPT-STYLE SOUND WAVES ===
+    function initAvatarVisualizer() {
+      if (!elements.remoteAudio.srcObject || avatarAnalyser) return;
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      avatarAnalyser = actx.createAnalyser();
+      avatarAnalyser.fftSize = 512;
+      avatarAnalyser.smoothingTimeConstant = 0.85;
+      actx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(avatarAnalyser);
+      avatarDataArray = new Uint8Array(avatarAnalyser.frequencyBinCount);
+      avatarCtx = elements.avatarSoundCanvas.getContext('2d');
+      resizeCanvas();
+      startAvatarSoundDance();
+    }
+
+    function startAvatarSoundDance() {
+      if (avatarAnimationId) return;
+      const draw = () => {
+        avatarAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !avatarAnalyser) {
+          elements.avatar.classList.remove('speaking');
+          return;
+        }
+        avatarAnalyser.getByteFrequencyData(avatarDataArray);
+        const vol = avatarDataArray.reduce((a, b) => a + b, 0) / avatarDataArray.length / 255;
+        if (vol > 0.03) {
+          elements.avatar.classList.add('speaking');
+          drawAvatarWave(vol);
+        } else {
+          elements.avatar.classList.remove('speaking');
+          avatarCtx.clearRect(0, 0, avatarCtx.canvas.width, avatarCtx.canvas.height);
+        }
+      };
+      draw();
+    }
+
+    function drawAvatarWave(vol) {
+      const c = avatarCtx.canvas;
+      avatarCtx.clearRect(0, 0, c.width, c.height);
+      const cx = c.width / 2, cy = c.height / 2;
+      const bars = 64;
+      const radius = c.width * 0.35;
+      const barWidth = 2.5;
+      const gap = 1.5;
+
+      avatarCtx.lineCap = 'round';
+      for (let i = 0; i < bars; i++) {
+        const angle = (i / bars) * Math.PI * 2 - Math.PI / 2;
+        const index = Math.floor((i / bars) * avatarDataArray.length);
+        const value = avatarDataArray[index] / 255;
+        const height = value * vol * c.width * 0.18;
+
+        const x1 = cx + Math.cos(angle) * radius;
+        const y1 = cy + Math.sin(angle) * radius;
+        const x2 = cx + Math.cos(angle) * (radius + height);
+        const y2 = cy + Math.sin(angle) * (radius + height);
+
+        const gradient = avatarCtx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, `hsla(210, 100%, 70%, ${vol})`);
+        gradient.addColorStop(1, `hsla(210, 100%, 50%, ${vol * 0.6})`);
+
+        avatarCtx.beginPath();
+        avatarCtx.moveTo(x1, y1);
+        avatarCtx.lineTo(x2, y2);
+        avatarCtx.lineWidth = barWidth + gap * value;
+        avatarCtx.strokeStyle = gradient;
+        avatarCtx.stroke();
+      }
+    }
+
+    function initLocalVisualizer() {
+      if (!localStream || localAnalyser) return;
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      localAnalyser = actx.createAnalyser();
+      localAnalyser.fftSize = 256;
+      localAnalyser.smoothingTimeConstant = 0.8;
+      actx.createMediaStreamSource(localStream).connect(localAnalyser);
+      localDataArray = new Uint8Array(localAnalyser.frequencyBinCount);
+      localCtx = elements.localSoundWaveCanvas.getContext('2d');
+      elements.localSoundWaveCanvas.style.display = 'block';
+      resizeCanvas();
+      startLocalSoundWaveAnimation();
+    }
+
+    function startLocalSoundWaveAnimation() {
+      if (localAnimationId) return;
+      const draw = () => {
+        localAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !localAnalyser) {
+          elements.mute.classList.remove('listening');
+          return;
+        }
+        localAnalyser.getByteFrequencyData(localDataArray);
+        const vol = localDataArray.reduce((a, b) => a + b, 0) / localDataArray.length / 255;
+        if (vol > 0.02 && !isMuted) elements.mute.classList.add('listening');
+        else elements.mute.classList.remove('listening');
+      };
+      draw();
+    }
+
+    function initRemoteVisualizer() {
+      if (!elements.remoteAudio.srcObject || remoteAnalyser) return;
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      remoteAnalyser = actx.createAnalyser();
+      remoteAnalyser.fftSize = 256;
+      remoteAnalyser.smoothingTimeConstant = 0.8;
+      actx.createMediaStreamSource(elements.remoteAudio.srcObject).connect(remoteAnalyser);
+      remoteDataArray = new Uint8Array(remoteAnalyser.frequencyBinCount);
+      remoteCtx = elements.remoteSoundWaveCanvas.getContext('2d');
+      elements.remoteSoundWaveCanvas.style.display = 'block';
+      resizeCanvas();
+      startRemoteSoundWaveAnimation();
+    }
+
+    function startRemoteSoundWaveAnimation() {
+      if (remoteAnimationId) return;
+      const draw = () => {
+        remoteAnimationId = requestAnimationFrame(draw);
+        if (callState !== 'active' || !remoteAnalyser) {
+          elements.speaker.classList.remove('speaking');
+          return;
+        }
+        remoteAnalyser.getByteFrequencyData(remoteDataArray);
+        const vol = remoteDataArray.reduce((a, b) => a + b, 0) / remoteDataArray.length / 255;
+        if (vol > 0.02) elements.speaker.classList.add('speaking');
+        else elements.speaker.classList.remove('speaking');
+      };
+      draw();
+    }
+
+    // === MEDIA ===
+    async function getMic() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false,
+          }
+        });
+        retryCount = 0;
+        log('Mic granted');
+        return localStream;
+      } catch (err) {
+        log('Mic denied: ' + err.message);
+        handleMicError(err);
+        return null;
+      }
+    }
+
+    function handleMicError(err) {
+      retryCount++;
+      elements.status.textContent = `Microphone access required. Tap to retry.`;
+      elements.retry.style.display = 'flex';
+      setTimeout(() => requestMic(type === 'outgoing'), 3000);
+    }
+
+    // === CALL FLOW ===
+    async function requestMic(isOutgoing) {
+      elements.retry.style.display = 'flex';
+      elements.status.textContent = 'Requesting microphone permission...';
+      const stream = await getMic();
+      if (!stream) return null;
+      elements.retry.style.display = 'none';
+      elements.status.textContent = 'Securing audio stream...';
+
+      peer = createPeer();
+
+      stream.getTracks().forEach(track => {
+        peer.addTrack(track, stream);
+        log(`Added local track: ${track.kind}`);
+      });
+
+      initLocalVisualizer();
+
+      if (isOutgoing) {
+        callState = 'connecting';
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        if (socket?.connected) {
+          socket.emit('call-user', { recipientUserId: recipientId, offer, callId });
+          log('Offer sent');
+        }
+        elements.outgoingDial.volume = 0.5;
+        elements.outgoingDial.play().catch(() => {});
+        updateUI();
+      }
+
+      return { stream, peer };
+    }
+
+    function stopOutgoingDial() {
+      elements.outgoingDial.pause();
+      elements.outgoingDial.currentTime = 0;
+    }
+
+    async function startCall() {
+      if (!recipientId || !socket?.connected) {
+        setTimeout(startCall, 2000);
+        return;
+      }
+      await requestMic(true);
+    }
+
+    async function answerCall() {
+      if (!pendingOffer || !peer) return;
+      try {
+        await peer.setRemoteDescription(pendingOffer);
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        if (socket?.connected) {
+          socket.emit('accept-call', { callId, answer });
+          log('Answer sent');
+        }
+        callState = 'active';
+        document.body.classList.add('call-active');
+        startTimer();
+        startAnimations();
+        updateUI();
+        showToast('Connected! Say hi! 🎉');
+        pendingOffer = null;
+      } catch (err) {
+        log('Answer failed: ' + err.message);
+        elements.status.textContent = 'Connection setup in progress...';
+        updateNetworkStatus();
+      }
+    }
+
+    function playRingtone() {
+      elements.ringtone.volume = 0.5;
+      elements.ringtone.play().catch(() => {});
+    }
+    function stopRingtone() {
+      elements.ringtone.pause();
+      elements.ringtone.currentTime = 0;
+    }
+
+    // === UI ===
+    function updateUI() {
+      const otherName = type === 'outgoing' ? recipientName : callerName;
+      const otherAvatar = type === 'outgoing' ? recipientAvatar : callerAvatar;
+      if (otherAvatar) {
+        elements.avatarImg.src = otherAvatar;
+        elements.avatarImg.style.display = 'block';
+        elements.avatarLetter.style.display = 'none';
+      } else {
+        elements.avatarLetter.textContent = otherName?.[0]?.toUpperCase() || 'U';
+      }
+
+      elements.avatar.classList.toggle('ringing', callState === 'ringing');
+      elements.avatar.classList.toggle('connecting', callState === 'connecting');
+      elements.back.style.display = ['connecting', 'ringing', 'active'].includes(callState) ? 'flex' : 'none';
+      elements.accept.style.display = callState === 'ringing' ? 'flex' : 'none';
+      elements.decline.style.display = callState === 'ringing' ? 'flex' : 'none';
+      elements.mute.style.display = callState === 'active' ? 'flex' : 'none';
+      elements.speaker.style.display = callState === 'active' ? 'flex' : 'none';
+      elements.end.style.display = ['connecting', 'active'].includes(callState) ? 'flex' : 'none';
+      elements.retry.style.display = retryCount > 0 && callState !== 'active' ? 'flex' : 'none';
+      elements.mute.classList.toggle('muted', isMuted);
+      elements.status.classList.remove('connected', 'network-weak');
+      elements.spinner.style.display = 'none';
+      elements.subtitle.style.display = 'block'; // New: Always show subtitle for names
+
+      let titleText, subtitleText, funMsg;
+      switch (callState) {
+        case 'init':
+          titleText = 'Initiating secure call';
+          subtitleText = `${userName} & ${recipientName || 'Contact'}`;
+          funMsg = 'Getting you ready to chat... 🚀';
+          elements.status.textContent = funMsg; // New: Fun status
+          break;
+        case 'connecting':
+          titleText = `${userName} & ${recipientName || 'Contact'}`;
+          subtitleText = 'Reaching out...';
+          funMsg = 'Linking you up... almost there! ✨';
+          elements.status.textContent = funMsg;
+          break;
+        case 'accepting':
+          titleText = 'Joining call';
+          subtitleText = `${userName} & ${callerName || 'Contact'}`;
+          funMsg = 'One sec—grabbing your mic! 🎤';
+          elements.status.textContent = funMsg;
+          break;
+        case 'ringing':
+          titleText = `${callerName || 'Contact'} is calling`;
+          subtitleText = `Tap to chat with ${callerName || 'Contact'}`;
+          funMsg = `Hey ${userName}! ${callerName || 'They'} wants to catch up 🎉`; // New: Personalized fun
+          elements.status.textContent = funMsg;
+          break;
+        case 'active':
+          titleText = `${userName} & ${otherName || 'Contact'}`;
+          subtitleText = 'Live audio connection';
+          updateNetworkStatus();
+          return;
+        case 'ended':
+          titleText = 'Call concluded';
+          subtitleText = 'Great chat—see you soon!';
+          elements.status.textContent = 'Returning to chat...';
+          break;
+      }
+      elements.title.textContent = titleText;
+      elements.subtitle.textContent = subtitleText;
+      feather.replace();
+    }
+
+    function startTimer() {
+      let sec = 0;
+      elements.timer.style.display = 'block';
+      timerId = setInterval(() => {
+        sec++;
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toString().padStart(2, '0');
+        elements.timer.textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    function startAnimations() {
+      if (callState === 'active') {
+        startLocalSoundWaveAnimation();
+        startRemoteSoundWaveAnimation();
+        startAvatarSoundDance();
+      }
+    }
+
+    function endCall(reason = 'Ended') {
+      endReason = reason;
+      callState = 'ended';
+      clearInterval(timerId);
+      clearInterval(connectionCheckInterval);
+      stopRingtone();
+      stopOutgoingDial();
+      elements.endSound.volume = 0.5;
+      elements.endSound.play().catch(() => {});
+      elements.endSound.currentTime = 0;
+      if (localAnimationId) cancelAnimationFrame(localAnimationId);
+      if (remoteAnimationId) cancelAnimationFrame(remoteAnimationId);
+      if (avatarAnimationId) cancelAnimationFrame(avatarAnimationId);
+      localAnimationId = remoteAnimationId = avatarAnimationId = null;
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (peer) peer.close();
+      document.body.classList.remove('call-active');
+      if (callId && socket?.connected) socket.emit('end-call', { callId, reason });
+      updateUI();
+      setTimeout(() => {
+        location.href = chatId ? `/chat.html?chatId=${chatId}` : '/chat-list.html';
+      }, 2000);
+    }
+
+    // === EVENTS ===
+    elements.accept.onclick = async () => {
+      if (callState !== 'ringing') return;
+      callState = 'accepting';
+      stopRingtone();
+      elements.acceptSound.volume = 0.5;
+      elements.acceptSound.play().catch(() => {});
+      elements.acceptSound.currentTime = 0;
+      updateUI();
+      elements.accept.style.animation = 'wiggle 0.5s ease'; // New: Fun button wiggle on tap
+      setTimeout(() => elements.accept.style.animation = '', 500);
+
+      const micSetup = requestMic(false);
+      const offerWait = new Promise((resolve) => {
+        const check = () => pendingOffer ? resolve() : setTimeout(check, 200);
+        check();
+      });
+
+      try {
+        const [micResult] = await Promise.all([micSetup, offerWait]);
+        if (!micResult) {
+          log('Mic setup failed during accept — showing retry');
+          return;
+        }
+        await answerCall();
+      } catch (err) {
+        log('Accept race failed: ' + err.message);
+        elements.status.textContent = 'Connection setup in progress...';
+      }
+    };
+    elements.decline.onclick = () => {
+      socket.emit('decline-call', { callId });
+      endCall('Declined');
+    };
+    elements.mute.onclick = () => {
+      isMuted = !isMuted;
+      localStream.getAudioTracks()[0].enabled = !isMuted;
+      elements.mute.innerHTML = isMuted ? '<i data-feather="mic-off"></i>' : '<i data-feather="mic"></i>';
+      feather.replace();
+    };
+    elements.end.onclick = () => endCall('Ended by user');
+    elements.back.onclick = () => confirm('End call and return to chat?') && endCall('Back to chat');
+    elements.retry.onclick = () => {
+      retryCount = 0;
+      requestMic(type === 'outgoing');
+    };
+
+    // === STARTUP ===
+    async function performStartupFetches(token, isOutgoing) {
+      const [callRes, profileRes, chatRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/calls/${callId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/users/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+        isOutgoing ? fetch(`${API_BASE_URL}/chats/${chatId}`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ ok: true, json: () => ({}) })
+      ]);
+      if (!callRes.ok || !profileRes.ok || !chatRes.ok) throw new Error('Validation failed');
+      if (isOutgoing) {
+        const chat = await chatRes.json();
+        recipientId = chat.recipient?._id;
+        recipientName = chat.recipient?.name?.trim();
+        recipientAvatar = chat.recipient?.avatar || null;
+      }
+      return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(location.search);
+      callId = params.get('callId');
+      type = params.get('type');
+      chatId = params.get('chatId');
+      callerName = decodeURIComponent(params.get('callerName') || '').trim();
+      callerAvatar = params.get('callerAvatar') || null;
+      if (!callId || !type || !chatId) return setTimeout(() => location.href = '/chat-list.html', 2000);
+      const token = localStorage.getItem('token');
+      if (!token) return setTimeout(() => location.href = '/login.html', 2000);
+      elements.network.style.display = 'flex';
+
+      initSocket();
+
+      if (type === 'incoming') {
+        callState = 'ringing';
+        updateUI();
+        playRingtone();
+        performStartupFetches(token, false).catch(err => {
+          log('Incoming validation failed (non-blocking): ' + err.message);
+        });
+        return;
+      }
+
+      elements.status.textContent = 'Validating session...';
+      const retryStartup = async (attempt = 1) => {
+        try {
+          await performStartupFetches(token, true);
+          callState = 'init';
+          updateUI();
+        } catch (err) {
+          log('Startup failed (attempt ' + attempt + '): ' + err.message);
+          elements.status.textContent = `Session validation in progress (attempt ${attempt})...`;
+          setTimeout(() => retryStartup(attempt + 1), 5000);
+        }
+      };
+      await retryStartup();
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (['connecting', 'ringing', 'active'].includes(callState) && socket?.connected) socket.emit('end-call', { callId });
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (peer) peer.close();
+    });
+
+    // === INITIAL DRAW ===
+    if (ctx) drawStaticBackground();
+  </script>
+</body>
+</html>
