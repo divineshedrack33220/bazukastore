@@ -249,7 +249,7 @@
 
         let socket;
         async function initWebSocket(token) {
-            socket = io(window.location.hostname === 'localhost' ? 'https://bazukastore.com' : 'https://bazukastore.onrender.com', {
+            socket = io(window.location.hostname === 'localhost' ? 'https://bazukastore.com' : 'https://bazukastore.com', {
                 reconnection: true,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000
@@ -603,4 +603,5 @@
         });
     </script>
 </body>
+
 </html>
