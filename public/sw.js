@@ -153,8 +153,8 @@ self.addEventListener('push', (e) => {
   let title = 'Bazuka Store Alert';
   let options = {
     body: 'New flash deal just dropped! Check it out.',
-    icon: '/images/logo.png',
-    badge: '/images/icon-192.png',
+    icon: '/images/bazukastore.png',
+    badge: '/images/bazukastore.png',
     vibrate: [100, 50, 100],
     data: { url: '/' },
     tag: 'bazuka-deal'
