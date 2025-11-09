@@ -12,6 +12,9 @@ const mongoose = require('mongoose');
 // CLOUDINARY (loaded early → shows real config)
 require('./config/cloudinary');
 
+// NEW: Web-push for notifications (install: yarn add web-push)
+const webpush = require('web-push');
+
 // DB & Models
 const connectDB = require('./config/db');
 let User, Chat, Message, Call;
@@ -41,6 +44,7 @@ const messageRoutes = require('./routes/messageRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const callRoutes = require('./routes/callRoutes');
 const storeRoutes = require('./routes/storeRoutes');
+const notificationsRoutes = require('./routes/notificationsRoutes'); // NEW: For push subs
 
 // Optional routes (fail silently)
 let requestRoutes;
@@ -110,6 +114,7 @@ app.use('/api/customers', auth, customerRoutes);
 app.use('/api/messages', auth, messageRoutes(io));
 app.use('/api/upload', auth, uploadRoutes);
 app.use('/api/calls', auth, callRoutes);
+app.use('/api/notifications', auth, notificationsRoutes.router); // NEW: Fixed - use .router export
 
 // DB + SOCKET SETUP
 const onlineUsers = new Map();
@@ -131,6 +136,14 @@ connectDB()
       Call = null;
     }
 
+    // NEW: Setup web-push with VAPID (from .env)
+    webpush.setVapidDetails(
+      'mailto:support@bazukastore.com',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+    console.log('Web-push configured');
+
     // DEV-ONLY: Clean up old call data
     if (process.env.NODE_ENV === 'development' && Call) {
       console.log('Running one-time DB cleanup...');
@@ -146,7 +159,9 @@ connectDB()
 
     console.log('DB + Models Ready');
 
+    // -----------------------------------------------------------------
     // SOCKET.IO AUTH
+    // -----------------------------------------------------------------
     io.use((socket, next) => {
       const token = socket.handshake.auth.token?.replace('Bearer ', '');
       if (!token) return next(new Error('No token'));
@@ -159,6 +174,9 @@ connectDB()
       }
     });
 
+    // -----------------------------------------------------------------
+    // SOCKET CONNECTION – **updated** for offline push on all events
+    // -----------------------------------------------------------------
     io.on('connection', (socket) => {
       console.log(`[SOCKET] Connected ${socket.id} | User ${socket.user.id}`);
       onlineUsers.set(socket.user.id, socket.id);
@@ -166,6 +184,16 @@ connectDB()
 
       const rooms = new Set();
 
+      // ---- Helper: push if recipient offline ----
+      const pushIfOffline = async (userId, title, body, url) => {
+        if (!onlineUsers.has(userId)) {
+          const { sendPushToUser } = require('./routes/notificationsRoutes');
+          await sendPushToUser(userId, title, body, url);
+          console.log(`[PUSH] ${title} → offline user ${userId}`);
+        }
+      };
+
+      // ---- Chat rooms ------------------------------------------------
       socket.on('joinChat', async ({ chatId }, cb) => {
         try {
           const chat = await Chat.findById(chatId).populate('participants', '_id');
@@ -193,6 +221,7 @@ connectDB()
         }
       });
 
+      // ---- Admin room ------------------------------------------------
       socket.on('joinAdmin', async (token) => {
         try {
           const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
@@ -206,18 +235,87 @@ connectDB()
         }
       });
 
+      // ---- Admin broadcasts -----------------------------------------
       ['categoryUpdate', 'productUpdate', 'submissionUpdate'].forEach(ev =>
         socket.on(ev, () => io.to('adminRoom').emit(ev))
       );
 
+      // ---- Order status (admin → user) -------------------------------
       socket.on('orderStatusUpdate', (order) => {
         io.to('adminRoom').emit('orderStatusUpdate', order);
-        if (order.user) io.to(`user_${order.user}`).emit('orderStatusUpdate', order);
+        if (order.user) {
+          io.to(`user_${order.user}`).emit('orderStatusUpdate', order);
+          // Push to offline user
+          pushIfOffline(
+            order.user,
+            `Order #${order.orderNumber} Updated`,
+            `Status: ${order.status}`,
+            '/orders.html'
+          );
+        }
       });
 
+      // ---- Request updates -------------------------------------------
       socket.on('requestUpdate', d => io.to('adminRoom').emit('requestUpdate', d));
       socket.on('requestVoteUpdate', d => io.to('adminRoom').emit('requestVoteUpdate', d));
 
+      // ---- New message (real‑time + offline push) --------------------
+      socket.on('newMessage', async (data) => {
+        const { chatId, message, recipientId } = data;
+        try {
+          // Real‑time to online participants
+          socket.to(`chat_${chatId}`).emit('newMessage', data);
+
+          // Offline push
+          if (recipientId && !onlineUsers.has(recipientId)) {
+            const title = `New Message from ${socket.user.name}`;
+            const body = `${message.content?.substring(0, 50)}...`;
+            const url = `/chat.html?chatId=${chatId}`;
+            await pushIfOffline(recipientId, title, body, url);
+          }
+        } catch (err) {
+          console.error('[SOCKET] newMessage error:', err);
+        }
+      });
+
+      // ---- Incoming call (real‑time + offline push) ------------------
+      socket.on('incoming-call', async (payload) => {
+        const { callId, callerId, callerName, chatId } = payload;
+        const recipientId = payload.recipientId || callerId; // fallback
+
+        // Emit to online recipient
+        io.to(recipientId).emit('incoming-call', payload);
+
+        // Push if offline
+        if (!onlineUsers.has(recipientId)) {
+          const title = `Incoming Call from ${callerName}`;
+          const body = 'Tap to answer';
+          const url = `/chat.html?chatId=${chatId}&callId=${callId}`;
+          await pushIfOffline(recipientId, title, body, url);
+        }
+      });
+
+      // ---- Wishlist add/remove (push on add) -------------------------
+      socket.on('wishlistToggle', async ({ productId, action }) => {
+        if (action === 'added' && !onlineUsers.has(socket.user.id)) {
+          const title = 'Added to Wishlist';
+          const body = 'You saved a product – open to view!';
+          const url = '/wishlist.html';
+          await pushIfOffline(socket.user.id, title, body, url);
+        }
+      });
+
+      // ---- Wishlist → Cart move --------------------------------------
+      socket.on('wishlistToCart', async ({ productId }) => {
+        if (!onlineUsers.has(socket.user.id)) {
+          const title = 'Moved to Cart';
+          const body = 'Your wishlist item is now in the cart.';
+          const url = '/cart.html';
+          await pushIfOffline(socket.user.id, title, body, url);
+        }
+      });
+
+      // ---- Disconnect ------------------------------------------------
       socket.on('disconnect', () => {
         rooms.forEach(r => socket.leave(r));
         onlineUsers.forEach((sid, userId) => {
@@ -232,7 +330,9 @@ connectDB()
     process.exit(1);
   });
 
-// VISITOR TRACKING
+// ---------------------------------------------------------------------
+// VISITOR TRACKING (unchanged)
+// ---------------------------------------------------------------------
 app.use(async (req, res, next) => {
   if (req.originalUrl.startsWith('/api/locations')) return next();
   next();
@@ -242,7 +342,9 @@ app.use(async (req, res, next) => {
   } catch (e) {}
 });
 
-// FALLBACKS
+// ---------------------------------------------------------------------
+// FALLBACKS (unchanged)
+// ---------------------------------------------------------------------
 app.get('/service-worker.js', (_, res) => res.status(404).send('Not found'));
 app.get('/images/:filename', async (req, res) => {
   const filePath = path.join(__dirname, 'public', 'images', req.params.filename);
@@ -252,7 +354,9 @@ app.get('/images/:filename', async (req, res) => {
 
 app.use((_, res) => res.status(404).json({ message: 'Route not found' }));
 
-// FRONTEND ROUTES
+// ---------------------------------------------------------------------
+// FRONTEND ROUTES (unchanged)
+// ---------------------------------------------------------------------
 const serve = file => (_, res) => res.sendFile(path.join(__dirname, 'public', file));
 app.get('/', serve('index.html'));
 app.get('/categories.html', serve('categories.html'));
@@ -277,7 +381,9 @@ app.get('/admin', auth, (req, res) => {
   })
 );
 
-// ERROR HANDLING & START
+// ---------------------------------------------------------------------
+// ERROR HANDLING & START (unchanged)
+// ---------------------------------------------------------------------
 app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
