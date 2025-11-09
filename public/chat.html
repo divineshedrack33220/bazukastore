@@ -22,96 +22,162 @@
     <meta name="twitter:image" content="https://bazukastore.com/images/fallback-preview-image.jpg">
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    screens: {
+                        'xs': '320px',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.0/dist/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1.21.0/index.js" type="module"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Inline fixes for chat.css assumptions - expand as needed */
+        .chat-container { min-height: calc(100vh - 140px); } /* Adjust for header/input */
+        .status-dot { @apply w-2 h-2 bg-green-500 rounded-full inline-block mr-1; }
+        .status-online { @apply text-green-600; }
+        .status-offline { @apply text-red-500; }
+        .ripple { position: relative; overflow: hidden; }
+        .ripple:active::after { content: ''; position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; background: rgba(255,255,255,0.5); border-radius: 50%; transform: translate(-50%, -50%); animation: ripple-effect 0.6s linear; }
+        @keyframes ripple-effect { to { transform: translate(-50%, -50%) scale(6); opacity: 0; } }
+        .image-modal { @apply fixed inset-0 bg-black z-50 hidden; }
+        .image-modal.active { @apply block; }
+        .modal-actions { @apply absolute top-4 right-4 flex space-x-2 z-10; }
+        .carousel-nav { @apply absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-black bg-opacity-50 rounded-full flex items-center justify-center text-white text-2xl; }
+        .carousel-nav.left { @apply left-4; }
+        .carousel-nav.right { @apply right-4; }
+        .carousel-nav:disabled { @apply opacity-30 cursor-not-allowed; }
+        .carousel-dots { @apply absolute bottom-12 left-1/2 -translate-x-1/2 flex space-x-2; }
+        .carousel-dot { @apply w-2 h-2 bg-white bg-opacity-50 rounded-full cursor-pointer; }
+        .carousel-dot.active { @apply bg-opacity-100; }
+        .chat-message.user { @apply bg-blue-500 text-white ml-4 mb-2 rounded-2xl max-w-[80%] p-3 self-end; }
+        .chat-message.other { @apply bg-gray-200 text-gray-800 mr-4 mb-2 rounded-2xl max-w-[80%] p-3 self-start; }
+        .chat-image, .quoted-message-image { @apply max-w-full max-h-64 rounded-lg; }
+        .image-grid { @apply grid grid-cols-2 sm:grid-cols-4 gap-1 mt-2; }
+        .grid-item { @apply relative; }
+        .badge { @apply absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1 rounded; }
+        .quoted-message { @apply bg-gray-100 p-2 rounded-lg mb-2 border-l-4 border-blue-500; }
+        .reply-preview { @apply bg-gray-100 p-2 rounded-lg mb-2 border-l-4 border-purple-500 relative; }
+        .close-reply { @apply absolute top-1 right-1 text-gray-500 hover:text-red-500; }
+        .preview-image { @apply w-16 h-16 object-cover rounded; }
+        .typing-indicator { @apply text-sm text-gray-500 italic p-2; }
+        .typing-indicator.active { @apply opacity-100; }
+        .shimmer { @apply bg-gray-200 animate-pulse rounded; }
+        .shimmer:nth-child(odd) { @apply h-12 my-1; }
+        .shimmer:nth-child(even) { @apply h-16 my-1; }
+        .date-separator { @apply text-center text-gray-500 text-xs my-4 font-semibold; }
+        .toast { @apply fixed bottom-4 left-1/2 -translate-x-1/2 bg-white shadow-lg rounded-lg px-4 py-2 text-sm z-50 transform translate-y-10 opacity-0 transition-all; }
+        .toast.show { @apply translate-y-0 opacity-100; }
+        .error-message { @apply text-red-500 text-xs mt-1 text-center; }
+        .image-preview { @apply mt-2 hidden; }
+        .image-preview.active { @apply block; }
+        .reply-preview-img { @apply max-w-16 max-h-16 object-cover rounded; }
+        /* Full-page shimmer: Pulse entire layout during load */
+        body.loading { pointer-events: none; }
+        body.loading header, body.loading .input-container { @apply bg-gray-100 animate-pulse; }
+        body.loading header > div { @apply bg-transparent; }
+        body.loading .nav-avatar { @apply bg-gray-300 animate-pulse rounded-full; }
+        body.loading #chat-title { @apply bg-gray-300 h-5 rounded animate-pulse w-32; }
+        body.loading #connection-status { @apply bg-gray-300 h-3 rounded animate-pulse w-20; }
+        body.loading .flex.items-center.bg-gray-100.rounded-full { @apply bg-gray-200 animate-pulse; }
+        body.loading #chat-input { @apply bg-gray-300 h-10 rounded-full animate-pulse mx-3; }
+        body.loading button { @apply bg-gray-300 animate-pulse rounded-full min-h-10 min-w-10; }
+        @media (orientation: landscape) { .input-container { @apply w-full max-w-md mx-auto; } }
+        @media (max-width: 320px) { button { @apply min-h-9 min-w-9; } }
+    </style>
     <link rel="stylesheet" href="chat.css">
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen flex flex-col bg-gray-50 font-poppins">
 
-    <header class="bg-[var(--white)] shadow-sm sticky top-0 z-20">
-        <div class="container mx-auto px-3 py-2 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <button id="back-button" class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="Back to chat list">
-                    <i data-feather="arrow-left" class="w-5 h-5 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">Left Arrow</i>
+    <header class="bg-white shadow-sm sticky top-0 z-20 flex-shrink-0">
+        <div class="w-full px-3 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <button id="back-button" class="p-2 rounded-full hover:bg-gray-100 ripple min-h-10 min-w-10" aria-label="Back to chat list">
+                    <i data-feather="arrow-left" class="w-5 h-5 text-gray-600 icon-fallback" aria-hidden="true">←</i>
                 </button>
-                <div class="flex items-center space-x-2">
-                    <div id="nav-avatar" class="nav-avatar">U</div>
-                    <div>
-                        <h1 id="chat-title" class="text-base font-semibold text-[var(--neutral-gray)]">Chat</h1>
-                        <p id="connection-status" class="text-[10px] status-online"><span class="status-dot"></span>Online</p>
+                <div class="flex items-center space-x-3">
+                    <div id="nav-avatar" class="nav-avatar w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm font-semibold"></div>
+                    <div class="min-w-0 flex-1">
+                        <h1 id="chat-title" class="text-base font-semibold text-gray-800 truncate">'''</h1>
+                        <p id="connection-status" class="text-xs status-online"><span class="status-dot"></span>Online</p>
                     </div>
                 </div>
             </div>
-            <div class="flex items-center space-x-1">
-                <button id="call-button" class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="Start audio call">
-                    <i data-feather="phone" class="w-5 h-5 text-[var(--primary-purple)] icon-fallback" aria-hidden="true">Phone</i>
+            <div class="flex items-center space-x-2">
+                <button id="call-button" class="p-2 rounded-full hover:bg-gray-100 ripple min-h-10 min-w-10" aria-label="Start audio call">
+                    <i data-feather="phone" class="w-5 h-5 text-purple-600 icon-fallback" aria-hidden="true">Phone</i>
                 </button>
-                <button class="p-1 rounded-full hover:bg-[var(--light-gray)] ripple" aria-label="More options">
-                    <i data-feather="more-horizontal" class="w-4 h-4 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">More</i>
+                <button class="p-2 rounded-full hover:bg-gray-100 ripple min-h-10 min-w-10" aria-label="More options">
+                    <i data-feather="more-horizontal" class="w-5 h-5 text-gray-600 icon-fallback" aria-hidden="true">More</i>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto px-3 py-2">
-        <section aria-label="Chat">
-            <div class="bg-[var(--white)] rounded-lg flex flex-col">
-                <div class="chat-container" id="chat-container" role="log" aria-live="polite"></div>
+    <main class="flex-1 flex flex-col w-full overflow-hidden">
+        <section aria-label="Chat" class="flex-1 flex flex-col">
+            <div class="bg-white rounded-lg flex flex-col flex-1 overflow-hidden w-full">
+                <div class="chat-container flex-1 overflow-y-auto pb-4 px-3" id="chat-container" role="log" aria-live="polite" style="width: 100%;"></div>
             </div>
         </section>
-        <div class="input-container">
-            <div id="reply-preview" class="reply-preview hidden">
-                <p id="reply-sender" class="font-semibold"></p>
-                <div id="reply-content-wrapper" class="truncate flex items-center space-x-1">
-                    <p id="reply-content" class="truncate"></p>
-                    <img id="reply-preview-img" class="quoted-preview-img hidden" alt="Quoted preview">
-                </div>
-                <span class="close-reply" aria-label="Cancel reply">×</span>
-            </div>
-            <div class="flex items-center bg-[var(--light-gray)] rounded-full p-1">
-                <label class="p-1 rounded-full hover:bg-[var(--white)] ripple cursor-pointer" aria-label="Upload images">
-                    <i data-feather="paperclip" class="w-5 h-5 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">Clip</i>
-                    <input id="image-input" type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" multiple class="hidden">
-                </label>
-                <button id="emoji-button" class="p-1 rounded-full hover:bg-[var(--white)] ripple" aria-label="Open emoji picker">
-                    <i data-feather="smile" class="w-5 h-5 text-[var(--neutral-gray)] icon-fallback" aria-hidden="true">Smile</i>
-                </button>
-                <input id="chat-input" type="text" placeholder="Message..." 
-                       class="flex-1 bg-transparent py-1 px-2 focus:outline-none text-[13px]"
-                       aria-label="Type your message">
-                <button id="send-message" class="p-1 rounded-full hover:bg-[var(--white)] ripple" aria-label="Send message">
-                    <i data-feather="send" class="w-5 h-5 text-[var(--primary-purple)] icon-fallback" aria-hidden="true">Send</i>
-                </button>
-            </div>
-            <p id="error-message" class="error-message hidden">Please upload valid images (PNG, JPEG, JPG, GIF, WEBP).</p>
-            <div id="image-preview" class="image-preview">
-                <div id="preview-images" class="flex flex-wrap gap-1"></div>
-                <div class="flex mt-1 space-x-1">
-                    <button id="send-image" class="bg-[var(--primary-purple)] text-[var(--white)] px-2 py-0.5 rounded-full text-xs ripple hover:bg-[var(--secondary-yellow)] hover:text-[var(--neutral-gray)]" aria-label="Send all images">Send All</button>
-                    <button id="cancel-image" class="bg-[var(--light-gray)] text-[var(--neutral-gray)] px-2 py-0.5 rounded-full text-xs ripple" aria-label="Cancel images">Cancel</button>
-                </div>
-            </div>
-            <emoji-picker id="emoji-picker"></emoji-picker>
-        </div>
     </main>
+
+    <div class="input-container fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10 flex-shrink-0 pb-4 md:pb-0">
+        <div id="reply-preview" class="reply-preview hidden mx-3 mt-3">
+            <p id="reply-sender" class="font-semibold text-sm"></p>
+            <div id="reply-content-wrapper" class="truncate flex items-center space-x-1">
+                <p id="reply-content" class="truncate text-sm"></p>
+                <img id="reply-preview-img" class="quoted-preview-img hidden" alt="Quoted preview">
+            </div>
+            <span class="close-reply" aria-label="Cancel reply">×</span>
+        </div>
+        <div class="flex items-center bg-gray-100 rounded-full p-2 mx-3 mt-2">
+            <label class="p-2 rounded-full hover:bg-white ripple cursor-pointer min-h-10 min-w-10" aria-label="Upload images">
+                <i data-feather="paperclip" class="w-5 h-5 text-gray-600 icon-fallback" aria-hidden="true">Clip</i>
+                <input id="image-input" type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" multiple class="hidden">
+            </label>
+            <button id="emoji-button" class="p-2 rounded-full hover:bg-white ripple min-h-10 min-w-10" aria-label="Open emoji picker">
+                <i data-feather="smile" class="w-5 h-5 text-gray-600 icon-fallback" aria-hidden="true">Smile</i>
+            </button>
+            <input id="chat-input" type="text" placeholder="Message..." 
+                   class="flex-1 bg-transparent py-2 px-3 focus:outline-none text-sm autocapitalize-none spellcheck-false"
+                   aria-label="Type your message">
+            <button id="send-message" class="p-2 rounded-full hover:bg-white ripple min-h-10 min-w-10" aria-label="Send message" disabled>
+                <i data-feather="send" class="w-5 h-5 text-purple-600 icon-fallback" aria-hidden="true">Send</i>
+            </button>
+        </div>
+        <p id="error-message" class="error-message hidden">Please upload valid images (PNG, JPEG, JPG, GIF, WEBP).</p>
+        <div id="image-preview" class="image-preview">
+            <div id="preview-images" class="flex flex-wrap gap-1 mx-3 mt-2"></div>
+            <div class="flex mt-1 space-x-1 mx-3">
+                <button id="send-image" class="bg-purple-600 text-white px-3 py-1 rounded-full text-xs ripple hover:bg-yellow-500 hover:text-gray-800 min-h-8" aria-label="Send all images">Send All</button>
+                <button id="cancel-image" class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs ripple min-h-8" aria-label="Cancel images">Cancel</button>
+            </div>
+        </div>
+        <emoji-picker id="emoji-picker" class="mx-3 mt-2"></emoji-picker>
+    </div>
 
     <!-- Image Modal -->
     <div id="image-modal" class="image-modal">
         <div class="modal-actions">
-            <button id="download-image" aria-label="Download image">
-                <i data-feather="download" class="w-5 h-5"></i>
+            <button id="download-image" aria-label="Download image" class="p-2 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30">
+                <i data-feather="download" class="w-5 h-5 text-white"></i>
             </button>
-            <button id="close-modal" aria-label="Close modal">
-                <i data-feather="x" class="w-5 h-5"></i>
+            <button id="close-modal" aria-label="Close modal" class="p-2 rounded-full bg-white bg-opacity-30 hover:bg-opacity-30">
+                <i data-feather="x" class="w-5 h-5 text-white"></i>
             </button>
         </div>
-        <button class="carousel-nav left" id="prev-image" aria-label="Previous image">Left Arrow</button>
-        <img id="modal-image" src="" alt="Full-size chat image" loading="lazy">
-        <button class="carousel-nav right" id="next-image" aria-label="Next image">Right Arrow</button>
+        <button class="carousel-nav left" id="prev-image" aria-label="Previous image">Previous</button>
+        <img id="modal-image" src="" alt="Full-size chat image" loading="lazy" class="max-w-full max-h-full mx-auto">
+        <button class="carousel-nav right" id="next-image" aria-label="Next image">Next</button>
         <div class="carousel-dots" id="carousel-dots"></div>
     </div>
 
@@ -186,8 +252,8 @@
     function simpleHash(str) { let h=0; for(let i=0;i<str.length;i++) h=((h<<5)-h)+str.charCodeAt(i); return h.toString(); }
     function getChatId() { const id = new URLSearchParams(location.search).get('chatId'); if(!id) { showToast('No chat selected.', 'error'); setTimeout(()=>location.href='/chat-list.html',1500); } return id; }
     function sanitizeHtml(str) { return DOMPurify.sanitize(str); }
-    function showToast(msg,type='success'){ const el=document.createElement('div'); el.className=`toast ${type} shadow-lg`; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.classList.add('show'),50); setTimeout(()=>{el.classList.remove('show'); setTimeout(()=>el.remove(),350);},2200); }
-    function updateConnectionStatus(online){ connectionStatus.innerHTML=`<span class="status-dot"></span>${online?'Online':'Offline'}`; connectionStatus.className=`text-[10px] ${online?'status-online':'status-offline'}`; }
+    function showToast(msg,type='success'){ const el=document.createElement('div'); el.className=`toast ${type}`; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.classList.add('show'),50); setTimeout(()=>{el.classList.remove('show'); setTimeout(()=>el.remove(),350);},2200); }
+    function updateConnectionStatus(online){ connectionStatus.innerHTML=`<span class="status-dot"></span>${online?'Online':'Offline'}`; connectionStatus.className=`text-xs ${online?'status-online':'status-offline'}`; }
     async function refreshToken(){ try{ const r=await fetch(`${API_BASE_URL}/auth/refresh`,{method:'POST',credentials:'include'}); if(!r.ok) throw 0; const {token}=await r.json(); localStorage.setItem('token',token); socket.auth={token:`Bearer ${token}`}; return true; }catch{return false;} }
     async function checkAuth(retry=0){ const token=localStorage.getItem('token'); if(!token) return false; try{ const r=await fetch(`${API_BASE_URL}/users/profile`,{headers:{Authorization:`Bearer ${token}`}}); if(!r.ok){ if(r.status===401 && retry<MAX_AUTH_RETRIES){ if(await refreshToken()) return checkAuth(retry+1); throw 0; } throw 0; } const d=await r.json(); cachedUserId=d._id; cachedUserName=d.name; authRetries=0; return true; }catch{ if(retry<MAX_AUTH_RETRIES){ await new Promise(rs=>setTimeout(rs,1000)); return checkAuth(retry+1); } localStorage.removeItem('token'); authRetries=0; return false; } }
     function formatDate(d){ try{ const x=new Date(d); if(isNaN(x)) return 'Just now'; const now=new Date(); const diffMs=now-x; if(diffMs<60000) return 'Just now'; return x.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'}); }catch{return 'Just now';} }
@@ -197,7 +263,8 @@
     function truncateText(t,len=50){ return t.length<=len?t:t.slice(0,len-3)+'...'; }
     function ensureSeparator(label){ const last=chatContainer.lastElementChild; if(last&&last.classList.contains('date-separator')&&last.textContent.trim()===label) return last; const sep=document.createElement('div'); sep.className='date-separator'; sep.textContent=label; chatContainer.appendChild(sep); return sep; }
     function cleanDuplicateSeparators(){ const seps=chatContainer.querySelectorAll('.date-separator'); for(let i=0;i<seps.length-1;i++){ if(seps[i].textContent.trim()===seps[i+1].textContent.trim()) seps[i].remove(); } }
-    function createShimmers(count=10){ if(hasShimmers) return; chatContainer.innerHTML=''; for(let i=0;i<count;i++){ const s=document.createElement('div'); s.className='shimmer h-[60px]'; chatContainer.appendChild(s); } hasShimmers=true; }
+    function createShimmers(count=10){ if(hasShimmers) return; document.body.classList.add('loading'); chatContainer.innerHTML=''; for(let i=0;i<count;i++){ const s=document.createElement('div'); s.className='shimmer'; chatContainer.appendChild(s); } hasShimmers=true; }
+    function clearShimmers(){ document.body.classList.remove('loading'); hasShimmers=false; }
     function getDisplayContent(msgContent,isImage){ if(!isImage||Array.isArray(msgContent)) return msgContent; if(typeof msgContent==='string'){ try{ const p=JSON.parse(msgContent); return Array.isArray(p)?p:[msgContent]; }catch{ return [msgContent]; } } return msgContent; }
 
     // Call
@@ -224,17 +291,17 @@
     function attachGridImageHandlers(messageEl){ const imgs=messageEl.querySelectorAll('.image-grid img'); imgs.forEach((img,idx)=>{ const urls=Array.from(messageEl.querySelectorAll('.image-grid img')).map(i=>i.dataset.src); img.onclick=(e)=>{ e.stopPropagation(); openGroupModal(urls,idx); }; }); }
 
     // Load Older
-    async function loadOlderMessages(){ if(!hasMoreMessages||loadMoreTrigger?.classList.contains('loading')) return; loadMoreTrigger?.classList.add('loading'); loadMoreTrigger&&(loadMoreTrigger.textContent='Loading older messages...'); try{ const messageEls=chatContainer.querySelectorAll('.chat-message'); if(messageEls.length===0) return; const oldestEl=messageEls[0]; const beforeId=oldestEl.dataset.messageId; const token=localStorage.getItem('token'); const url=`${API_BASE_URL}/chats/${currentChatId}/older?before=${beforeId}`; const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}}); if(r.status===404){ showToast('Older messages endpoint not found','error'); hasMoreMessages=false; loadMoreTrigger.style.display='none'; return; } const data=await r.json(); if(!r.ok){ throw new Error(data.message||'Failed to load older messages'); } if(!data.messages||data.messages.length===0){ hasMoreMessages=false; loadMoreTrigger.textContent='No more messages'; loadMoreTrigger.style.pointerEvents='none'; setTimeout(()=>loadMoreTrigger.style.display='none',2000); return; } const byDate={}; data.messages.forEach(m=>{ const lbl=getDateLabel(m.createdAt); (byDate[lbl]||(byDate[lbl]=[])).push(m); }); const sortedDates=Object.keys(byDate).sort((a,b)=>{ const da=a==='Today'?new Date():new Date(a); const db=b==='Today'?new Date():new Date(b); return da-db; }); const insertPoint=loadMoreTrigger.nextSibling; sortedDates.forEach(date=>{ const sep=document.createElement('div'); sep.className='date-separator'; sep.textContent=date; chatContainer.insertBefore(sep,insertPoint); byDate[date].sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).forEach(m=>{ const isOwn=m.sender?._id===cachedUserId; const cls=isOwn?'user':'other'; let quoted=''; if(m.replyTo){ const replyDisplay=getDisplayContent(m.replyTo.content,m.replyTo.isImage); const rcHtml=m.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(m.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(m.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(m.content,m.isImage); if(m.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(m.content)}</p>`; } const seen=m.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=m.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); const el=document.createElement('div'); el.className=`chat-message ${cls}`; el.dataset.messageId=m._id; el.innerHTML=`${fullHtml}<p class="text-[10px] ${isOwn?'text-[var(--white)]':'text-[var(--neutral-gray)]'} mt-0.5 text-right">${formatDate(m.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.insertBefore(el,insertPoint); if(m.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(el); } }); }); cleanDuplicateSeparators(); const prevHeight=chatContainer.scrollHeight; requestAnimationFrame(()=>{ const heightDiff=chatContainer.scrollHeight-prevHeight; chatContainer.scrollTop+=heightDiff; }); }catch(e){ console.error('Load older failed:',e); showToast('Failed to load older messages','error'); }finally{ loadMoreTrigger?.classList.remove('loading'); loadMoreTrigger&&(loadMoreTrigger.textContent='Loading older messages...'); } }
+    async function loadOlderMessages(){ if(!hasMoreMessages||loadMoreTrigger?.classList.contains('loading')) return; loadMoreTrigger?.classList.add('loading'); loadMoreTrigger&&(loadMoreTrigger.textContent='Loading older messages...'); try{ const messageEls=chatContainer.querySelectorAll('.chat-message'); if(messageEls.length===0) return; const oldestEl=messageEls[0]; const beforeId=oldestEl.dataset.messageId; const token=localStorage.getItem('token'); const url=`${API_BASE_URL}/chats/${currentChatId}/older?before=${beforeId}`; const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}}); if(r.status===404){ showToast('Older messages endpoint not found','error'); hasMoreMessages=false; loadMoreTrigger.style.display='none'; return; } const data=await r.json(); if(!r.ok){ throw new Error(data.message||'Failed to load older messages'); } if(!data.messages||data.messages.length===0){ hasMoreMessages=false; loadMoreTrigger.textContent='No more messages'; loadMoreTrigger.style.pointerEvents='none'; setTimeout(()=>loadMoreTrigger.style.display='none',2000); return; } const byDate={}; data.messages.forEach(m=>{ const lbl=getDateLabel(m.createdAt); (byDate[lbl]||(byDate[lbl]=[])).push(m); }); const sortedDates=Object.keys(byDate).sort((a,b)=>{ const da=a==='Today'?new Date():new Date(a); const db=b==='Today'?new Date():new Date(b); return da-db; }); const insertPoint=loadMoreTrigger.nextSibling; sortedDates.forEach(date=>{ const sep=document.createElement('div'); sep.className='date-separator'; sep.textContent=date; chatContainer.insertBefore(sep,insertPoint); byDate[date].sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).forEach(m=>{ const isOwn=m.sender?._id===cachedUserId; const cls=isOwn?'user':'other'; let quoted=''; if(m.replyTo){ const replyDisplay=getDisplayContent(m.replyTo.content,m.replyTo.isImage); const rcHtml=m.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(m.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(m.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(m.content,m.isImage); if(m.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="sm:text-sm">${sanitizeHtml(m.content)}</p>`; } const seen=m.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=m.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); const el=document.createElement('div'); el.className=`chat-message ${cls}`; el.dataset.messageId=m._id; el.innerHTML=`${fullHtml}<p class="text-xs sm:text-sm ${isOwn?'text-white':'text-gray-600'} mt-1 text-right">${formatDate(m.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple mt-1"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.insertBefore(el,insertPoint); if(m.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(el); } }); }); cleanDuplicateSeparators(); const prevHeight=chatContainer.scrollHeight; requestAnimationFrame(()=>{ const heightDiff=chatContainer.scrollHeight-prevHeight; chatContainer.scrollTop+=heightDiff; }); }catch(e){ console.error('Load older failed:',e); showToast('Failed to load older messages','error'); }finally{ loadMoreTrigger?.classList.remove('loading'); loadMoreTrigger&&(loadMoreTrigger.textContent='Loading older messages...'); } }
 
     // Pending Message
-    function appendPendingMessage(content,isImage=false,tempId,replyTo=null){ if(!chatContainer.querySelector('.date-separator')) ensureSeparator('Today'); const div=document.createElement('div'); div.className='chat-message user pending'; div.dataset.tempId=tempId; let quoted=''; if(replyTo){ const replyDisplay=getDisplayContent(replyTo.content,replyTo.isImage); const rcHtml=replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(replyTo.senderName)}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(content,isImage); if(isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(content)}</p>`; } const fullHtml=sanitizeHtml(`${quoted}${body}`); div.innerHTML=`${fullHtml}<p class="text-[10px] text-[var(--white)] mt-0.5 text-right">Just now <span class="text-gray-500">Sent</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(div); if(isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(div); } const hashContent=Array.isArray(content)?content.join(','):content; const hash=simpleHash(hashContent); pendingMessages.set(tempId,{content,isImage,el:div,replyTo,hash}); scrollToBottom(); feather.replace(); setTimeout(()=>{ if(div.classList.contains('pending')){ div.classList.remove('pending'); if(typeof anime==='function') anime({targets:div,opacity:[0.7,1],duration:300}); } },1500); }
+    function appendPendingMessage(content,isImage=false,tempId,replyTo=null){ if(!chatContainer.querySelector('.date-separator')) ensureSeparator('Today'); const div=document.createElement('div'); div.className='chat-message user pending'; div.dataset.tempId=tempId; let quoted=''; if(replyTo){ const replyDisplay=getDisplayContent(replyTo.content,replyTo.isImage); const rcHtml=replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(replyTo.senderName)}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(content,isImage); if(isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="sm:text-sm">${sanitizeHtml(content)}</p>`; } const fullHtml=sanitizeHtml(`${quoted}${body}`); div.innerHTML=`${fullHtml}<p class="text-xs sm:text-sm text-white mt-1 text-right">Just now <span class="text-gray-300">Sent</span></p><button class="reply-button ripple mt-1"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(div); if(isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(div); } const hashContent=Array.isArray(content)?content.join(','):content; const hash=simpleHash(hashContent); pendingMessages.set(tempId,{content,isImage,el:div,replyTo,hash}); scrollToBottom(); feather.replace(); setTimeout(()=>{ if(div.classList.contains('pending')){ div.classList.remove('pending'); if(typeof anime==='function') anime({targets:div,opacity:[0.7,1],duration:300}); } },1500); }
 
     // Reply Preview
     function updateReplyPreview(replyTo){ if(!replyTo) return; replySender.textContent=replyTo.senderName; const replyDisplay=getDisplayContent(replyTo.content,replyTo.isImage); if(replyTo.isImage){ const count=Array.isArray(replyDisplay)?replyDisplay.length:1; replyContent.textContent=`${count} Photo${count>1?'s':''}`; replyPreviewImg.src=Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay; replyPreviewImg.classList.remove('hidden'); }else{ replyContent.textContent=truncateText(replyTo.content,40); replyPreviewImg.classList.add('hidden'); } replyPreview.classList.remove('hidden'); chatInput.focus(); }
-    function setupReplyEvents(){ chatContainer.addEventListener('click',e=>{ const btn=e.target.closest('.reply-button'); if(!btn) return; const msg=btn.closest('.chat-message'); const isImg=!!msg.querySelector('.chat-image')||!!msg.querySelector('.image-grid'); let content=isImg?(msg.querySelectorAll('.image-grid img').length?Array.from(msg.querySelectorAll('.image-grid img')).map(img=>img.dataset.src):msg.querySelector('.chat-image').dataset.src):msg.querySelector('.text-xs')?.textContent||''; const sender=msg.classList.contains('user')?cachedUserName||'You':document.getElementById('chat-title').textContent; replyToMessage={id:msg.dataset.messageId,content,isImage:isImg,senderName:sender}; updateReplyPreview(replyToMessage); }); closeReplyBtn.addEventListener('click',()=>{ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); }); }
+    function setupReplyEvents(){ chatContainer.addEventListener('click',e=>{ const btn=e.target.closest('.reply-button'); if(!btn) return; const msg=btn.closest('.chat-message'); const isImg=!!msg.querySelector('.chat-image')||!!msg.querySelector('.image-grid'); let content=isImg?(msg.querySelectorAll('.image-grid img').length?Array.from(msg.querySelectorAll('.image-grid img')).map(img=>img.dataset.src):msg.querySelector('.chat-image').dataset.src):msg.querySelector('p')?.textContent||''; const sender=msg.classList.contains('user')?cachedUserName||'You':document.getElementById('chat-title').textContent; replyToMessage={id:msg.dataset.messageId,content,isImage:isImg,senderName:sender}; updateReplyPreview(replyToMessage); }); closeReplyBtn.addEventListener('click',()=>{ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); }); }
 
     // Infinite Scroll
-    function setupInfiniteScroll(hasMessages=false){ if(!hasMessages||loadMoreTrigger) return; loadMoreTrigger=document.createElement('div'); loadMoreTrigger.className='loading-more'; loadMoreTrigger.textContent='Loading older messages...'; loadMoreTrigger.id='load-more-trigger'; chatContainer.prepend(loadMoreTrigger); loadMoreTrigger.style.display='none'; chatContainer.addEventListener('scroll',()=>{ clearTimeout(scrollDebounce); scrollDebounce=setTimeout(()=>{ if(chatContainer.scrollTop<150&&hasMoreMessages&&!loadMoreTrigger.classList.contains('loading')){ loadMoreTrigger.style.display='block'; loadOlderMessages(); } },100); }); }
+    function setupInfiniteScroll(hasMessages=false){ if(!hasMessages||loadMoreTrigger) return; loadMoreTrigger=document.createElement('div'); loadMoreTrigger.className='loading-more text-center text-sm text-gray-500 py-4'; loadMoreTrigger.textContent='Loading older messages...'; loadMoreTrigger.id='load-more-trigger'; chatContainer.prepend(loadMoreTrigger); loadMoreTrigger.style.display='none'; chatContainer.addEventListener('scroll',()=>{ clearTimeout(scrollDebounce); scrollDebounce=setTimeout(()=>{ if(chatContainer.scrollTop<150&&hasMoreMessages&&!loadMoreTrigger.classList.contains('loading')){ loadMoreTrigger.style.display='block'; loadOlderMessages(); } },100); }); }
 
     // Socket
     function joinChatIfReady(){ if(!currentChatId||!cachedUserId) return; socket.emit('joinChat',{chatId:currentChatId}); }
@@ -245,12 +312,87 @@
     socket.on('incoming-call',data=>{ if(data.chatId!==currentChatId) return; location.href=`/call.html?callId=${data.callId}&type=incoming&chatId=${data.chatId}&callerName=${encodeURIComponent(data.callerName||'')}`; });
 
     // Real-time Message
-    socket.on('message',data=>{ if(data.chatId!==getChatId()) return; const msg=data.message; const isOwn=msg.sender?._id===cachedUserId; let pendingEntry=pendingMessages.get(msg.tempId); if(!pendingEntry){ for(let [tempId,entry]of pendingMessages){ const entryHashContent=Array.isArray(entry.content)?entry.content.join(','):entry.content; const msgDisplay=getDisplayContent(msg.content,msg.isImage); const msgHashContent=Array.isArray(msgDisplay)?msgDisplay.join(','):msgDisplay; if(simpleHash(entryHashContent)===simpleHash(msgHashContent)&&entry.isImage===msg.isImage){ pendingEntry=entry; break; } } } if(pendingEntry){ const tempId=msg.tempId||Array.from(pendingMessages.keys()).find(k=>pendingMessages.get(k)===pendingEntry); const el=pendingEntry.el; el.className=`chat-message ${isOwn?'user':'other'}`; el.dataset.messageId=msg._id; el.removeAttribute('data-temp-id'); const timeEl=el.querySelector('p:last-of-type'); if(timeEl){ timeEl.innerHTML=`${formatDate(msg.createdAt)} <span class="${msg.readBy?.length>1?'text-blue-600':'text-gray-500'}">${msg.readBy?.includes(cachedUserId)?'Seen':'Sent'}</span>`; } if(msg.isImage){ const displayContent=getDisplayContent(msg.content,msg.isImage); const grid=el.querySelector('.image-grid'); if(grid&&Array.isArray(displayContent)){ grid.outerHTML=renderImageGrid(displayContent); attachGridImageHandlers(el); }else if(!Array.isArray(displayContent)){ const img=el.querySelector('.chat-image'); if(img){ img.src=displayContent; img.dataset.src=displayContent; } } } if(msg.replyTo&&pendingEntry.replyTo){ const replyDisplay=getDisplayContent(msg.replyTo.content,msg.replyTo.isImage); const rcHtml=msg.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(msg.replyTo.content,30)}</p>`; const quoted=el.querySelector('.quoted-message'); if(quoted){ quoted.innerHTML=`<p class="font-semibold">${sanitizeHtml(msg.replyTo.sender?.name||pendingEntry.replyTo.senderName)}</p>${sanitizeHtml(rcHtml)}`; } } pendingMessages.delete(tempId); if(replyToMessage?.id===msg._id){ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); } feather.replace(); scrollToBottom(); cleanDuplicateSeparators(); return; } if(isOwn) return; const label=getDateLabel(msg.createdAt); ensureSeparator(label); const div=document.createElement('div'); div.className='chat-message other'; div.dataset.messageId=msg._id; let quoted=''; if(msg.replyTo){ const replyDisplay=getDisplayContent(msg.replyTo.content,msg.replyTo.isImage); const rcHtml=msg.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(msg.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(msg.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(msg.content,msg.isImage); if(msg.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(msg.content)}</p>`; } const seen=msg.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=msg.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); div.innerHTML=`${fullHtml}<p class="text-[10px] text-[var(--neutral-gray)] mt-0.5 text-right">${formatDate(msg.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(div); if(msg.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(div); } feather.replace(); scrollToBottom(); cleanDuplicateSeparators(); });
+    socket.on('message',data=>{ if(data.chatId!==getChatId()) return; const msg=data.message; const isOwn=msg.sender?._id===cachedUserId; let pendingEntry=pendingMessages.get(msg.tempId); if(!pendingEntry){ for(let [tempId,entry]of pendingMessages){ const entryHashContent=Array.isArray(entry.content)?entry.content.join(','):entry.content; const msgDisplay=getDisplayContent(msg.content,msg.isImage); const msgHashContent=Array.isArray(msgDisplay)?msgDisplay.join(','):msgDisplay; if(simpleHash(entryHashContent)===simpleHash(msgHashContent)&&entry.isImage===msg.isImage){ pendingEntry=entry; break; } } } if(pendingEntry){ const tempId=msg.tempId||Array.from(pendingMessages.keys()).find(k=>pendingMessages.get(k)===pendingEntry); const el=pendingEntry.el; el.className=`chat-message ${isOwn?'user':'other'}`; el.dataset.messageId=msg._id; el.removeAttribute('data-temp-id'); const timeEl=el.querySelector('p:last-of-type'); if(timeEl){ timeEl.innerHTML=`${formatDate(msg.createdAt)} <span class="${msg.readBy?.length>1?'text-blue-600':'text-gray-500'}">${msg.readBy?.includes(cachedUserId)?'Seen':'Sent'}</span>`; } if(msg.isImage){ const displayContent=getDisplayContent(msg.content,msg.isImage); const grid=el.querySelector('.image-grid'); if(grid&&Array.isArray(displayContent)){ grid.outerHTML=renderImageGrid(displayContent); attachGridImageHandlers(el); }else if(!Array.isArray(displayContent)){ const img=el.querySelector('.chat-image'); if(img){ img.src=displayContent; img.dataset.src=displayContent; } } } if(msg.replyTo&&pendingEntry.replyTo){ const replyDisplay=getDisplayContent(msg.replyTo.content,msg.replyTo.isImage); const rcHtml=msg.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(msg.replyTo.content,30)}</p>`; const quoted=el.querySelector('.quoted-message'); if(quoted){ quoted.innerHTML=`<p class="font-semibold">${sanitizeHtml(msg.replyTo.sender?.name||pendingEntry.replyTo.senderName)}</p>${sanitizeHtml(rcHtml)}`; } } pendingMessages.delete(tempId); if(replyToMessage?.id===msg._id){ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); } feather.replace(); scrollToBottom(); cleanDuplicateSeparators(); return; } if(isOwn) return; const label=getDateLabel(msg.createdAt); ensureSeparator(label); const div=document.createElement('div'); div.className='chat-message other'; div.dataset.messageId=msg._id; let quoted=''; if(msg.replyTo){ const replyDisplay=getDisplayContent(msg.replyTo.content,msg.replyTo.isImage); const rcHtml=msg.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(msg.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(msg.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(msg.content,msg.isImage); if(msg.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="sm:text-sm">${sanitizeHtml(msg.content)}</p>`; } const seen=msg.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=msg.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); div.innerHTML=`${fullHtml}<p class="text-xs sm:text-sm text-gray-600 mt-1 text-right">${formatDate(msg.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple mt-1"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(div); if(msg.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(div); } feather.replace(); scrollToBottom(); cleanDuplicateSeparators(); });
 
     socket.on('typing',d=>{ if(d.chatId===getChatId()){ const indicator=document.getElementById('typing-indicator')||document.createElement('div'); indicator.className='typing-indicator'; indicator.id='typing-indicator'; indicator.textContent=`${d.senderName} is typing...`; indicator.classList.add('active'); if(!document.getElementById('typing-indicator')) chatContainer.prepend(indicator); clearTimeout(indicator._timer); indicator._timer=setTimeout(()=>indicator.classList.remove('active'),3000); } });
 
     // Fetch Chat
-    async function fetchChat(){ if(!(await checkAuth())){ showToast('Please sign in.','error'); setTimeout(()=>location.href='/login.html',2000); return; } const chatId=getChatId(); if(!chatId) return; currentChatId=chatId; const token=localStorage.getItem('token'); createShimmers(); hasMoreMessages=true; try{ const r=await fetch(`${API_BASE_URL}/chats/${chatId}`,{headers:{Authorization:`Bearer ${token}`}}); const d=await r.json(); if(!r.ok) throw new Error(d.message||'Load failed'); document.getElementById('chat-title').textContent=d.recipient?.name||'Unknown'; navAvatar.textContent=getFirstLetter(d.recipient?.name); hasShimmers=false; if(!d.messages?.length){ chatContainer.innerHTML='<p class="text-center text-xs">No messages yet. Say hi!</p>'; return; } const byDate={}; d.messages.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).forEach(m=>{ const lbl=getDateLabel(m.createdAt); (byDate[lbl]||(byDate[lbl]=[])).push(m); }); chatContainer.innerHTML=''; Object.keys(byDate).sort((a,b)=>{ const da=a==='Today'?new Date():new Date(a); const db=b==='Today'?new Date():new Date(b); return da-db; }).forEach(date=>{ ensureSeparator(date); byDate[date].forEach(m=>{ const isOwn=m.sender?._id===cachedUserId; const cls=isOwn?'user':'other'; let quoted=''; if(m.replyTo){ const replyDisplay=getDisplayContent(m.replyTo.content,m.replyTo.isImage); const rcHtml=m.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(m.replyTo.content,30)}</p>`; quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(m.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; } let body=''; const displayContent=getDisplayContent(m.content,m.isImage); if(m.isImage){ body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; }else{ body=`<p class="text-xs">${sanitizeHtml(m.content)}</p>`; } const seen=m.readBy?.includes(cachedUserId)?'Seen':'Sent'; const seenColor=m.readBy?.length>1?'text-blue-600':'text-gray-500'; const fullHtml=sanitizeHtml(`${quoted}${body}`); const el=document.createElement('div'); el.className=`chat-message ${cls}`; el.dataset.messageId=m._id; el.innerHTML=`${fullHtml}<p class="text-[10px] ${isOwn?'text-[var(--white)]':'text-[var(--neutral-gray)]'} mt-0.5 text-right">${formatDate(m.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; chatContainer.appendChild(el); if(m.isImage&&Array.isArray(displayContent)){ attachGridImageHandlers(el); } }); }); setupInfiniteScroll(true); feather.replace(); scrollToBottom(false); cleanDuplicateSeparators(); joinChatIfReady(); }catch(e){ hasShimmers=false; showToast(`Error: ${e.message}`,'error'); chatContainer.innerHTML='<p class="text-center text-xs">Failed to load chat. <button onclick="fetchChat()" class="text-[var(--primary-purple)] underline">Retry</button></p>'; } }
+    async function fetchChat(){ 
+        if(!(await checkAuth())){ 
+            clearShimmers(); 
+            showToast('Please sign in.','error'); 
+            setTimeout(()=>location.href='/login.html',2000); 
+            return; 
+        } 
+        const chatId=getChatId(); 
+        if(!chatId) { clearShimmers(); return; } 
+        currentChatId=chatId; 
+        const token=localStorage.getItem('token'); 
+        createShimmers(); 
+        hasMoreMessages=true; 
+        try{ 
+            const r=await fetch(`${API_BASE_URL}/chats/${chatId}`,{headers:{Authorization:`Bearer ${token}`}}); 
+            const d=await r.json(); 
+            if(!r.ok) throw new Error(d.message||'Load failed'); 
+            document.getElementById('chat-title').textContent=d.recipient?.name||'Unknown'; 
+            navAvatar.textContent=getFirstLetter(d.recipient?.name); 
+            clearShimmers(); 
+            if(!d.messages?.length){ 
+                chatContainer.innerHTML='<p class="text-center text-sm text-gray-500 py-8">No messages yet. Say hi!</p>'; 
+                return; 
+            } 
+            const byDate={}; 
+            d.messages.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).forEach(m=>{ 
+                const lbl=getDateLabel(m.createdAt); 
+                (byDate[lbl]||(byDate[lbl]=[])).push(m); 
+            }); 
+            chatContainer.innerHTML=''; 
+            Object.keys(byDate).sort((a,b)=>{ 
+                const da=a==='Today'?new Date():new Date(a); 
+                const db=b==='Today'?new Date():new Date(b); 
+                return da-db; 
+            }).forEach(date=>{ 
+                ensureSeparator(date); 
+                byDate[date].forEach(m=>{ 
+                    const isOwn=m.sender?._id===cachedUserId; 
+                    const cls=isOwn?'user':'other'; 
+                    let quoted=''; 
+                    if(m.replyTo){ 
+                        const replyDisplay=getDisplayContent(m.replyTo.content,m.replyTo.isImage); 
+                        const rcHtml=m.replyTo.isImage?`<img src="${Array.isArray(replyDisplay)?replyDisplay[0]:replyDisplay}" alt="Quoted" class="quoted-message-image" loading="lazy">`:`<p class="truncate">${truncateText(m.replyTo.content,30)}</p>`; 
+                        quoted=`<div class="quoted-message"><p class="font-semibold">${sanitizeHtml(m.replyTo.sender?.name||'Unknown')}</p>${sanitizeHtml(rcHtml)}</div>`; 
+                    } 
+                    let body=''; 
+                    const displayContent=getDisplayContent(m.content,m.isImage); 
+                    if(m.isImage){ 
+                        body=Array.isArray(displayContent)?renderImageGrid(displayContent):`<img src="${displayContent}" alt="Chat image" class="chat-image" data-src="${displayContent}" loading="lazy" onerror="this.style.display='none';">`; 
+                    }else{ 
+                        body=`<p class="sm:text-sm">${sanitizeHtml(m.content)}</p>`; 
+                    } 
+                    const seen=m.readBy?.includes(cachedUserId)?'Seen':'Sent'; 
+                    const seenColor=m.readBy?.length>1?'text-blue-600':'text-gray-500'; 
+                    const fullHtml=sanitizeHtml(`${quoted}${body}`); 
+                    const el=document.createElement('div'); 
+                    el.className=`chat-message ${cls}`; 
+                    el.dataset.messageId=m._id; 
+                    el.innerHTML=`${fullHtml}<p class="text-xs sm:text-sm ${isOwn?'text-white':'text-gray-600'} mt-1 text-right">${formatDate(m.createdAt)} <span class="${seenColor}">${seen}</span></p><button class="reply-button ripple mt-1"><i data-feather="corner-up-left" class="w-4 h-4 icon-fallback" aria-hidden="true">Reply</i></button>`; 
+                    chatContainer.appendChild(el); 
+                    if(m.isImage&&Array.isArray(displayContent)){ 
+                        attachGridImageHandlers(el); 
+                    } 
+                }); 
+            }); 
+            setupInfiniteScroll(true); 
+            feather.replace(); 
+            scrollToBottom(false); 
+            cleanDuplicateSeparators(); 
+            joinChatIfReady(); 
+        }catch(e){ 
+            clearShimmers(); 
+            showToast(`Error: ${e.message}`,'error'); 
+            chatContainer.innerHTML='<p class="text-center text-sm">Failed to load chat. <button onclick="fetchChat()" class="text-purple-600 underline">Retry</button></p>'; 
+        } 
+    }
 
     // Send Text
     async function sendMessage(text){ if(isSending||!text||!(await checkAuth())) return; const chatId=getChatId(); if(!chatId) return; const token=localStorage.getItem('token'); const tempId=uuid(); const originalValue=chatInput.value; chatInput.value=''; sendButton.disabled=true; appendPendingMessage(text,false,tempId,replyToMessage); const sendFn=async()=>{ isSending=true; const originalIcon=sendButton.innerHTML; sendButton.innerHTML='<i data-feather="loader" class="w-5 h-5 animate-spin" aria-hidden="true"></i>'; try{ const payload={chatId,content:text,tempId}; if(replyToMessage) payload.replyTo=replyToMessage.id; const r=await fetch(`${API_BASE_URL}/messages`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)}); const data=await r.json(); if(!r.ok) throw new Error(data.message||'Send failed'); if(replyToMessage){ replyToMessage=null; replyPreview.classList.add('hidden'); replyPreviewImg.classList.add('hidden'); } pendingMessages.delete(tempId); }catch(e){ chatInput.value=originalValue; const entry=pendingMessages.get(tempId); if(entry?.el) entry.el.remove(); pendingMessages.delete(tempId); showToast(`Send failed: ${e.message}`,'error'); throw e; }finally{ isSending=false; sendButton.disabled=!chatInput.value.trim(); sendButton.innerHTML=originalIcon; feather.replace(); chatInput.focus(); } }; if(socket.connected) await sendFn(); else{ retryQueue.push({fn:sendFn,type:'text',tempId}); showToast('Queued for send when online','info'); } }
@@ -265,7 +407,7 @@
     chatInput.addEventListener('input',()=>{ sendButton.disabled=!chatInput.value.trim()||isSending; clearTimeout(typingTimeout); typingTimeout=setTimeout(()=>{ if(chatInput.value.trim()){ socket.emit('typing',{chatId:getChatId(),senderName:cachedUserName||'You'}); } },500); });
 
     // Image Upload
-    imageUpload.addEventListener('change',e=>{ const files=Array.from(e.target.files).filter((f,index)=>{ const validTypes=['image/png','image/jpeg','image/jpg','image/gif','image/webp']; const isValid=validTypes.includes(f.type)&&f.size<=5*1024*1024&&selectedImages.length+index<MAX_IMAGES; if(!isValid){ if(selectedImages.length+index>=MAX_IMAGES) showToast('Max 30 images allowed','error'); else showToast(`Invalid file: ${f.name}`,'error'); } return isValid; }); if(!files.length&&selectedImages.length>=MAX_IMAGES){ errorMessage.textContent=`Max ${MAX_IMAGES} images allowed.`; errorMessage.classList.remove('hidden'); return; } errorMessage.classList.add('hidden'); imagePreview.classList.remove('active'); let loaded=0; const total=files.length; files.forEach((f,i)=>{ const r=new FileReader(); r.onload=ev=>{ const url=ev.target.result; const previewIndex=selectedImages.push({file:f,dataUrl:url})-1; const previewWrapper=document.createElement('div'); previewWrapper.className='relative'; const img=document.createElement('img'); img.src=url; img.className='preview-image'; img.alt=`Preview ${previewIndex+1}`; const removeBtn=document.createElement('button'); removeBtn.className='absolute top-0 right-0 bg-[var(--alert-red)] text-[var(--white)] w-4 h-4 rounded-full text-xs flex items-center justify-center ml-1 -mr-1 -mt-1 ripple'; removeBtn.innerHTML='×'; removeBtn.ariaLabel='Remove image'; removeBtn.addEventListener('click',()=>{ selectedImages.splice(previewIndex,1); previewWrapper.remove(); if(selectedImages.length===0){ imagePreview.classList.remove('active'); previewImages.innerHTML=''; } showToast('Image removed','success'); }); previewWrapper.appendChild(img); previewWrapper.appendChild(removeBtn); previewImages.appendChild(previewWrapper); if(++loaded===total&&selectedImages.length>0){ imagePreview.classList.add('active'); } }; r.onerror=()=>{ if(++loaded===total){ imagePreview.classList.remove('active'); errorMessage.classList.remove('hidden'); } }; r.readAsDataURL(f); }); e.target.value=''; });
+    imageUpload.addEventListener('change',e=>{ const files=Array.from(e.target.files).filter((f,index)=>{ const validTypes=['image/png','image/jpeg','image/jpg','image/gif','image/webp']; const isValid=validTypes.includes(f.type)&&f.size<=5*1024*1024&&selectedImages.length+index<MAX_IMAGES; if(!isValid){ if(selectedImages.length+index>=MAX_IMAGES) showToast('Max 30 images allowed','error'); else showToast(`Invalid file: ${f.name}`,'error'); } return isValid; }); if(!files.length&&selectedImages.length>=MAX_IMAGES){ errorMessage.textContent=`Max ${MAX_IMAGES} images allowed.`; errorMessage.classList.remove('hidden'); return; } errorMessage.classList.add('hidden'); imagePreview.classList.remove('active'); let loaded=0; const total=files.length; files.forEach((f,i)=>{ const r=new FileReader(); r.onload=ev=>{ const url=ev.target.result; const previewIndex=selectedImages.push({file:f,dataUrl:url})-1; const previewWrapper=document.createElement('div'); previewWrapper.className='relative'; const img=document.createElement('img'); img.src=url; img.className='preview-image'; img.alt=`Preview ${previewIndex+1}`; const removeBtn=document.createElement('button'); removeBtn.className='absolute top-0 right-0 bg-red-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center -m-0.5 ripple'; removeBtn.innerHTML='×'; removeBtn.ariaLabel='Remove image'; removeBtn.addEventListener('click',()=>{ selectedImages.splice(previewIndex,1); previewWrapper.remove(); if(selectedImages.length===0){ imagePreview.classList.remove('active'); previewImages.innerHTML=''; } showToast('Image removed','success'); }); previewWrapper.appendChild(img); previewWrapper.appendChild(removeBtn); previewImages.appendChild(previewWrapper); if(++loaded===total&&selectedImages.length>0){ imagePreview.classList.add('active'); } }; r.onerror=()=>{ if(++loaded===total){ imagePreview.classList.remove('active'); errorMessage.classList.remove('hidden'); } }; r.readAsDataURL(f); }); e.target.value=''; });
 
     cancelImageBtn.addEventListener('click',()=>{ imagePreview.classList.remove('active'); selectedImages=[]; previewImages.innerHTML=''; errorMessage.classList.add('hidden'); });
 
@@ -275,8 +417,25 @@
     document.addEventListener('click',e=>{ if(emojiPicker.classList.contains('active')&&!emojiBtn.contains(e.target)&&!emojiPicker.contains(e.target)){ emojiPicker.classList.remove('active'); } });
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&emojiPicker.classList.contains('active')){ emojiPicker.classList.remove('active'); } });
 
-    // Keyboard
-    if('visualViewport' in window){ window.visualViewport.addEventListener('resize',()=>{ const keyboardHeight=window.innerHeight-window.visualViewport.height; inputContainer.style.paddingBottom=`${Math.max(0,keyboardHeight)}px`; }); chatInput.addEventListener('focus',()=>document.body.style.overflow='hidden'); chatInput.addEventListener('blur',()=>{ document.body.style.overflow='auto'; inputContainer.style.paddingBottom='0'; }); }else{ window.addEventListener('resize',()=>{ const vh=window.innerHeight*0.01; document.documentElement.style.setProperty('--vh',`${vh}px`); }); }
+    // Keyboard - Debounced for smoothness
+    let resizeDebounce;
+    if('visualViewport' in window){ 
+        const handleResize = () => {
+            clearTimeout(resizeDebounce);
+            resizeDebounce = setTimeout(() => {
+                const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                inputContainer.style.paddingBottom = `${Math.max(0, keyboardHeight + 20)}px`; // +20 for safe area
+            }, 100);
+        };
+        window.visualViewport.addEventListener('resize', handleResize);
+        chatInput.addEventListener('focus', () => { document.body.style.overflow = 'hidden'; handleResize(); });
+        chatInput.addEventListener('blur', () => { document.body.style.overflow = 'auto'; inputContainer.style.paddingBottom = '0'; });
+    } else { 
+        window.addEventListener('resize', () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }); 
+    }
 
     // Navigation
     document.getElementById('back-button').addEventListener('click',()=>{ socket.emit('leaveChat',{chatId:currentChatId}); location.href='/chat-list.html'; });
