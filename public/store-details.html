@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Product - Bazuka</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #6C5CE7;
+            --secondary-dark: #001E2B;
+            --accent-light: #d7d3f5;
+            --neutral-gray: #4B5563;
+            --light-gray: #F1F3F2;
+            --alert-red: #EF4444;
+            --gold: #FFD700;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--accent-light);
+            color: var(--secondary-dark);
+        }
+
+        .carousel-image {
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .carousel-image:hover {
+            transform: scale(1.05);
+        }
+
+        .thumbnail {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .thumbnail.active, .thumbnail:hover {
+            border: 2px solid var(--primary-green);
+            opacity: 1;
+        }
+
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple:after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10, 10);
+            opacity: 0;
+            transition: transform 0.5s, opacity 1s;
+        }
+
+        .ripple:active:after {
+            transform: scale(0, 0);
+            opacity: 0.3;
+            transition: 0s;
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .shimmer-text { background: #f0f0f0; border-radius: 0.25rem; height: 1.5rem; }
+        .shimmer-image { background: #f0f0f0; border-radius: 0.5rem; width: 100%; height: 100%; }
+
+        .toast {
+            position: fixed;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            z-index: 50;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 0.75rem;
+        }
+
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: #10B981; color: white; }
+        .toast.error { background-color: var(--alert-red); color: white; }
+
+        .low-stock { color: var(--alert-red); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 110;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal.show { display: flex; }
+
+        .image-modal-content img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .image-modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 1rem;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .image-modal-nav.prev { left: 1rem; }
+        .image-modal-nav.next { right: 1rem; }
+
+        .image-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 60;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <button onclick="history.back()" class="p-2 rounded-full hover:bg-gray-100 ripple">
+                <i data-feather="arrow-left" class="w-6 h-6 text-[var(--neutral-gray)]"></i>
+            </button>
+            <div class="flex items-center space-x-4">
+                <button id="share-btn" class="p-2 rounded-full hover:bg-gray-100 ripple">
+                    <i data-feather="share-2" class="w-6 h-6 text-[var(--neutral-gray)]"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Image Carousel -->
+            <div class="relative">
+                <div class="relative h-80 md:h-[28rem] bg-white rounded-lg overflow-hidden">
+                    <div class="absolute inset-0 flex items-center justify-center" id="product-image">
+                        <div class="shimmer shimmer-image"></div>
+                    </div>
+                </div>
+                <div class="flex justify-center space-x-2 mt-4" id="image-thumbnails"></div>
+            </div>
+
+            <!-- Product Details -->
+            <div class="space-y-6">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold shimmer-text" id="product-name">Loading...</h1>
+                    <p class="text-sm text-[var(--neutral-gray)] mt-2" id="store-name">from <span class="font-medium">Loading Store</span></p>
+                    <div class="flex items-center mt-2">
+                        <div class="flex text-yellow-400 text-sm" id="product-rating"></div>
+                        <span class="text-sm text-[var(--neutral-gray)] ml-2" id="review-count">(0)</span>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-3xl font-bold text-[var(--primary-green)] shimmer-text" id="product-price">₦0</p>
+                    <p class="text-sm text-gray-500 line-through" id="product-original-price"></p>
+                    <p class="text-sm text-[var(--neutral-gray)] mt-1">Delivery Fee: ₦5,000</p>
+                    <p class="text-sm mt-1" id="product-stock">In Stock: 0</p>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button class="flex-1 py-4 px-6 bg-[var(--primary-green)] text-white rounded-full font-bold text-lg ripple hover:bg-purple-700 transition" id="add-to-cart-btn">
+                        Add to Cart
+                    </button>
+                    <button id="wishlist-toggle-btn" class="p-4 rounded-full bg-[var(--light-gray)] hover:bg-gray-200 ripple">
+                        <i data-feather="heart" class="w-7 h-7 text-[var(--neutral-gray)]"></i>
+                    </button>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Description</h3>
+                    <p class="text-[var(--neutral-gray)] text-sm leading-relaxed" id="product-description">Loading...</p>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Specifications</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm" id="product-specifications">
+                        <div class="shimmer shimmer-text"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Customer Reviews</h3>
+                    <div class="space-y-4" id="product-reviews">
+                        <div class="shimmer shimmer-text h-24"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Full-Screen Image Modal -->
+    <div id="image-modal" class="image-modal">
+        <div class="image-modal-content">
+            <span class="image-modal-close">×</span>
+            <img id="full-image" src="" alt="Full-screen product image">
+            <button class="image-modal-nav prev"><i data-feather="chevron-left" class="w-8 h-8"></i></button>
+            <button class="image-modal-nav next"><i data-feather="chevron-right" class="w-8 h-8"></i></button>
+        </div>
+    </div>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <script>
+        const API_BASE_URL = 'https://bazukastore.com/api';
+        const PLACEHOLDER = 'https://via.placeholder.com/500?text=No+Image';
+        let productImages = [];
+        let currentImageIndex = 0;
+        let isWishlisted = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+
+        if (!productId) {
+            document.body.innerHTML = '<div class="text-center py-32 text-2xl text-red-500">Product not found</div>';
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type} shadow-lg`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 2000);
+        }
+
+        function showConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const confetti = [];
+            for (let i = 0; i < 120; i++) {
+                confetti.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    r: Math.random() * 6 + 4,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                });
+            }
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                confetti.forEach(c => {
+                    c.y += c.r;
+                    if (c.y > canvas.height) c.y = -20;
+                    ctx.fillStyle = c.color;
+                    ctx.fillRect(c.x, c.y, c.r, c.r * 3);
+                    c.x += Math.sin(c.y / 20) * 2;
+                });
+                requestAnimationFrame(draw);
+            }
+            draw();
+            setTimeout(() => ctx.clearRect(0, 0, canvas.width, canvas.height), 3000);
+        }
+
+        function showFullImage(index) {
+            currentImageIndex = index;
+            document.getElementById('full-image').src = productImages[index].url;
+            document.getElementById('image-modal').classList.add('show');
+            feather.replace();
+        }
+
+        function setupImageModal() {
+            document.querySelector('.image-modal-close').onclick = () => document.getElementById('image-modal').classList.remove('show');
+            document.querySelector('.image-modal-nav.prev').onclick = () => {
+                currentImageIndex = (currentImageIndex - 1 + productImages.length) % productImages.length;
+                showFullImage(currentImageIndex);
+            };
+            document.querySelector('.image-modal-nav.next').onclick = () => {
+                currentImageIndex = (currentImageIndex + 1) % productImages.length;
+                showFullImage(currentImageIndex);
+            };
+        }
+
+        async function loadProduct() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/products/${productId}`);
+                if (!res.ok) throw new Error('Product not found');
+                const product = await res.json();
+
+                document.title = `${product.name} - Bazuka`;
+                document.getElementById('product-name').textContent = product.name;
+                document.getElementById('product-name').classList.remove('shimmer-text');
+
+                document.getElementById('store-name').innerHTML = `from <span class="font-bold text-[var(--primary-green)]">${product.store?.shopName || 'Bazuka Store'}</span>`;
+
+                document.getElementById('product-price').textContent = `₦${(product.dealPrice || product.price).toLocaleString()}`;
+                document.getElementById('product-original-price').textContent = product.dealPrice ? `₦${product.price.toLocaleString()}` : '';
+                document.getElementById('product-stock').textContent = `In Stock: ${product.stock || 0}`;
+                if (product.stock <= 5) document.getElementById('product-stock').classList.add('low-stock');
+
+                document.getElementById('product-description').textContent = product.description || 'No description.';
+
+                const specsDiv = document.getElementById('product-specifications');
+                specsDiv.innerHTML = product.specifications ? Object.entries(product.specifications).map(([k, v]) => `
+                    <div><span class="font-medium">${k}:</span> ${v}</div>
+                `).join('') : '<p class="text-sm text-gray-500">No specs available</p>';
+
+                // Rating
+                const rating = Math.round(product.rating || 0);
+                document.getElementById('product-rating').innerHTML = Array(5).fill().map((_, i) => `
+                    <i data-feather="star" class="w-5 h-5 ${i < rating ? 'fill-current text-yellow-400' : ''}"></i>
+                `).join('');
+                document.getElementById('review-count').textContent = `(${product.reviewCount || 0})`;
+
+                // Reviews
+                const reviewsDiv = document.getElementById('product-reviews');
+                reviewsDiv.innerHTML = product.reviews?.length ? product.reviews.map(r => `
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                                ${r.user?.name?.[0] || 'A'}
+                            </div>
+                            <div>
+                                <p class="font-medium">${r.user?.name || 'Anonymous'}</p>
+                                <div class="flex text-yellow-400 text-sm">
+                                    ${Array(5).fill().map((_, i) => `<i data-feather="star" class="w-4 h-4 ${i < r.rating ? 'fill-current' : ''}"></i>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600">${r.comment || 'No comment'}</p>
+                    </div>
+                `).join('') : '<p class="text-gray-500 text-center py-8">No reviews yet. Be the first!</p>';
+
+                // Images
+                productImages = product.images?.length ? product.images : [{ url: PLACEHOLDER }];
+                document.getElementById('product-image').innerHTML = `<img src="${productImages[0].url}" class="w-full h-full object-contain carousel-image" onclick="showFullImage(0)">`;
+
+                document.getElementById('image-thumbnails').innerHTML = productImages.map((img, i) => `
+                    <img src="${img.url}" class="w-20 h-20 object-cover rounded-lg thumbnail ${i === 0 ? 'active' : ''}" onclick="document.getElementById('product-image').innerHTML='<img src=${img.url} class=w-full h-full object-contain>'; currentImageIndex=${i}; document.querySelectorAll('.thumbnail').forEach(t=>t.classList.remove('active')); this.classList.add('active')">
+                `).join('');
+
+                document.getElementById('add-to-cart-btn').onclick = () => addToCart(productId, 1);
+                document.getElementById('wishlist-toggle-btn').onclick = () => toggleWishlist(productId);
+
+                feather.replace();
+                showConfetti();
+                showToast('Product loaded!', 'success');
+
+            } catch (err) {
+                document.body.innerHTML = `<div class="text-center py-32"><p class="text-3xl text-red-500">Product not found</p><button onclick="history.back()" class="mt-6 px-8 py-4 bg-[var(--primary-green)] text-white rounded-full">Go Back</button></div>`;
+            }
+        }
+
+        async function addToCart(id, qty) {
+            // your existing addToCart logic
+            showToast('Added to cart!', 'success');
+        }
+
+        async function toggleWishlist(id) {
+            // your existing wishlist logic
+            showToast('Wishlist updated!', 'success');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            setupImageModal();
+            loadProduct();
+        });
+    </script>
+</body>
+</html>
