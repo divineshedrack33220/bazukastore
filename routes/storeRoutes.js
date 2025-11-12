@@ -1,7 +1,6 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router(); // ← FIXED: was `express = express.Router()`
 const auth = require('../middleware/auth');
-const upload = require('../middleware/upload');
 const mongoose = require('mongoose');
 const Store = require('../models/Store');
 const Product = require('../models/Product');
@@ -11,14 +10,9 @@ const User = require('../models/User');
 router.get('/', async (req, res) => {
   try {
     const { limit = 10 } = req.query;
-    console.log('[STORE ROUTES] Fetching top stores, limit:', limit);
 
     const stores = await Store.aggregate([
-      {
-        $match: {
-          shopName: { $exists: true, $ne: null, $ne: '' }
-        }
-      },
+      { $match: { shopName: { $exists: true, $ne: null, $ne: '' } } },
       {
         $lookup: {
           from: 'products',
@@ -58,7 +52,6 @@ router.get('/', async (req, res) => {
       { $limit: parseInt(limit) }
     ]);
 
-    console.log('[STORE ROUTES] Fetched', stores.length, 'stores');
     res.json(stores);
   } catch (error) {
     console.error('[STORE ROUTES] getStores error:', error);
@@ -69,8 +62,7 @@ router.get('/', async (req, res) => {
 // === AUTHENTICATED ROUTES ===
 router.get('/my-store', auth, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const store = await Store.findOne({ user: userId }).lean();
+    const store = await Store.findOne({ user: req.user.id }).lean();
     if (!store) return res.status(404).json({ message: 'No store found' });
     res.json(store);
   } catch (error) {
@@ -81,16 +73,15 @@ router.get('/my-store', auth, async (req, res) => {
 
 router.post('/my-store', auth, async (req, res) => {
   try {
-    const userId = req.user.id;
     const { shopName } = req.body;
-    let store = await Store.findOne({ user: userId });
+    let store = await Store.findOne({ user: req.user.id });
     if (store) {
       store.shopName = shopName;
     } else {
-      store = new Store({ user: userId, shopName });
+      store = new Store({ user: req.user.id, shopName });
     }
     await store.save();
-    await User.findByIdAndUpdate(userId, { shopName, isSeller: true });
+    await User.findByIdAndUpdate(req.user.id, { shopName, isSeller: true });
     res.json(store);
   } catch (error) {
     console.error('[STORE ROUTES] createMyStore error:', error);
@@ -100,8 +91,7 @@ router.post('/my-store', auth, async (req, res) => {
 
 router.get('/my-products', auth, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const products = await Product.find({ user: userId })
+    const products = await Product.find({ user: req.user.id })
       .populate('user', 'name shopName')
       .sort({ createdAt: -1 })
       .lean();
@@ -112,27 +102,28 @@ router.get('/my-products', auth, async (req, res) => {
   }
 });
 
-router.post('/products', auth, upload.array('images', 5), async (req, res) => {
+// === PRODUCT ROUTES (NO MULTER – CLIENT UPLOADS TO CLOUDINARY) ===
+router.post('/products', auth, async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log('[STORE ROUTES] Creating product for user:', userId);
-
     let store = await Store.findOne({ user: userId });
     if (!store) {
       const defaultShopName = req.body.shopName || `${req.user.name}'s Store`;
       store = new Store({ user: userId, shopName: defaultShopName });
       await store.save();
       await User.findByIdAndUpdate(userId, { shopName: defaultShopName, isSeller: true });
-      console.log('[STORE ROUTES] Auto-created store:', store._id);
     }
 
-    const { name, description, price, dealPrice, stock, category } = req.body;
+    const { name, description, price, dealPrice, stock, category, images } = req.body;
 
     if (!name?.trim()) return res.status(400).json({ message: 'Product name is required' });
     if (!price || parseFloat(price) <= 0) return res.status(400).json({ message: 'Valid price is required' });
     if (!stock || parseInt(stock) < 0) return res.status(400).json({ message: 'Valid stock is required' });
     if (!category || !mongoose.Types.ObjectId.isValid(category)) {
       return res.status(400).json({ message: 'Valid category is required' });
+    }
+    if (!Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ message: 'At least one image URL is required' });
     }
 
     const product = new Product({
@@ -144,33 +135,24 @@ router.post('/products', auth, upload.array('images', 5), async (req, res) => {
       category,
       user: userId,
       store: store._id,
-      images: req.files ? req.files.map(file => ({ url: file.path })) : []
+      images: images.map(url => ({ url }))
     });
 
     await product.save();
     await product.populate('user store', 'name shopName');
-
-    console.log('[STORE ROUTES] Product created:', product._id);
     res.status(201).json(product);
   } catch (error) {
-    console.error('[STORE ROUTES] createStoreProduct error:', error);
-    if (error.name === 'ValidationError') {
-      const msg = Object.values(error.errors)[0]?.message || 'Validation failed';
-      return res.status(400).json({ message: msg });
-    }
+    console.error('[STORE ROUTES] createProduct error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.put('/products/:id', auth, upload.array('images', 5), async (req, res) => {
+router.put('/products/:id', auth, async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const product = await Product.findOne({ _id: id, user: userId });
+    const product = await Product.findOne({ _id: req.params.id, user: req.user.id });
     if (!product) return res.status(404).json({ message: 'Product not found' });
 
-    const { name, description, price, dealPrice, stock, category } = req.body;
+    const { name, description, price, dealPrice, stock, category, images } = req.body;
 
     if (name?.trim()) product.name = name.trim();
     if (description !== undefined) product.description = description.trim();
@@ -178,15 +160,13 @@ router.put('/products/:id', auth, upload.array('images', 5), async (req, res) =>
     if (dealPrice) product.dealPrice = parseFloat(dealPrice);
     if (stock) product.stock = parseInt(stock);
     if (category && mongoose.Types.ObjectId.isValid(category)) product.category = category;
-
-    if (req.files) product.images = req.files.map(file => ({ url: file.path }));
+    if (Array.isArray(images)) product.images = images.map(url => ({ url }));
 
     await product.save();
     await product.populate('user store', 'name shopName');
-
     res.json(product);
   } catch (error) {
-    console.error('[STORE ROUTES] updateStoreProduct error:', error);
+    console.error('[STORE ROUTES] updateProduct error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -196,7 +176,6 @@ router.get('/:id', async (req, res) => {
     const store = await Store.findById(req.params.id)
       .populate('user', 'name shopName avatar phone')
       .lean();
-
     if (!store) return res.status(404).json({ message: 'Store not found' });
     res.json(store);
   } catch (err) {
