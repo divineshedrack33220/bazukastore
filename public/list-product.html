@@ -35,7 +35,7 @@
             box-shadow:var(--shadow-sm);}
         .modal.show .modal-content{transform:translateY(0);opacity:1;}
         .form-input{transition:border-color .2s;}
-        .form-input:focus{border-color:var(--primary-purple);box-shadow:0 0 0 2px rgba(108,92,231,.1);}
+        .form-input:focus{border-color:var(--primary-purple);outline:0;box-shadow:0 0 0 2px rgba(108,92,231,.1);}
         .form-input[readonly]{background:var(--light-gray);cursor:not-allowed;}
         .field-error{color:var(--alert-red);font-size:.7rem;margin-top:.2rem;display:none;}
         .spinner{display:none;width:1rem;height:1rem;border:2px solid var(--white);border-top:2px solid transparent;
@@ -44,7 +44,6 @@
         .loading .spinner{display:inline-block;}
         .image-preview-container{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;}
         .image-preview{width:60px;height:60px;object-fit:cover;border-radius:.5rem;border:1px solid var(--light-gray);}
-        .preview-card{background:var(--light-gray);padding:.75rem;border-radius:.5rem;margin-top:.5rem;}
         .btn{display:inline-flex;align-items:center;justify-content:center;padding:.5rem 1rem;border-radius:.5rem;
             font-weight:400;font-size:.875rem;transition:background-color .2s,transform .2s;}
         .btn:hover{transform:translateY(-1px);}
@@ -167,7 +166,7 @@
             <div class="mb-4">
                 <label for="product-stock" class="block text-xs font-medium text-[var(--neutral-gray)] mb-1">Stock Quantity <span class="text-[var(--alert-red)]">*</span></label>
                 <input type="number" id="product-stock" name="stock" class="form-input w-full py-1.5 px-3 rounded-lg border border-gray-200" placeholder="0" min="0" step="1" required>
-                <p id="product-stock-error" class="field-error">Stock must be greater than or equal to 0.</p>
+                <p id="product-stock-error" class="field-file">Stock must be greater than or equal to 0.</p>
             </div>
             <div class="mb-4">
                 <label for="product-category" class="block text-xs font-medium text-[var(--neutral-gray)] mb-1">Category <span class="text-[var(--alert-red)]">*</span></label>
@@ -234,16 +233,12 @@
     <h3 class="text-sm font-medium mb-2">Preview</h3>
     <div id="preview-content"></div>
 </div>
-
 <script>
     feather.replace();
 
     // ------------------- CONFIG -------------------
-    const API_BASE_URL = 'https://bazukastore.com/api';
+    const API_BASE_URL = 'http://localhost:5000/api/store-products';
     const PLACEHOLDER_IMAGE = 'https://placehold.co/60x60?text=No+Product';
-    // <<<--- SET THESE IN YOUR CLOUIDNARY DASHBOARD --->>>
-    const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME';        // e.g., "dabc123"
-    const CLOUDINARY_UPLOAD_PRESET = 'YOUR_UPLOAD_PRESET'; // e.g., "bazuka_store"
     // ------------------------------------------------
 
     let userStore = null;
@@ -252,12 +247,8 @@
     function escapeHTML(str) {
         if (typeof str !== 'string') return str || '';
         if (str.startsWith('http://') || str.startsWith('https://')) return str;
-        return str.replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#39;')
-                  .replace(/;/g, '&#59;');
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/;/g, '&#59;');
     }
 
     function showToast(message, type = 'success') {
@@ -299,27 +290,6 @@
         if (backBtn) backBtn.addEventListener('click', () => window.history.back());
     }
 
-    // ---- Cloudinary upload helper ----
-    async function uploadToCloudinary(file) {
-        if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-            throw new Error('Cloudinary config missing – check constants at top of script');
-        }
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error?.message || 'Upload failed');
-        }
-        const data = await res.json();
-        return { url: data.secure_url, public_id: data.public_id };
-    }
-
     function setupImagesPreview() {
         const input = document.getElementById('product-images');
         const container = document.getElementById('images-preview-container');
@@ -355,7 +325,7 @@
     async function loadUserStore() {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/stores/my-store`, {
+            const res = await fetch(`http://localhost:5000/api/stores/my-store`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.status === 404) return null;
@@ -381,7 +351,7 @@
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/stores/my-store`, {
+            const res = await fetch(`http://localhost:5000/api/stores/my-store`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -430,7 +400,7 @@
     async function loadCategories() {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/categories`, {
+            const res = await fetch(`http://localhost:5000/api/categories`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Failed to load categories');
@@ -479,7 +449,7 @@
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/stores/my-products`, {
+            const res = await fetch(`${API_BASE_URL}/my-products`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Failed to load products');
@@ -543,7 +513,7 @@
     async function fetchProductById(id) {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/products/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Failed to fetch product');
@@ -603,7 +573,7 @@
     async function deleteProduct(id) {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/products/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -700,114 +670,73 @@
         productModalOpenFunc(mode, product);
     }
 
-    /* ---------- PRODUCT SUBMIT (WITH CLOUIDNARY) ---------- */
-    async function addProduct(e) {
-        e.preventDefault();
-        if (!checkAuth()) return;
+   /* ---------- PRODUCT SUBMIT (SERVER UPLOAD) ---------- */
+async function addProduct(e) {
+    e.preventDefault();
+    if (!checkAuth()) return;
 
-        const btn = document.getElementById('submit-btn');
-        if (!btn) return;
-        btn.disabled = true; btn.classList.add('loading');
-        const modal = document.getElementById('product-modal');
-        const mode = modal ? modal.dataset.mode || 'create' : 'create';
-        const productId = modal ? modal.dataset.productId : '';
+    const btn = document.getElementById('submit-btn');
+    if (!btn) return;
+    btn.disabled = true; btn.classList.add('loading');
+    const modal = document.getElementById('product-modal');
+    const mode = modal ? modal.dataset.mode || 'create' : 'create';
+    const productId = modal ? modal.dataset.productId : '';
 
-        // ---- Basic validation (unchanged) ----
-        const categoryInput = document.getElementById('product-category');
-        const category = categoryInput ? categoryInput.value : '';
-        const categoryError = document.getElementById('product-category-error');
-        if (!category) {
-            if (categoryError) categoryError.style.display = 'block';
-            btn.disabled = false; btn.classList.remove('loading');
-            return;
-        }
-
-        const formData = new FormData();
-        const nameInput = document.getElementById('product-name');
-        if (nameInput) formData.append('name', nameInput.value.trim());
-        const descInput = document.getElementById('product-description');
-        if (descInput) formData.append('description', descInput.value.trim());
-        const priceInput = document.getElementById('product-price');
-        if (priceInput) formData.append('price', priceInput.value);
-        const dealPriceInput = document.getElementById('product-deal-price');
-        if (dealPriceInput) formData.append('dealPrice', dealPriceInput.value);
-        const stockInput = document.getElementById('product-stock');
-        if (stockInput) formData.append('stock', stockInput.value);
-        formData.append('category', category);
-
-        // ---- IMAGE UPLOAD TO CLOUIDNARY ----
-        const imageFilesInput = document.getElementById('product-images');
-        const imageFiles = imageFilesInput ? imageFilesInput.files : [];
-
-        if (imageFiles.length === 0 && mode === 'create') {
-            showToast('At least one image is required', 'error');
-            btn.disabled = false; btn.classList.remove('loading');
-            return;
-        }
-
-        const previewContainer = document.getElementById('images-preview-container');
-        previewContainer.innerHTML = ''; // clear local previews
-
-        try {
-            for (const file of imageFiles) {
-                // Show uploading spinner inside preview
-                const spinner = document.createElement('div');
-                spinner.className = 'image-preview flex items-center justify-center bg-gray-200';
-                spinner.innerHTML = '<div class="spinner"></div>';
-                previewContainer.appendChild(spinner);
-
-                const { url, public_id } = await uploadToCloudinary(file);
-                // Replace spinner with uploaded image
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = 'image-preview';
-                img.alt = 'Uploaded image';
-                previewContainer.replaceChild(img, spinner);
-
-                // Append to FormData (your backend expects `images` array of URLs)
-                formData.append('images', url);
-                // Optional: keep public_id if you ever need to delete from Cloudinary
-                // formData.append('imagePublicIds', public_id);
-            }
-        } catch (err) {
-            showToast(err.message || 'Image upload failed', 'error');
-            btn.disabled = false; btn.classList.remove('loading');
-            return;
-        }
-
-        // ---- SEND TO SERVER ----
-        const url = mode === 'edit' ? `${API_BASE_URL}/stores/products/${productId}`
-                                   : `${API_BASE_URL}/stores/products`;
-        const method = mode === 'edit' ? 'PUT' : 'POST';
-
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(url, {
-                method,
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || 'Failed');
-            }
-            showToast(mode === 'edit' ? 'Product updated' : 'Product added', 'success');
-            if (modal) modal.classList.remove('show');
-            setTimeout(() => {
-                if (modal) modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-                const form = document.getElementById('add-product-form');
-                if (form) form.reset();
-                const imagesContainer = document.getElementById('images-preview-container');
-                if (imagesContainer) imagesContainer.innerHTML = '';
-            }, 300);
-            fetchMyProducts();
-        } catch (err) {
-            showToast(err.message, 'error');
-        } finally {
-            btn.disabled = false; btn.classList.remove('loading');
-        }
+    const category = document.getElementById('product-category')?.value;
+    if (!category) {
+        document.getElementById('product-category-error').style.display = 'block';
+        btn.disabled = false; btn.classList.remove('loading');
+        return;
     }
+
+    const formData = new FormData();
+    formData.append('name', document.getElementById('product-name').value.trim());
+    formData.append('description', document.getElementById('product-description').value.trim());
+    formData.append('price', parseFloat(document.getElementById('product-price').value));
+    const dealPrice = document.getElementById('product-deal-price').value.trim();
+    if (dealPrice) formData.append('dealPrice', parseFloat(dealPrice));
+    formData.append('stock', parseInt(document.getElementById('product-stock').value));
+    formData.append('category', category);
+
+    const imageFiles = document.getElementById('product-images')?.files || [];
+    if (imageFiles.length === 0 && mode === 'create') {
+        showToast('At least one image is required', 'error');
+        btn.disabled = false; btn.classList.remove('loading');
+        return;
+    }
+    for (const file of imageFiles) {
+        formData.append('images', file);
+    }
+
+    const url = mode === 'edit' ? `${API_BASE_URL}/${productId}` : API_BASE_URL;
+    const method = mode === 'edit' ? 'PUT' : 'POST';
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(url, {
+            method,
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Failed');
+        }
+        showToast(mode === 'edit' ? 'Product updated' : 'Product added', 'success');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            document.getElementById('add-product-form').reset();
+            document.getElementById('images-preview-container').innerHTML = '';
+        }, 300);
+        fetchMyProducts();
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false; btn.classList.remove('loading');
+    }
+}
 
     /* ---------- INIT ---------- */
     document.addEventListener('DOMContentLoaded', async () => {
