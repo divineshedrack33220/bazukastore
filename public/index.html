@@ -532,7 +532,7 @@
                 </div>
                 <span class="text-xs mt-1 font-medium">Request</span>
             </a>
-          
+        
             <a href="chat-list.html" class="flex flex-col items-center text-[var(--text-secondary)]">
                 <i data-feather="message-circle" class="w-6 h-6"></i>
                 <span class="text-xs mt-1 font-medium">Chat</span>
@@ -710,7 +710,7 @@
         if (notifyBtn) {
             notifyBtn.addEventListener('click', async () => {
                 await subscribeToNotifications();
-                notifyBtn.textContent = 'Alerts Enabled!'; // Quick UX feedback
+                notifyBtn.textContent = 'Alerts Enabled!';
                 notifyBtn.classList.add('opacity-50', 'cursor-not-allowed');
             });
         }
@@ -755,7 +755,7 @@
             });
             // Send sub to backend (save for user)
             await sendSubscription(subscription, token);
-            showToast('Deal alerts enabled! 🚨', 'success');
+            showToast('Deal alerts enabled!', 'success');
         } catch (error) {
             console.error('Subscription failed:', error);
             showToast('Failed to enable notifications.', 'error');
@@ -782,8 +782,7 @@
             if (!response.ok) throw new Error('Failed to save subscription');
         } catch (error) {
             console.error('Error saving subscription:', error);
-            showToast('Saved locally – sign in later to sync.', 'success'); // Graceful fallback
-            // Optional: Store in localStorage for later sync
+            showToast('Saved locally – sign in later to sync.', 'success');
             localStorage.setItem('pushSubscription', JSON.stringify(subscription));
         }
     }
@@ -1184,7 +1183,7 @@
             showToast('Failed to load categories.', 'error');
             const container = document.querySelector('#trending-categories');
             if (container) {
-                container.innerHTML = '<p class="text-center text-[var(--neutral-gray)]">Failed to load categories.</p>'; // Fixed typo from previous
+                container.innerHTML = '<p class="text-center text-[var(--neutral-gray)]">Failed to load categories.</p>';
             }
         }
     }
@@ -1192,7 +1191,11 @@
     async function fetchStores() {
       try {
         const res = await fetch(`${API_BASE_URL}/store-products?limit=12`);
-        if (!res.ok) throw new Error('Failed to fetch products');
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`Fetch failed with status ${res.status}: ${errorText}`);
+          throw new Error(`Server error ${res.status}: ${errorText.substring(0, 100)}`);
+        }
         const data = await res.json();
         const products = data.products || [];
         const container = document.getElementById('stores');
@@ -1205,7 +1208,7 @@
           const store = product.store;
           const storeName = store?.shopName || 'Unknown Store';
           const storeId = store?._id || '';
-         
+       
           const price = product.price || 0;
           const dealPrice = product.dealPrice;
           const discount = dealPrice
@@ -1218,7 +1221,7 @@
           const hasImages = product.images && Array.isArray(product.images) && product.images.length > 0;
           return `
             <div class="bg-[var(--white)] rounded-xl p-3 shadow-sm product-card transition-all duration-300">
-             
+           
               <!-- Product Image -->
               <div class="relative product-image-container bg-[var(--white)] rounded-lg mb-2 overflow-hidden cursor-pointer"
                    onclick="showFullImage(${JSON.stringify(product.images || [{ url: PLACEHOLDER_IMAGE }])}, 0)">
@@ -1287,7 +1290,7 @@
         if (container) {
           container.innerHTML = `
             <div class="text-center py-8">
-              <p class="text-red-500 font-medium">Failed to load stores</p>
+              <p class="text-red-500 font-medium">Failed to load top sellers: ${error.message}</p>
               <button onclick="fetchStores()" class="mt-3 text-[var(--primary-purple)] underline text-sm">
                 Try Again
               </button>
@@ -1355,28 +1358,23 @@
         });
     }
     // NEW: Service Worker Registration & Update Handling
-    // Registers SW if supported; handles updates with user prompt via your toast.
     async function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
                 const registration = await navigator.serviceWorker.register('/sw.js');
                 console.log('SW registered:', registration.scope);
-                // Listen for updatefound - new SW version detected (e.g., after deploy)
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
                     if (newWorker) {
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed') {
-                                // NEW content available - prompt user
                                 if (navigator.serviceWorker.controller) {
-                                    // Already active SW exists, so this is an update
-                                    showToast('New deals & features ready! Tap to update.', 'success', true); // true = update toast
+                                    showToast('New deals & features ready! Tap to update.', 'success', true);
                                 }
                             }
                         });
                     }
                 });
-                // Handle message from SW (e.g., skipWaiting after user taps update)
                 navigator.serviceWorker.addEventListener('message', (event) => {
                     if (event.data === 'skipWaiting') {
                         registration.waiting?.postMessage('skipWaiting');
@@ -1397,7 +1395,7 @@
         fetchProducts('#price-tab-products', 'priceRange=0-5000&isUnder5k=true');
         fetchCategories();
         fetchCart();
-        fetchStores(); // Now shows PRODUCTS
+        fetchStores();
         setupSearch();
         setupPriceTabs();
         setupRippleEffect();
@@ -1405,7 +1403,6 @@
         setupModal();
         setupImageModal();
         updateOgImage();
-        // NEW: Register SW after DOM load
         registerServiceWorker();
     });
 </script>
