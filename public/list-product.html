@@ -237,7 +237,7 @@
     feather.replace();
 
     // ------------------- CONFIG -------------------
-    const API_BASE_URL = 'http://localhost:5000/api/store-products';
+    const API_BASE_URL = 'https://bazukastore.com/api/store-products';
     const PLACEHOLDER_IMAGE = 'https://placehold.co/60x60?text=No+Product';
     // ------------------------------------------------
 
@@ -325,7 +325,7 @@
     async function loadUserStore() {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5000/api/stores/my-store`, {
+            const res = await fetch(`https://bazukastore.com/api/stores/my-store`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.status === 404) return null;
@@ -351,7 +351,7 @@
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5000/api/stores/my-store`, {
+            const res = await fetch(`https://bazukastore.com/api/stores/my-store`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -400,7 +400,7 @@
     async function loadCategories() {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5000/api/categories`, {
+            const res = await fetch(`https://bazukastore.com/api/categories`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Failed to load categories');
@@ -785,4 +785,3 @@ async function addProduct(e) {
 </script>
 </body>
 </html>
-
