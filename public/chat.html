@@ -8,18 +8,18 @@
     <meta name="keywords" content="chat, messaging, Bazuka Store, Nigeria e-commerce">
     <meta name="author" content="Bazuka Store">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="http://localhost:5000/chat.html">
+    <link rel="canonical" href="https://bazukastore.com/chat.html">
     <meta property="og:title" content="Chat - Bazuka Store">
     <meta property="og:description" content="Chat with other users on Bazuka Store.">
-    <meta property="og:image" content="http://localhost:5000/images/fallback-preview-image.jpg">
+    <meta property="og:image" content="https://bazukastore.com/images/fallback-preview-image.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:url" content="http://localhost:5000/chat.html">
+    <meta property="og:url" content="https://bazukastore.com/chat.html">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Chat - Bazuka Store">
     <meta name="twitter:description" content="Chat with other users on Bazuka Store.">
-    <meta name="twitter:image" content="http://localhost:5000/images/fallback-preview-image.jpg">
+    <meta name="twitter:image" content="https://bazukastore.com/images/fallback-preview-image.jpg">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -182,9 +182,9 @@
 <script>
     feather.replace();
 
-    const API_BASE_URL = 'http://localhost:5000/api';
+    const API_BASE_URL = 'https://bazukastore.com/api';
     const isLocal = window.location.host.includes('localhost');
-    const SOCKET_URL = isLocal ? `ws://${window.location.host.replace(/:\d+$/, ':5000')}` : 'http://localhost:5000';
+    const SOCKET_URL = isLocal ? `ws://${window.location.host.replace(/:\d+$/, ':5000')}` : 'https://bazukastore.com';
     const socket = io(SOCKET_URL, {
         withCredentials: true,
         auth: { token: `Bearer ${localStorage.getItem('token') || ''}` },
