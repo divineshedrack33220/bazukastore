@@ -13,21 +13,21 @@
     <meta name="geo.placename" content="Nigeria">
     <meta name="geo.position" content="9.0820;8.6753">
     <meta name="ICBM" content="9.0820, 8.6753">
-    <link rel="alternate" hreflang="en-ng" href="http://localhost:5000/">
-    <link rel="canonical" href="http://localhost:5000/">
-    <link rel="sitemap" href="http://localhost:5000/sitemap.xml">
+    <link rel="alternate" hreflang="en-ng" href="https://bazukastore.com/">
+    <link rel="canonical" href="https://bazukastore.com/">
+    <link rel="sitemap" href="https://bazukastore.com/sitemap.xml">
     <meta property="og:title" content="Bazuka Store - Shop Amazing Deals in Nigeria">
     <meta property="og:description" content="Discover flash sales, electronics, fashion, and more at Bazuka Store. Shop now for deals under ₦10,000!">
-    <meta property="og:image" content="http://localhost:5000/images/fallback-preview-image.jpg" id="og-image">
+    <meta property="og:image" content="https://bazukastore.com/images/fallback-preview-image.jpg" id="og-image">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:url" content="http://localhost:5000/">
+    <meta property="og:url" content="https://bazukastore.com/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Bazuka Store">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Bazuka Store - Shop Amazing Deals in Nigeria">
     <meta name="twitter:description" content="Discover flash sales, electronics, fashion,and more at Bazuka Store. Shop now for deals under ₦10,000!">
-    <meta name="twitter:image" content="http://localhost:5000/images/fallback-preview-image.jpg">
+    <meta name="twitter:image" content="https://bazukastore.com/images/fallback-preview-image.jpg">
     <!-- NEW: PWA Meta Tags -->
     <!-- Theme color for browser UI (matches your primary-purple) -->
     <meta name="theme-color" content="#6C5CE7">
@@ -43,18 +43,18 @@
             {
                 "@type": "WebSite",
                 "name": "Bazuka Store",
-                "url": "http://localhost:5000/",
+                "url": "https://bazukastore.com/",
                 "potentialAction": {
                     "@type": "SearchAction",
-                    "target": "http://localhost:5000/products.html?search={search_term_string}",
+                    "target": "https://bazukastore.com/products.html?search={search_term_string}",
                     "query-input": "required name=search_term_string"
                 }
             },
             {
                 "@type": "Organization",
                 "name": "Bazuka Store",
-                "url": "http://localhost:5000/",
-                "logo": "http://localhost:5000/images/logo.png",
+                "url": "https://bazukastore.com/",
+                "logo": "https://bazukastore.com/images/logo.png",
                 "sameAs": [
                     "https://www.facebook.com/bazukastore",
                     "https://www.twitter.com/bazukastore",
@@ -64,7 +64,7 @@
                     "@type": "ContactPoint",
                     "contactType": "Customer Service",
                     "email": "support@bazukastore.com",
-                    "url": "http://localhost:5000/contact.html"
+                    "url": "https://bazukastore.com/contact.html"
                 }
             },
             {
@@ -77,8 +77,8 @@
                             "@type": "Product",
                             "name": "Flash Sale Products",
                             "description": "Exclusive flash sale items under ₦7,500 with limited-time offers.",
-                            "url": "http://localhost:5000/products.html?isFlashDeal=true",
-                            "image": "http://localhost:5000/images/flash-sale-product.jpg",
+                            "url": "https://bazukastore.com/products.html?isFlashDeal=true",
+                            "image": "https://bazukastore.com/images/flash-sale-product.jpg",
                             "offers": {
                                 "@type": "Offer",
                                 "price": "7500",
@@ -93,8 +93,8 @@
                             "@type": "Product",
                             "name": "Weekend Deal Products",
                             "description": "Special weekend deals under ₦5,000, available every Saturday.",
-                            "url": "http://localhost:5000/products.html?isFlashDeal=true",
-                            "image": "http://localhost:5000/images/weekend-deal-product.jpg",
+                            "url": "https://bazukastore.com/products.html?isFlashDeal=true",
+                            "image": "https://bazukastore.com/images/weekend-deal-product.jpg",
                             "offers": {
                                 "@type": "Offer",
                                 "price": "5000",
@@ -556,7 +556,7 @@
     } else {
         console.warn('Lucide Icons library not loaded.');
     }
-    const API_BASE_URL = 'http://localhost:5000/api';
+    const API_BASE_URL = 'https://bazukastore.com/api';
     let currentImageIndex = 0;
     let productImages = [];
     const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/150?text=No+Image';
@@ -573,7 +573,7 @@
             const products = Array.isArray(data) ? data : data.products || [];
             const ogImageMeta = document.getElementById('og-image');
             const twitterImageMeta = document.querySelector('meta[name="twitter:image"]');
-            const imageUrl = products[0]?.images?.[0]?.url || 'http://localhost:5000/images/fallback-preview-image.jpg';
+            const imageUrl = products[0]?.images?.[0]?.url || 'https://bazukastore.com/images/fallback-preview-image.jpg';
             if (ogImageMeta) {
                 ogImageMeta.content = imageUrl;
             }
